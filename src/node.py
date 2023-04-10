@@ -15,6 +15,7 @@
 
 
 import logging
+import json
 import subprocess
 from exceptions import *
 
@@ -197,7 +198,7 @@ class Node:
     #   Returns variable that contains stdout and stderr (more information in subprocess documentation)
     def run(self, command: str) -> str:
         try:
-            return subprocess.run(f'docker exec {self.getNodeName()} '+command, shell=True, capture_output=True)
+            return subprocess.run(f'docker exec {self.getNodeName()} bash -c \"' + command + '\"', shell=True, capture_output=True)
         except Exception as ex:
             logging.error(f"Error executing command {command} in {self.getNodeName()}: {str(ex)}")
             raise Exception(f"Error executing command {command} in {self.getNodeName()}: {str(ex)}")
@@ -208,7 +209,7 @@ class Node:
     # Return:
     #   Returns a list with the variable that contains stdout and stderr (more information in subprocess documentation)
     def runs(self, commands: list) -> list:
-        return [self.run(command) for command in commands]
+        return [self.run(command) for command in commands]     
 
     # Brief: Copy local file into container
     # Params:
