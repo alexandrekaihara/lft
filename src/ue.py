@@ -29,7 +29,7 @@ class UE(Node):
         super().run(f"{self.buildDir}/srsue/src/srsue --rf.device_name=zmq --rf.device_args=\"tx_port=tcp://{transmitterIp}:{transmitterPort},rx_port=tcp://{receiverIp}:{receiverPort},id=ue,base_srate=23.04e6\" > {self.buildDir}/ue.out &")
     
     def stop(self) -> None:
-        super.run(f"pkill -f -9 srsue")
+        self.run(f"pkill -f -9 srsue")
 
     def setDefaultUEConfigPath(self, path: str) -> None:
         self.defaultUEConfigPath = path
@@ -41,3 +41,13 @@ class UE(Node):
         if destinationPath == '':
             destinationPath = self.defaultUEConfigPath
         super().copyLocalToContainer(filePath, destinationPath)
+
+    def setUEID(self, ID: str, ueConfigPath='') -> None:
+        if ueConfigPath == '':
+            ueConfigPath = self.defaultUEConfigPath
+        super().run(f"sed -i 's/^imsi.*=.*/imsi = {ID}/' {ueConfigPath}")
+
+    def setAuthenticationAlgorithm(self, algorithm: str, ueConfigPath='') -> None:
+        if ueConfigPath == '':
+            ueConfigPath = self.defaultUEConfigPath
+        super().run(f"sed -i \'s/^algo =.*/algo = {algorithm}/\' {ueConfigPath}")

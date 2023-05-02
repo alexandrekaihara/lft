@@ -20,6 +20,7 @@ class EPC(Node):
     def __init__(self, name: str):
         super().__init__(name)
         self.defaultEPCConfigPath = '/etc/srsran/epc.conf'
+        self.defaultEPCUserDbPath = '/etc/srsran/user_db.csv'
         self.buildDir = "/srsRAN/build"
 
     def instantiate(self, image='alexandremitsurukaihara/lft:srsran') -> None:
@@ -52,3 +53,11 @@ class EPC(Node):
         if epcConfigPath == '':
             epcConfigPath = self.defaultEPCConfigPath
         self.run(f"sed -i \'s/^sgi_if_addr =.*/sgi_if_addr = {ip}/\' {epcConfigPath}")
+
+    # Each UE ID must be unique and must be set in "imsi" parameter located inside the ue.conf
+    def addNewUE(self, name: str, ID: str, IP="dynamic", configFilePath='') -> None:
+        if configFilePath == '':
+            configFilePath = self.defaultEPCUserDbPath
+        self.run(f"echo \'{name},mil,{ID},00112233445566778899aabbccddeeff,opc,63bfa50ee6523365ff14c1f45f88737d,9001,000000001234,7,{IP}\' >> {configFilePath}")
+
+    

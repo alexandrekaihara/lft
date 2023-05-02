@@ -18,6 +18,7 @@ import logging
 import json
 import subprocess
 from exceptions import *
+import json
 
 
 # Just to enable the declaration of Type in methods
@@ -44,6 +45,7 @@ class Node:
     #   None
     def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dockerCommand = '', dns='8.8.8.8') -> None:
         if not self.__imageExists(dockerImage):
+            print(f"Image {dockerImage} not found, pulling from remote repository...")
             self.__pullImage(dockerImage)
         try:    
             if dockerCommand == '':
@@ -61,8 +63,9 @@ class Node:
     # Return:
     #   True if the image exists locally
     def __imageExists(self, image: str) -> bool:
-        out = self.run(f"docker inspect --type=image {image}")
-        if '[]' in out.stdout.decode('utf-8'): return False
+        out = subprocess.run(f"docker inspect --type=image {image}", shell=True, capture_output=True)
+        outJson = json.loads(out.stdout.decode('utf-8'))
+        if outJson == []: return False
         else: return True
             
     # Brief: Pulls the image from a Docker Hub repository
@@ -198,7 +201,10 @@ class Node:
     #   Returns variable that contains stdout and stderr (more information in subprocess documentation)
     def run(self, command: str) -> str:
         try:
-            return subprocess.run(f'docker exec {self.getNodeName()} bash -c \"' + command + '\"', shell=True, capture_output=True)
+            command = command.replace('\"', 'DOUBLEQUOTESDELIMITER')
+            command = f"docker exec {self.getNodeName()} bash -c \"" + command + f"\""
+            command = command.replace('DOUBLEQUOTESDELIMITER','\\"')
+            return subprocess.Popen(command, shell=True)#, capture_output=True)
         except Exception as ex:
             logging.error(f"Error executing command {command} in {self.getNodeName()}: {str(ex)}")
             raise Exception(f"Error executing command {command} in {self.getNodeName()}: {str(ex)}")

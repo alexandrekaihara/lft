@@ -16,7 +16,7 @@
 #
 
 
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 RUN apt update \
 &&  RUNLEVEL=1 apt install -y --no-install-recommends sudo net-tools iproute2 iputils-ping iptables nano software-properties-common wget unzip
 
@@ -47,7 +47,8 @@ RUN mkdir /etc/srsRAN && \
     cp /srsRAN/srsenb/rr.conf.example /etc/srsran/rr.conf && \
     cp /srsRAN/srsenb/sib.conf.example /etc/srsran/sib.conf && \
     cp /srsRAN/srsepc/epc.conf.example /etc/srsran/epc.conf && \
-    cp /srsRAN/srsepc/user_db.csv.example /etc/srsran/user_db.csv
+    cp /srsRAN/srsepc/user_db.csv.example /etc/srsran/user_db.csv && \
+    > /etc/srsran/user_db.csv
 
 COPY onboot.sh /srsRAN/build/
 COPY multiUE.py /srsRAN/build/
