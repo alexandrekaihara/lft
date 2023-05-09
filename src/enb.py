@@ -61,7 +61,7 @@ class EnB(Node):
         super().run(f"python3 {multiUEPath}")
 
     def stopGnuRadioMultiUE(self) -> None:
-        super().run(f"pypkill -f -9 multiUE")
+        super().run(f"pkill -f -9 multiUE")
 
     def setMultiUEEnBAddr(self, IP: str, txPort: int, rxPort: int, multiUEPath='') -> None:
         if multiUEPath == '':

@@ -53,6 +53,8 @@ RUN mkdir /etc/srsRAN && \
 COPY onboot.sh /srsRAN/build/
 COPY multiUE.py /srsRAN/build/
 
+RUN apt install iperf3 -y
+
 RUN chmod +x /srsRAN/build/onboot.sh
 CMD ["./srsRAN/build/onboot.sh"] 
 
