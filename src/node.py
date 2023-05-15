@@ -100,12 +100,11 @@ class Node:
     #   String node: Reference to the node it is connected to this container to discover the intereface to set the ip to
     # Return:
     #   None
-    def setIp(self, ip: str, mask: int, node: Node) -> None:
-        if not self.__isConnected(node):
-            logging.error(f"Incorrect node reference for {node.getNodeName()}, connect {self.getNodeName()} first")
-            raise Exception(f"Incorrect node reference for {node.getNodeName()}, connect {self.getNodeName()} first")
+    def setIp(self, ip: str, mask: int, interfaceName: str) -> None:
+        if not self.__interfaceExists(interfaceName):
+            logging.error(f"Network interface {interfaceName} does not exist")
+            raise Exception(f"Network interface {interfaceName} does not exist")
 
-        interfaceName = self.__getThisInterfaceName(node)
         self.__setIp(ip, mask, interfaceName)
 
     # Brief: Creates Linux virtual interfaces and connects peers to the nodes, in case of one of the nodes is a switch, it also creates a port in bridge
@@ -113,42 +112,41 @@ class Node:
     #   Node node: Reference of another node to connect to
     # Return:
     #   None
-    def connect(self, node: Node) -> None:
-        if self.__isConnected(node):
-            logging.error(f"Cannot connect to {node.getNodeName()}, node already connected")
-            raise Exception(f"Cannot connect to {node.getNodeName()}, node already connected")
+    def connect(self, node: Node, interfaceName: str, peerInterfaceName: str) -> None:
+        if self.__interfaceExists(interfaceName) or self.__interfaceExists(peerInterfaceName):
+            logging.error(f"Cannot connect to {node.getNodeName()}, {interfaceName} or {peerInterfaceName} already exists")
+            raise Exception(f"Cannot connect to {node.getNodeName()}, {interfaceName} or {peerInterfaceName} already exists")
 
-        peer1Name = self.__getThisInterfaceName(node)
-        peer2Name = self.__getOtherInterfaceName(node)
-        
-        self.__create(peer1Name, peer2Name)
-        self.__setInterface(self.getNodeName(), peer1Name)
-        self.__setInterface(node.getNodeName(), peer2Name)
+        self.__create(interfaceName, peerInterfaceName)
+        self.__setInterface(self.getNodeName(), interfaceName)
+        self.__setInterface(node.getNodeName(), peerInterfaceName)
 
         if self.__class__.__name__ == 'Switch':
             self._Switch__createPort(self.getNodeName(), self.__getThisInterfaceName(node))
         if node.__class__.__name__ == 'Switch':
             node._Switch__createPort(node.getNodeName(), node.__getThisInterfaceName(self))
-
     
-    def connectToInternet(self, hostIP: str, hostMask: int) -> None:
-        peer1Name = f"veth-{self.getNodeName()}-host"
-        peer2Name = f"veth-host-{self.getNodeName()}"
-
-        self.__create(peer1Name, peer2Name)
-        self.__setInterface(self.getNodeName(), peer1Name)
+    def connectToInternet(self, hostIP: str, hostMask: int, interfaceName: str, hostInterfaceName: str) -> None:
+        self.__create(interfaceName, hostInterfaceName)
+        self.__setInterface(self.getNodeName(), interfaceName)
         if self.__class__.__name__ == 'Switch':
-            self._Switch__createPort(self.getNodeName(), peer1Name)
+            self._Switch__createPort(self.getNodeName(), interfaceName)
         
-        subprocess.run(f"ip link set {peer2Name} up", shell=True)
-        subprocess.run(f"ip addr add {hostIP}/{hostMask} dev {peer2Name}", shell=True)
+        subprocess.run(f"ip link set {hostInterfaceName} up", shell=True)
+        subprocess.run(f"ip addr add {hostIP}/{hostMask} dev {hostInterfaceName}", shell=True)
 
         # Enable forwading packets from host to interface
-        hostGatewayInterface = subprocess.run(f"route | grep \'^default' | grep -o '[^ ]*$\'", shell=True, capture_output=True).stdout.decode('utf8').replace("\n", '')
-        subprocess.run(f"iptables -t nat -I POSTROUTING -o {hostGatewayInterface} -j MASQUERADE", shell=True)
-        subprocess.run(f"iptables -t nat -I POSTROUTING -o {peer2Name} -j MASQUERADE", shell=True)
-        subprocess.run(f"iptables -A FORWARD -i {peer2Name} -o {hostGatewayInterface} -j ACCEPT", shell=True)
-        subprocess.run(f"iptables -A FORWARD -i {hostGatewayInterface} -o {peer2Name} -j ACCEPT", shell=True)
+        hostGatewayInterfaceName = subprocess.run(f"route | grep \'^default\' | grep -o \'[^ ]*$\'", shell=True, capture_output=True).stdout.decode('utf8').replace("\n", '')
+        subprocess.run(f"iptables -t nat -I POSTROUTING -o {hostGatewayInterfaceName} -j MASQUERADE", shell=True)
+        subprocess.run(f"iptables -t nat -I POSTROUTING -o {hostInterfaceName} -j MASQUERADE", shell=True)
+        subprocess.run(f"iptables -A FORWARD -i {hostInterfaceName} -o {hostGatewayInterfaceName} -j ACCEPT", shell=True)
+        subprocess.run(f"iptables -A FORWARD -i {hostGatewayInterfaceName} -o {hostInterfaceName} -j ACCEPT", shell=True)
+
+    def enableForwarding(self, interfaceName: str, otherInterfaceName: str) -> None:
+        self.run(f"iptables -t nat -I POSTROUTING -o {otherInterfaceName} -j MASQUERADE")
+        self.run(f"iptables -t nat -I POSTROUTING -o {interfaceName} -j MASQUERADE")
+        self.run(f"iptables -A FORWARD -i {interfaceName} -o {otherInterfaceName} -j ACCEPT")
+        self.run(f"iptables -A FORWARD -i {otherInterfaceName} -o {interfaceName} -j ACCEPT")
 
     # Brief: Returns the value of the container name
     # Params:
@@ -164,16 +162,15 @@ class Node:
     #   String interfaceName: Name of the interface to forward to
     # Return:
     #   None
-    def addRoute(self, ip: str, mask: int,  node: Node):
-        if not self.__isConnected(node):
-            logging.error(f"Incorrect node reference for {node.getNodeName()}, connect {self.getNodeName()} first")
-            raise Exception(f"Incorrect node reference for {node.getNodeName()}, connect {self.getNodeName()} first")
-        peerName = self.__getThisInterfaceName(node)
+    def addRoute(self, ip: str, mask: int,  interfaceName: str):
+        if not self.__interfaceExists(interfaceName):
+            logging.error(f"Network interface {interfaceName} does not exist")
+            raise Exception(f"Network interface {interfaceName} does not exist")
         try:
-            subprocess.run(f"docker exec {self.getNodeName()} ip route add {ip}/{mask} dev {peerName}", shell=True)
+            subprocess.run(f"docker exec {self.getNodeName()} ip route add {ip}/{mask} dev {interfaceName}", shell=True)
         except Exception as ex:
-            logging.error(f"Error adding route {ip}/{mask} via {peerName} in {self.getNodeName()}: {str(ex)}")
-            raise Exception(f"Error adding route {ip}/{mask} via {peerName} in {self.getNodeName()}: {str(ex)}")
+            logging.error(f"Error adding route {ip}/{mask} via {interfaceName} in {self.getNodeName()}: {str(ex)}")
+            raise Exception(f"Error adding route {ip}/{mask} via {interfaceName} in {self.getNodeName()}: {str(ex)}")
 
     # Brief: Set Ip to an interface (the ip must be set only after connecting it to a container, because)
     # Params:
@@ -181,18 +178,17 @@ class Node:
     #   String node: Reference to node that will serve as the first hop to forward the packets to the gateway, this reference node must be already connected to it
     # Return:
     #   None
-    def setDefaultGateway(self, destinationIp: str, node: Node) -> None:
-        if not self.__isConnected(node):
-            logging.error(f"Incorrect node reference for {node.getNodeName()}, connect {self.getNodeName()} first")
-            raise Exception(f"Incorrect node reference for {node.getNodeName()}, connect {self.getNodeName()} first")
+    def setDefaultGateway(self, destinationIp: str, interfaceName: str) -> None:
+        if not self.__interfaceExists(interfaceName):
+            logging.error(f"Network interface {interfaceName} does not exist")
+            raise Exception(f"Network interface {interfaceName} does not exist")
         
-        self.addRoute(destinationIp, 32, node)
-        outputInterface = self.__getThisInterfaceName(node)
+        self.addRoute(destinationIp, 32, interfaceName)
         try:
-            subprocess.run(f"docker exec {self.getNodeName()} route add default gw {destinationIp} dev {outputInterface}", shell=True)
+            subprocess.run(f"docker exec {self.getNodeName()} route add default gw {destinationIp} dev {interfaceName}", shell=True)
         except Exception as ex:
-            logging.error(f"Error while setting gateway {destinationIp} on device {outputInterface} in {self.getNodeName()}: {str(ex)}")
-            raise Exception(f"Error while setting gateway {destinationIp} on device {outputInterface} in {self.getNodeName()}: {str(ex)}")
+            logging.error(f"Error while setting gateway {destinationIp} on device {interfaceName} in {self.getNodeName()}: {str(ex)}")
+            raise Exception(f"Error while setting gateway {destinationIp} on device {interfaceName} in {self.getNodeName()}: {str(ex)}")
 
     # Brief: Runs a command inside the container
     # Params:
@@ -240,6 +236,12 @@ class Node:
         except Exception as ex:
             logging.error(f"Error copying file from {path} to {destPath}: {str(ex)}")
             raise Exception(f"Error copying file from {path} to {destPath}: {str(ex)}")
+
+    def __interfaceExists(self, interfaceName: str) -> bool:
+        out = subprocess.run(f"docker exec {self.getNodeName()} ip link | grep {interfaceName}", shell=True, capture_output=True)
+        if out.stdout.decode("utf8") != '':
+            return True
+        return False
 
     # Brief: Returns the name of the interface to be created on this node
     # Params:
@@ -308,18 +310,6 @@ class Node:
         except Exception as ex:
             logging.error(f"Error while deleting the host {self.getNodeName()}: {str(ex)}")
             raise Exception(f"Error while deleting the host {self.getNodeName()}: {str(ex)}")
-
-    # Brief: Verifies if there is a connection with a node
-    # Params:
-    #   Node node: Node to check connection
-    # Return:
-    #   Return true if it is connected or false otherwise
-    def __isConnected(self, node: Node) -> bool:
-        interfaceName = self.__getThisInterfaceName(node)
-        interfaces = self.__getAllIntefaces()
-        for interface in interfaces: 
-            if interface == interfaceName: return True
-        return False
 
     # Brief: Get all interfaces names
     # Params:
