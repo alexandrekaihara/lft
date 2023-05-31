@@ -15,6 +15,7 @@
 
 
 import logging
+from constants import *
 import json
 import subprocess
 from exceptions import *
@@ -35,26 +36,70 @@ class Node:
     #   None
     def __init__(self, nodeName: str) -> None:
         self.__nodeName = nodeName
+        self.memory = ''
+        self.cpu = ''
 
-    # OBS: Create nodes with short name lenght due to a restriction on a iproute2 to define and create interfaces. Peers names can't have more than 14 chars
+    # OBS: Create nodes with short name lenght due to a restriction on a iproute2 to define and create interfaces.
     # Brief: Instantiate the container
     # Params:
     #   String dockerImage: Name of the container of a local image or in a Docker Hub repository
     #   String DockerCommand: String to be used to instantiate the container instead of the standard command
+    #   String memory: It is the amount of memory to be allocated to the container (e.g. "512m", which is 512 MB)
+    #   String cpus: It is the amount of cpu dedicated to the container, can be a fractional value such as "0.5"
     # Return:
     #   None
-    def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dockerCommand = '', dns='8.8.8.8') -> None:
+    def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dns='8.8.8.8', memory='', cpus='') -> None:        
+        def addDockerRun(command):
+            command.append(DOCKER_RUN)
+
+        def addNetwork(command):
+            command.append(NETWORK + "=none")
+
+        def addContainerName(command):
+            command.append(NAME + '=' + self.getNodeName())
+
+        def addPrivileged(command):
+            command.append(PRIVILEGED)
+
+        def addDNS(command, dns):
+            command.append(DNS + '=' + dns)
+
+        def addContainerMemory(command, memory):
+            if memory != '': 
+                command.append(MEMORY + '=' + memory)
+
+        def addContainerCPUs(command, cpus):
+            if cpus != '': 
+                command.append(CPUS + '=' + cpus)
+
+        def addContainerImage(command, image):
+            command.append(image)
+
+        def buildCommand(command):
+            return " ".join(command)
+
+        
         if not self.__imageExists(dockerImage):
-            print(f"Image {dockerImage} not found, pulling from remote repository...")
+            logging.info(f"Image {dockerImage} not found, pulling from remote repository...")
             self.__pullImage(dockerImage)
+        
+        command = []
+        addDockerRun(command)
+        addNetwork(command)
+        addContainerName(command)
+        addPrivileged(command)
+        addDNS(command, dns)
+        addContainerMemory(command, memory)
+        addContainerCPUs(command, cpus)
+        addContainerImage(command, dockerImage)
+        print(buildCommand(command))
+    
         try:    
-            if dockerCommand == '':
-                subprocess.run(f"docker run -d --network=none --privileged --name={self.getNodeName()} --dns={dns} {dockerImage}", shell=True, capture_output=True)
-            else:
-                subprocess.run(dockerCommand, shell=True, capture_output=True)
+            subprocess.run(buildCommand(command), shell=True, capture_output=True)
         except Exception as ex:
             logging.error(f"Error while criating the container {self.getNodeName()}: {str(ex)}")
             raise NodeInstantiationFailed(f"Error while criating the container {self.getNodeName()}: {str(ex)}")
+        
         self.__enableNamespace(self.getNodeName())
 
     # Brief: Verifies if the image exists
@@ -67,6 +112,7 @@ class Node:
         outJson = json.loads(out.stdout.decode('utf-8'))
         if outJson == []: return False
         else: return True
+
             
     # Brief: Pulls the image from a Docker Hub repository
     # Params:
