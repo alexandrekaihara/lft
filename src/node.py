@@ -52,6 +52,9 @@ class Node:
         def addDockerRun(command):
             command.append(DOCKER_RUN)
 
+        def addRunOptions(command):
+            command.append("-d")
+
         def addNetwork(command):
             command.append(NETWORK + "=none")
 
@@ -85,6 +88,7 @@ class Node:
         
         command = []
         addDockerRun(command)
+        addRunOptions(command)
         addNetwork(command)
         addContainerName(command)
         addPrivileged(command)
