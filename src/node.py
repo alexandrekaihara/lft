@@ -92,7 +92,6 @@ class Node:
         addContainerMemory(command, memory)
         addContainerCPUs(command, cpus)
         addContainerImage(command, dockerImage)
-        print(buildCommand(command))
     
         try:    
             subprocess.run(buildCommand(command), shell=True, capture_output=True)
