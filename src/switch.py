@@ -87,8 +87,9 @@ class Switch(Node):
     #   int mask: Integer that represents the network mask
     #   String node: Reference to the node it is connected to this container to discover the intereface to set the ip to
     # Return:
-    def setIp(self, ip: str, mask: int) -> None:
-        interfaceName = self.getNodeName()
+    def setIp(self, ip: str, mask: int, interfaceName='') -> None:
+        if interfaceName == '':
+            interfaceName = self.getNodeName()
         self._Node__setIp(ip, mask, interfaceName)
     
 

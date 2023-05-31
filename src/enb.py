@@ -63,19 +63,19 @@ class EnB(Node):
     def stopGnuRadioMultiUE(self) -> None:
         super().run(f"pkill -f -9 multiUE")
 
-    def setMultiUEEnBAddr(self, IP: str, txPort: int, rxPort: int, multiUEPath='') -> None:
+    def setMultiUEEnBAddr(self, txIP: str, txPort: int, rxIP: str, rxPort: int, multiUEPath='') -> None:
         if multiUEPath == '':
             multiUEPath = self.defaultMultiUEPath
-        self.run(f"sed -i \"/zeromq_req_source_2/s@\'tcp://.*\'@\'tcp://{IP}:{txPort}\'@\" {multiUEPath}")
-        self.run(f"sed -i \"/zeromq_rep_sink_0/s@'tcp://.*'@'tcp://{IP}:{rxPort}'@\" {multiUEPath}")
+        self.run(f"sed -i \"/zeromq_req_source_2/s@\'tcp://.*\'@\'tcp://{txIP}:{txPort}\'@\" {multiUEPath}")
+        self.run(f"sed -i \"/zeromq_rep_sink_0/s@'tcp://.*'@'tcp://{rxIP}:{rxPort}'@\" {multiUEPath}")
 
-    def setMultiUEUE1Addr(self, eNBIP: str, UEIP: str, txPort: int, rxPort: int, multiUEPath='') -> None:
+    def setMultiUEUE1Addr(self, UEIP: str, txPort: int, eNBIP: str, rxPort: int, multiUEPath='') -> None:
         if multiUEPath == '':
             multiUEPath = self.defaultMultiUEPath
         self.run(f"sed -i \"/zeromq_req_source_1/s@'tcp://.*'@'tcp://{UEIP}:{txPort}'@\" {multiUEPath}")
         self.run(f"sed -i \"/zeromq_rep_sink_2/s@'tcp://.*'@'tcp://{eNBIP}:{rxPort}'@\" {multiUEPath}")
 
-    def setMultiUEUE2Addr(self, eNBIP: str, UEIP: str, txPort: int, rxPort: int, multiUEPath='') -> None:
+    def setMultiUEUE2Addr(self, UEIP: str, txPort: int, eNBIP: str, rxPort: int, multiUEPath='') -> None:
         if multiUEPath == '':
             multiUEPath = self.defaultMultiUEPath
         self.run(f"sed -i \"/zeromq_req_source_0/s@'tcp://.*'@'tcp://{UEIP}:{txPort}'@\" {multiUEPath}")

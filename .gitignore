@@ -1,0 +1,22 @@
+demonstration/__pycache__
+src/Backups
+src/Cache
+src/CachedData
+src/CachedProfilesData/
+src/Code Cache/
+src/Cookies
+src/Cookies-journal
+src/Crashpad/
+src/Dictionaries/
+src/GPUCache/
+src/Local Storage/
+src/Network Persistent State
+src/Preferences
+src/Session Storage/
+src/TransportSecurity
+src/User/
+src/__pycache__/
+src/languagepacks.json
+src/logs/
+src/machineid
+
