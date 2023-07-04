@@ -19,7 +19,7 @@
 FROM centos:centos7
 
 RUN yum -y update && \
-        yum -y install epel-release && \
+        yum -y install epel-release openssh-server && \
         yum -y install http://software.internet2.edu/rpms/el7/x86_64/latest/packages/perfsonar-repo-0.11-1.noarch.rpm && \
         yum clean all
 

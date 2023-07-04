@@ -17,6 +17,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# docker run -d --privileged alexandremitsurukaihara/lft:perfonar-toolkit
+# docker exec -it {containerid} /bin/bash
+
 /usr/lib/perfsonar/scripts/service_watcher
 
 systemctl start pscheduler-scheduler

@@ -48,7 +48,7 @@ class Node:
     #   String cpus: It is the amount of cpu dedicated to the container, can be a fractional value such as "0.5"
     # Return:
     #   None
-    def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dns='8.8.8.8', memory='', cpus='') -> None:        
+    def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dockerCommand='', dns='8.8.8.8', memory='', cpus='') -> None:        
         def addDockerRun(command):
             command.append(DOCKER_RUN)
 
@@ -86,19 +86,23 @@ class Node:
             logging.info(f"Image {dockerImage} not found, pulling from remote repository...")
             self.__pullImage(dockerImage)
         
-        command = []
-        addDockerRun(command)
-        addRunOptions(command)
-        addNetwork(command)
-        addContainerName(command)
-        addPrivileged(command)
-        addDNS(command, dns)
-        addContainerMemory(command, memory)
-        addContainerCPUs(command, cpus)
-        addContainerImage(command, dockerImage)
+        if dockerCommand == '':
+            command = []
+            addDockerRun(command)
+            addRunOptions(command)
+            addNetwork(command)
+            addContainerName(command)
+            addPrivileged(command)
+            addDNS(command, dns)
+            addContainerMemory(command, memory)
+            addContainerCPUs(command, cpus)
+            addContainerImage(command, dockerImage)
     
         try:    
-            subprocess.run(buildCommand(command), shell=True, capture_output=True)
+            if dockerCommand != '':
+                subprocess.run(dockerCommand, shell=True, capture_output=True)            
+            else:
+                subprocess.run(buildCommand(command), shell=True, capture_output=True)
         except Exception as ex:
             logging.error(f"Error while criating the container {self.getNodeName()}: {str(ex)}")
             raise NodeInstantiationFailed(f"Error while criating the container {self.getNodeName()}: {str(ex)}")
