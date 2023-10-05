@@ -23,15 +23,12 @@ def createSwitch():
     print("[Experiment] Creating switch s2")
     print("... Instatiating container")
     s2.instantiate()
-    #print("... Setting switch's IP address")
-    #s1.setIp("172.17.0.3", 16, "s1c1")
     print("[Experiment] Switches created successfully")
 
 def createONOS():
 
     print("[Experiment] Creating ONOS Controller")
     onos.instantiate(dockerImage="onosproject/onos", dockerCommand="docker run -dit -p 8181:8181 -p 8101:8101 -p 5005:5005 -p 830:830 --privileged --name=c1 onosproject/onos")
-    #print("... Initializing ONOS Controller") #onos.run ...
 
 
 def signal_handler(sig, frame):
@@ -56,10 +53,6 @@ try:
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
     createSwitch()
-    #print(" ... Connecting c1 to switch s1")
-    #s1.connect(s1, "s1c1", "c1s1")
-    #print(" ... Setting Controller IP")
-    #onos.setIp("172.17.0.1", 16, "c1s1")
     print("[Experiment] Setting controller for the s1 and s2")
     s1.setController("172.17.0.2", 6653) # Onos container's IP (can be obtained with docker container inspect) and default port for OpenFlow
     s2.setController("172.17.0.2", 6653)
@@ -119,10 +112,3 @@ except Exception as e:
 
 print("[Experiment] Press ctrl+c to stop the program")
 signal.pause()
-
-
-# s1.connectToInternet("10.0.0.1", 29, "s1host", "hosts1")
-
-
-# h1.setDefaultGateway("10.0.0.1", "h1s1")
-# h2.setDefaultGateway("10.0.0.1", "h2s1")
