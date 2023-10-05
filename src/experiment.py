@@ -30,6 +30,9 @@ def createONOS():
     print("[Experiment] Creating ONOS Controller")
     onos.instantiate(dockerImage="onosproject/onos", dockerCommand="docker run -dit -p 8181:8181 -p 8101:8101 -p 5005:5005 -p 830:830 --privileged --name=c1 onosproject/onos")
 
+def activateONOSApps():
+    print("[Experiment] Activating OpenFlow Provider Suite and Reactive Forwarding")
+    subprocess.run("docker exec c1 onos-app activate org.onosproject.openflow && onos-app activate org.onosproject.fwd")
 
 def signal_handler(sig, frame):
     print("You've pressed Ctrl+C!")
@@ -49,6 +52,7 @@ try:
     createONOS()
     print("[Experiment] ONOS created sucessfully, configure it for Openflow...")
     print(" Waiting for configuration")
+    activateONOSApps()
     inp = ''
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
