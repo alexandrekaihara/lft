@@ -32,7 +32,7 @@ def createONOS():
 
 def activateONOSApps():
     print("[Experiment] Activating OpenFlow Provider Suite and Reactive Forwarding")
-    subprocess.run("docker exec c1 onos-app activate org.onosproject.openflow && onos-app activate org.onosproject.fwd")
+    subprocess.run("docker exec c1 onos-app activate org.onosproject.openflow && onos-app activate org.onosproject.fwd", shell=True)
 
 def signal_handler(sig, frame):
     print("You've pressed Ctrl+C!")
