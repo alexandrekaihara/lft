@@ -23,7 +23,7 @@ def createSwitch():
     s1.instantiate(networkMode='bridge')
     print("[Experiment] Creating switch s2")
     print("... Instatiating container")
-    s2.instantiate()
+    s2.instantiate(networkMode='bridge')
     print("[Experiment] Switches created successfully")
 
 def createONOS():
