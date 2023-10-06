@@ -154,9 +154,9 @@ class Node:
     # Return:
     #   None
     def setIp(self, ip: str, mask: int, interfaceName: str) -> None:
-        if not self.__interfaceExists(interfaceName):
-            logging.error(f"Network interface {interfaceName} does not exist")
-            raise Exception(f"Network interface {interfaceName} does not exist")
+        #if not self.__interfaceExists(interfaceName):
+            #logging.error(f"Network interface {interfaceName} does not exist")
+            #raise Exception(f"Network interface {interfaceName} does not exist")
 
         self.__setIp(ip, mask, interfaceName)
 
