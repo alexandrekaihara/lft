@@ -2,14 +2,14 @@ import subprocess
 from host import Host
 from switch import Switch
 from controller import Controller
+from onos import ONOS
 import paramiko
 
 from os import getcwd
 import signal
 import sys
 
-
-onos = Controller("c1")
+onos = ONOS("c1")
 h1 = Host("h1")
 h2 = Host("h2")
 h3 = Host("h3")
@@ -20,47 +20,16 @@ s2 = Switch("s2")
 def createSwitch():
     print("[Experiment] Creating switch s1")
     print("... Instatiating container")
-    s1.instantiate()
+    s1.instantiate(networkMode='bridge')
     print("[Experiment] Creating switch s2")
     print("... Instatiating container")
-    s2.instantiate()
+    s2.instantiate(networkMode='bridge')
     print("[Experiment] Switches created successfully")
 
 def createONOS():
 
     print("[Experiment] Creating ONOS Controller")
-    onos.instantiate(dockerImage="onosproject/onos", dockerCommand="docker run -dit -p 8181:8181 -p 8101:8101 -p 5005:5005 -p 830:830 --privileged --name=c1 onosproject/onos")
-
-def activateONOSApps():
-    print("[Experiment] Activating OpenFlow Provider Suite and Reactive Forwarding")
-
-
-    # Replace these with your server details
-    server_ip = '172.17.0.1'
-    username = 'karaf'
-    password = 'karaf' # Default password, container running locally
-
-    try:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(server_ip, port=8101, username=username, password=password)
-
-        command = 'app activate org.onosproject.openflow && app activate org.onosproject.fwd'
-        stdin, stdout, stderr = ssh.exec_command(command)
-
-        command_output = stdout.read().decode('utf-8')
-        error_output = stderr.read().decode('utf-8')
-
-        print("Command Output:")
-        print(command_output)
-
-        print("Error Output:")
-        print(error_output)
-
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-    finally:
-        ssh.close()
+    onos.instantiate()
 
 def signal_handler(sig, frame):
     print("You've pressed Ctrl+C!")
@@ -82,7 +51,7 @@ try:
     inp = ''
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
-    activateONOSApps()
+    onos.activateONOSApps("172.17.0.2")
     createSwitch()
     print("[Experiment] Setting controller for the s1 and s2")
     s1.setController("172.17.0.2", 6653) # Onos container's IP (can be obtained with docker container inspect) and default port for OpenFlow
