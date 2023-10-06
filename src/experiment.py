@@ -78,8 +78,7 @@ signal.signal(signal.SIGINT, signal_handler)
 try:
     print("Starting experiment")
     createONOS()
-    print("[Experiment] ONOS created sucessfully, configure it for Openflow...")
-    print(" Waiting for configuration")
+    print("[Experiment] ONOS created sucessfully, wait for initialization and press y")
     inp = ''
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
