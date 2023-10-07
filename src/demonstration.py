@@ -53,13 +53,14 @@ try:
     print(" ... Creating internal and external bridges")
     createBridge("brint")
     createBridge("brext")
-    print(" ... Connecting the bridges")
-    nodes["brint"].connect(nodes["brext"], "brintbrext", "brextbrint")
 
     print(" ... Setting controllers for the bridges")
     nodes["brint"].setController("172.17.0.2", 6653)
     nodes["brext"].setController("172.17.0.3", 6653)
 
+    print(" ... Connecting the bridges")
+    nodes["brint"].connect(nodes["brext"], "brintbrext", "brextbrint")
+    
 except Exception as e:
     [node.delete() for _,node in nodes.items()]
     raise(e)
