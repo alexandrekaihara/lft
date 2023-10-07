@@ -4,7 +4,7 @@ import paramiko
 
 class ONOS(Controller):
     def instantiate(self, dockerImage="onosproject/onos") -> None:
-        dockerCommand = f"docker run -dit -p 8181:8181 -p 8101:8101 -p 5005:5005 -p 830:830 --privileged --name={self.name} onosproject/onos"
+        dockerCommand = f"docker run -dit -p 8181:8181 -p 8101:8101 -p 5005:5005 -p 830:830 --privileged --name={self.__nodeName} onosproject/onos"
         return super().instantiate(dockerImage, dockerCommand)
     
     # Brief: Activate required ONOS apps automatically.
