@@ -20,7 +20,9 @@ def createBridge(name: str): #, ip: str, gatewayIp: str):
 def createController(name: str):
     print(f" ... Creating controller {name}")
     nodes[name] = ONOS(name)
-    nodes[name].instantiate()
+    mapports = False
+    if name == "c1": mapports = True
+    nodes[name].instantiate(mapPorts=mapports)
     print(f" ... Controller {name} created successfully")
 
 def signal_handler(sig, frame):
