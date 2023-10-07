@@ -1,12 +1,14 @@
-# Local imports
-from switch import Switch
-from onos import ONOS
-
-from global_variables import *
-
 # Standard libraries imports
 import subprocess
 from os import getcwd
+import signal
+import sys
+
+# Local imports
+from switch import Switch
+from onos import ONOS
+from global_variables import *
+
 
 def createBridge(name: str): #, ip: str, gatewayIp: str):
     print(f" ... Creating switch {name}")
@@ -21,7 +23,13 @@ def createController(name: str):
     nodes[name].instantiate()
     print(f" ... Controller {name} created successfully")
 
+def signal_handler(sig, frame):
+    print("You've pressed Ctrl+C!")
+    print(f"[LFT] Unmaking Experiment. Deleting Containers")
+    [node.delete() for _,node in nodes.items()]
+    sys.exit(0)
 
+signal.signal(signal.SIGINT, signal_handler)
 
 try:
     print("[LFT] Initializing demonstration")
@@ -51,4 +59,8 @@ try:
     nodes["brext"].setController("172.17.0.3", 6653)
 
 except Exception as e:
+    [node.delete() for _,node in nodes.items()]
     raise(e)
+
+print("[LFT] Press ctrl+c to stop the program")
+signal.pause()
