@@ -19,4 +19,5 @@ src/__pycache__/
 src/languagepacks.json
 src/logs/
 src/machineid
+src/flows/
 
