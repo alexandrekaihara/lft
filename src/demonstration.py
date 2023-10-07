@@ -13,8 +13,10 @@ from global_variables import *
 def createBridge(name: str): #, ip: str, gatewayIp: str):
     print(f" ... Creating switch {name}")
     nodes[name] = Switch(name, getcwd()+'/flows/'+name, '/home/pcap')
-    nodes[name].run('mkdir /home/pcap > /dev/null 2>&1')
+    print(f" ... Creating switch {name}: Instantiating")
     nodes[name].instantiate(networkMode='bridge')
+    print(f" ... Creating switch {name}: MKDIR")
+    nodes[name].run('mkdir /home/pcap > /dev/null 2>&1')
     print(f" ... {name} created successfully")
 
 def createController(name: str):
@@ -60,7 +62,7 @@ try:
 
     print(" ... Connecting the bridges")
     nodes["brint"].connect(nodes["brext"], "brintbrext", "brextbrint")
-    
+
 except Exception as e:
     [node.delete() for _,node in nodes.items()]
     raise(e)
