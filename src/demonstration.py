@@ -28,7 +28,8 @@ def createController(name: str):
     nodes[name].instantiate(mapPorts=mapports)
     print(" ... Creating config folder and copying cluster.json file to /config folder")
     nodes[name].run("mkdir /root/onos/config")
-    nodes[name].copyLocalToContainer("./cluster.json", "/root/onos/config/cluster.json")
+    #nodes[name].copyLocalToContainer("./cluster.json", "/root/onos/config/cluster.json")
+    subprocess.run(f"docker cp ./cluster.json {name}:/root/onos/config/cluster.json", shell=True, capture_output=True)
     print(f" ... Controller {name} created successfully")
 
 def signal_handler(sig, frame):
