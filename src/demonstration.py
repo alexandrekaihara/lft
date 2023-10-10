@@ -27,7 +27,7 @@ def createController(name: str):
     if name == "c1": mapports = True
     nodes[name].instantiate(mapPorts=mapports)
     print(" ... Creating config folder")
-    subprocess.call(f"docker exec {name} mkdir /root/onos/config")
+    subprocess.call(f"docker exec {name} mkdir /root/onos/config", shell=True)
     #nodes[name].copyLocalToContainer("./cluster.json", "/root/onos/config/cluster.json")
     print(f" ... Controller {name} created successfully")
 
