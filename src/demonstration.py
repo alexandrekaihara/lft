@@ -65,8 +65,8 @@ try:
     inp = ''
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
-    nodes["c1"].activateONOSApps("172.17.0.2")
-    nodes["c2"].activateONOSApps("172.17.0.3")
+    nodes["c1"].activateONOSApps("172.17.0.3")
+    nodes["c2"].activateONOSApps("172.17.0.4")
 
     print(" ... Creating internal and external bridges")
     createBridge("brint")
