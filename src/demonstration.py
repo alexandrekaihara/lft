@@ -49,10 +49,17 @@ try:
     print(" ... Creating Atomix node")
     nodes["a1"] = Atomix("a1")
     nodes["a1"].instantiate("./conf")
+    print(" ... Restarting Atomix to apply configurations")
+    subprocess.run("docker restart a1", shell=True)
+    print(" ... Atomix created successfully")
 
     print(" ... Creating ONOS controllers")
     createController("c1")
     createController("c2")
+
+    print(" ... Restarting ONOS containers to apply configurations")
+    subprocess.run("docker restart c1", shell=True)
+    subprocess.run("docker restart c2", shell=True)
 
     print(" ... ONOS created sucessfully, wait for initialization and press y")
     inp = ''
