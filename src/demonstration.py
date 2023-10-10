@@ -29,7 +29,7 @@ def createController(name: str, clusterFileNumber: int):
     print(" ... Creating config folder and copying cluster.json file to /config folder")
     nodes[name].run("mkdir /root/onos/config")
     #nodes[name].copyLocalToContainer("./cluster.json", "/root/onos/config/cluster.json")
-    subprocess.run(f"docker cp onos_config/cluster-{clusterFileNumber}.json {name}:onos/config/cluster.json", shell=True)
+    subprocess.run(f"docker cp onos_config/cluster-{clusterFileNumber}.json {name}:/root/onos/config", shell=True)
     print(f" ... Controller {name} created successfully")
 
 def signal_handler(sig, frame):
