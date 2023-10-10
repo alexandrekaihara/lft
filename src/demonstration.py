@@ -20,7 +20,7 @@ def createBridge(name: str): #, ip: str, gatewayIp: str):
     nodes[name].run('mkdir /home/pcap > /dev/null 2>&1')
     print(f" ... {name} created successfully")
 
-def createController(name: str):
+def createController(name: str, clusterFileNumber: int):
     print(f" ... Creating controller {name}")
     nodes[name] = ONOS(name)
     mapports = False
@@ -29,7 +29,7 @@ def createController(name: str):
     print(" ... Creating config folder and copying cluster.json file to /config folder")
     nodes[name].run("mkdir /root/onos/config")
     #nodes[name].copyLocalToContainer("./cluster.json", "/root/onos/config/cluster.json")
-    subprocess.run(f"docker cp onos_config/cluster.json {name}:onos/config/cluster.json", shell=True)
+    subprocess.run(f"docker cp onos_config/cluster-{clusterFileNumber}.json {name}:onos/config/cluster.json", shell=True)
     print(f" ... Controller {name} created successfully")
 
 def signal_handler(sig, frame):
@@ -54,8 +54,8 @@ try:
     print(" ... Atomix created successfully")
 
     print(" ... Creating ONOS controllers")
-    createController("c1")
-    createController("c2")
+    createController("c1", 1)
+    createController("c2", 2)
 
     print(" ... Restarting ONOS containers to apply configurations")
     subprocess.run("docker restart c1", shell=True)
