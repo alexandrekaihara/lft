@@ -28,7 +28,7 @@ def createController(name: str):
     nodes[name].instantiate(mapPorts=mapports)
     print(" ... Creating config folder and copying cluster.json file to /config folder")
     nodes[name].run("mkdir /root/onos/config")
-    nodes[name].copyLocalToContainer("./conf/cluster.json", "/root/onos/config/cluster.json")
+    nodes[name].copyLocalToContainer("./cluster.json", "/root/onos/config/cluster.json")
     print(f" ... Controller {name} created successfully")
 
 def signal_handler(sig, frame):
@@ -47,7 +47,7 @@ try:
 
     print(" ... Creating Atomix node")
     nodes["a1"] = Atomix("a1")
-    nodes["a1"].instantiate("./conf/atomix.conf")
+    nodes["a1"].instantiate("./conf")
 
     print(" ... Creating ONOS controllers")
     createController("c1")
