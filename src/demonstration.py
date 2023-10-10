@@ -26,8 +26,9 @@ def createController(name: str):
     mapports = False
     if name == "c1": mapports = True
     nodes[name].instantiate(mapPorts=mapports)
-    print(" ... Copying cluster.json file to /config folder")
-    nodes[name].copyLocalToContainer("./conf/cluster.json", "/config/cluster.json")
+    print(" ... Creating config folder and copying cluster.json file to /config folder")
+    nodes[name].run("mkdir /root/onos/config")
+    nodes[name].copyLocalToContainer("./conf/cluster.json", "/root/onos/config/cluster.json")
     print(f" ... Controller {name} created successfully")
 
 def signal_handler(sig, frame):
