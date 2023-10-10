@@ -47,7 +47,7 @@ try:
 
     print(" ... Creating Atomix node")
     nodes["a1"] = Atomix("a1")
-    nodes["a1"].instantiate(getcwd() + "/conf/atomix.conf")
+    nodes["a1"].instantiate("./conf/atomix.conf")
 
     print(" ... Creating ONOS controllers")
     createController("c1")
