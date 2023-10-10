@@ -20,16 +20,15 @@ def createBridge(name: str): #, ip: str, gatewayIp: str):
     nodes[name].run('mkdir /home/pcap > /dev/null 2>&1')
     print(f" ... {name} created successfully")
 
-def createController(name: str, clusterFileNumber: int):
+def createController(name: str):
     print(f" ... Creating controller {name}")
     nodes[name] = ONOS(name)
     mapports = False
     if name == "c1": mapports = True
     nodes[name].instantiate(mapPorts=mapports)
-    print(" ... Creating config folder and copying cluster.json file to /config folder")
+    print(" ... Creating config folder")
     nodes[name].run("mkdir /root/onos/config")
     #nodes[name].copyLocalToContainer("./cluster.json", "/root/onos/config/cluster.json")
-    subprocess.run(f"docker cp onos_config/cluster-{clusterFileNumber}.json {name}:/root/onos/config", shell=True)
     print(f" ... Controller {name} created successfully")
 
 def signal_handler(sig, frame):
@@ -54,8 +53,14 @@ try:
     print(" ... Atomix created successfully")
 
     print(" ... Creating ONOS controllers")
-    createController("c1", 1)
-    createController("c2", 2)
+    createController("c1")
+    createController("c2")
+
+    print(" ... Copying configuration files to /root/onos/config")
+    # Using call because of its blocking behavior
+    subprocess.call(f"docker cp onos_config/cluster-1.json c1:/root/onos/config/cluster.json", shell=True)
+    subprocess.call(f"docker cp onos_config/cluster-2.json c2:/root/onos/config/cluster.json", shell=True)
+
 
     print(" ... Restarting ONOS containers to apply configurations")
     subprocess.run("docker restart c1", shell=True)
