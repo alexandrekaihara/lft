@@ -7,6 +7,7 @@ import sys
 # Local imports
 from switch import Switch
 from onos import ONOS
+from atomix import Atomix
 from global_variables import *
 
 
@@ -42,6 +43,10 @@ try:
 
     print(" ... Creating flows folder on host machine")
     subprocess.run("mkdir flows 2>/dev/null", shell=True)
+
+    print(" ... Creating Atomix node")
+    atomix = Atomix("a1")
+    atomix.instantiate(getcwd() + "/conf/atomix.conf")
 
     print(" ... Creating ONOS controllers")
     createController("c1")
