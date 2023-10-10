@@ -4,7 +4,7 @@ import paramiko
 
 class ONOS(Controller):
     def instantiate(self, dockerImage="onosproject/onos", mapPorts = False) -> None:
-        if mapPorts: dockerCommand = f"docker run -dit -p 8181:8181 -p 8101:8101 -p 5005:5005 -p 830:830 --privileged --name={self.getNodeName()} onosproject/onos"
+        if mapPorts: dockerCommand = f"docker run -dit -v ./onos_config:/root/onos/conf -p 8181:8181 -p 8101:8101 -p 5005:5005 -p 830:830 --privileged --name={self.getNodeName()} onosproject/onos"
         else: dockerCommand = f"docker run -dit --privileged --name={self.getNodeName()} onosproject/onos"
         return super().instantiate(dockerImage, dockerCommand)
     
