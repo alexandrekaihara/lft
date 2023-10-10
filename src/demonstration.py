@@ -78,8 +78,8 @@ try:
     createBridge("brext")
 
     print(" ... Setting controllers for the bridges")
-    nodes["brint"].setController("172.17.0.2", 6653)
-    nodes["brext"].setController("172.17.0.3", 6653)
+    nodes["brint"].setController("172.17.0.3", 6653)
+    nodes["brext"].setController("172.17.0.4", 6653)
 
     print(" ... Connecting the bridges")
     nodes["brint"].connect(nodes["brext"], "brintbrext", "brextbrint")
