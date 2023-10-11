@@ -1,15 +1,33 @@
 # Standard libraries imports
+from configparser import ConfigParser
 import subprocess
 from os import getcwd
 import signal
 import sys
 
 # Local imports
+from host import Host
+from node import Node
 from switch import Switch
 from onos import ONOS
 from atomix import Atomix
 from global_variables import *
 
+
+class Seafile(Host):
+    def instantiate(self):
+        super().instantiate(dockerImage=seafileserver)
+    def updateServerConfig(self) -> None:
+        self.copyContainerToLocal("/home/seafolder", "seafolder")
+        out = subprocess.run("cat seafolder", shell=True, capture_output=True).stdout.decode('utf8')
+        parser = ConfigParser()
+        parser.read('serverconfig.ini')
+        parser.set("50", "seafolder",  out)
+        parser.set("200", "seafolder", out)
+        parser.set("210", "seafolder", out)
+        parser.set("220", "seafolder", out)
+        with open('serverconfig.ini', 'w') as configfile:
+            parser.write(configfile)
 
 def createBridge(name: str): #, ip: str, gatewayIp: str):
     print(f" ... Creating switch {name}")
@@ -28,8 +46,32 @@ def createController(name: str):
     nodes[name].instantiate(mapPorts=mapports)
     print(" ... Creating config folder")
     subprocess.call(f"docker exec {name} mkdir /root/onos/config", shell=True)
-    #nodes[name].copyLocalToContainer("./cluster.json", "/root/onos/config/cluster.json")
     print(f" ... Controller {name} created successfully")
+
+def setNetworkConfig(node: Node, bridge: Node, subnet: str, address: int, setFiles=True):
+    print(f" ... Set networking configuration for {node.getNodeName()}")
+    print(f" ... Connecting node to {bridge.getNodeName()}")
+    node.connect(bridge, f"{node.getNodeName()}{bridge.getNodeName()}", f"{bridge.getNodeName()}{node.getNodeName()}")
+    print(" ... Setting node IP - Interface connected to a bridge")
+    node.setIp(subnet+str(address), 24, f"{node.getNodeName()}{bridge.getNodeName()}")
+    # print(" ... Setting default gateway")
+    print(" ... Adding routes to other subnets")
+    if subnet != server_subnet: node.addRoute(server_subnet+'0', 24, bridge)
+    if subnet != management_subnet: node.addRoute(management_subnet+'0', 24, bridge)
+    if subnet != office_subnet: node.addRoute(office_subnet+'0', 24, bridge)
+    if subnet != developer_subnet: node.addRoute(developer_subnet+'0', 24, bridge)
+    if subnet != external_subnet: node.addRoute(external_subnet+'0', 24, bridge)
+    if setFiles:
+        subprocess.run(f"docker cp serverconfig.ini {node.getNodeName()}:/home/debian/serverconfig.ini", shell=True)
+        subprocess.run(f"docker cp backup.py {node.getNodeName()}:/home/debian/backup.py", shell=True)
+
+
+def createServer(name: str, serverImage: str, subnet: str, address: int):
+    print(f"[LFT] ... Creating server {name}")
+    nodes[name] = Host(name)
+    print(" ... Instantiating container")
+    nodes[name].instantiate(serverImage)
+    setNetworkConfig(nodes[name], nodes["brint"], subnet, address)
 
 def signal_handler(sig, frame):
     print("You've pressed Ctrl+C!")
@@ -45,14 +87,14 @@ try:
     print(" ... Creating flows folder on host machine")
     subprocess.run("mkdir flows 2>/dev/null", shell=True)
 
-    print(" ... Creating Atomix node")
+    print("[LFT] ... Creating Atomix node")
     nodes["a1"] = Atomix("a1")
     nodes["a1"].instantiate("./conf")
     print(" ... Restarting Atomix to apply configurations")
     subprocess.run("docker restart a1", shell=True)
     print(" ... Atomix created successfully")
 
-    print(" ... Creating ONOS controllers")
+    print("[LFT] ... Creating ONOS controllers")
     createController("c1")
     createController("c2")
 
@@ -73,7 +115,7 @@ try:
     nodes["c1"].activateONOSApps("172.17.0.3")
     nodes["c2"].activateONOSApps("172.17.0.4")
 
-    print(" ... Creating internal and external bridges")
+    print("[LFT] ... Creating internal and external bridges")
     createBridge("brint")
     createBridge("brext")
 
@@ -83,6 +125,13 @@ try:
 
     print(" ... Connecting the bridges")
     nodes["brint"].connect(nodes["brext"], "brintbrext", "brextbrint")
+
+    # Creating Seafile Server
+    nodes['seafile'] = Seafile('seafile')
+    nodes['seafile'].instantiate()
+    setNetworkConfig(nodes['seafile'], nodes['brint'], external_subnet, 1, setFiles=False)
+    nodes['seafile'].updateServerConfig()
+
 
 except Exception as e:
     [node.delete() for _,node in nodes.items()]
