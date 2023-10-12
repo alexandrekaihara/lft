@@ -212,8 +212,8 @@ try:
 
     # Set External Subnet
     createServer('eweb', webserver, external_subnet, 2)
-    createLinuxClient('e1', nodes['brex'], external_subnet, 3)
-    createLinuxClient('e2', nodes['brex'], external_subnet, 4)
+    createLinuxClient('e1', nodes['brext'], external_subnet, 3)
+    createLinuxClient('e2', nodes['brext'], external_subnet, 4)
 
     # Set Configuration Files
     [setLinuxClientFileConfig(nodes[f'm{i}'], management_subnet, 'management') for i in range(1, 5)]
