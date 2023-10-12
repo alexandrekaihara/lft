@@ -29,6 +29,24 @@ class Seafile(Host):
         with open('serverconfig.ini', 'w') as configfile:
             parser.write(configfile)
 
+class LinuxClient(Host):
+    def setAutomationScripts(self, path) -> None:
+        self.copyLocalToContainer(path, "/home/debian/automation")
+    def setPrinterIp(self, path) -> None:
+        self.copyLocalToContainer(path, "/home/debian/automation/packages/system/printerip")
+    def setSshIpList(self, path) -> None:
+        self.copyLocalToContainer(path, "/home/debian/automation/packages/system/sshiplist.ini")
+    def setClientBehaviour(self, path) -> None:
+        self.copyLocalToContainer(path, "/home/debian/automation/packages/system/config.ini")
+    def setServerConfig(self, path) -> None:
+        self.copyLocalToContainer(path, "/home/debian/automation/packages/system/serverconfig.ini")
+    def setIpListPort80(self, path) -> None:
+        self.copyLocalToContainer(path, "/home/debian/automation/packages/attacking/ipListPort80.txt")
+    def setIpList(self, path) -> None:
+        self.copyLocalToContainer(path, "/home/debian/automation/packages/attacking/ipList.txt")
+    def setIpRange(self, path) -> None:
+        self.copyLocalToContainer(path, "/home/debian/automation/packages/attacking/iprange.txt")
+
 def createBridge(name: str): #, ip: str, gatewayIp: str):
     print(f" ... Creating switch {name}")
     nodes[name] = Switch(name, getcwd()+'/flows/'+name, '/home/pcap')
@@ -65,6 +83,32 @@ def setNetworkConfig(node: Node, bridge: Node, subnet: str, address: int, setFil
         subprocess.run(f"docker cp serverconfig.ini {node.getNodeName()}:/home/debian/serverconfig.ini", shell=True)
         subprocess.run(f"docker cp backup.py {node.getNodeName()}:/home/debian/backup.py", shell=True)
 
+def setLinuxClientFileConfig(node: LinuxClient, subnet: str, behaviour: str):
+    print(f"[LFT] Copying Configuration Files to Container {node.getNodeName()}")
+    if subnet != external_subnet: aux = "internal"
+    else: aux = "external"
+    node.setAutomationScripts("automation")
+    node.setPrinterIp(f"printersip/{subnet.split('.')[2]}")
+    node.setSshIpList("sshiplist.ini")
+    node.setClientBehaviour(f"client_behaviour/{behaviour}.ini")
+    node.setServerConfig("serverconfig.ini")
+    node.setIpListPort80(f"{aux}_ipListPort80.txt")        
+    node.setIpList(f"{aux}_ipList.txt")
+    node.setIpRange(f"{aux}_iprange.txt")
+
+def createLinuxClient(name:str, bridge: Node, subnet: str, address: int) -> None:
+    print(f"[LFT] Creating client {name}")
+    nodes[name] = LinuxClient(name)
+    print(" ... Instantiating container")
+    nodes[name].instantiate(linuxclient)
+    setNetworkConfig(nodes[name], bridge, subnet, address)
+
+def createPrinter(name: str, subnet: str) -> None:
+    print(f"[LFT] Creating printer {name}")
+    nodes[name] = Host(name)
+    print(" ... Instantiating container")
+    nodes[name].instantiate(printerserver)
+    setNetworkConfig(nodes[name], nodes["brint"], subnet, 1)
 
 def createServer(name: str, serverImage: str, subnet: str, address: int):
     print(f"[LFT] ... Creating server {name}")
@@ -132,6 +176,52 @@ try:
     setNetworkConfig(nodes['seafile'], nodes['brint'], external_subnet, 1, setFiles=False)
     nodes['seafile'].updateServerConfig()
 
+    # Create server subnet
+    createServer('mail',   mailserver,   server_subnet, 1)
+    createServer('file',   fileserver,   server_subnet, 2)
+    createServer('web',    webserver,    server_subnet, 3)
+    createServer('backup', backupserver, server_subnet, 4)
+
+    # Create Management Subnet
+    createPrinter('mprinter', management_subnet)
+    createLinuxClient('m1', nodes['brint'], management_subnet, 2)
+    createLinuxClient('m2', nodes['brint'], management_subnet, 3)
+    createLinuxClient('m3', nodes['brint'], management_subnet, 4)
+    createLinuxClient('m4', nodes['brint'], management_subnet, 5)
+    
+    # Set Office Subnet
+    createPrinter("oprinter", office_subnet)
+    createLinuxClient("o1", nodes["brint"], office_subnet, 2)
+    createLinuxClient("o2", nodes["brint"], office_subnet, 3)
+
+    # Set Developer Subnet
+    createPrinter('dprinter', developer_subnet)
+    createLinuxClient('d1', nodes['brint'], developer_subnet, 2)
+    createLinuxClient('d2', nodes['brint'], developer_subnet, 3)
+    createLinuxClient('d3', nodes['brint'], developer_subnet, 4)
+    createLinuxClient('d4', nodes['brint'], developer_subnet, 5)
+    createLinuxClient('d5', nodes['brint'], developer_subnet, 6)
+    createLinuxClient('d6', nodes['brint'], developer_subnet, 7)
+    createLinuxClient('d7', nodes['brint'], developer_subnet, 8)
+    createLinuxClient('d8', nodes['brint'], developer_subnet, 9)
+    createLinuxClient('d9', nodes['brint'], developer_subnet, 10)
+    createLinuxClient('d10', nodes['brint'], developer_subnet, 11)
+    createLinuxClient('d11', nodes['brint'], developer_subnet, 12)
+    createLinuxClient('d12', nodes['brint'], developer_subnet, 13)
+    createLinuxClient('d13', nodes['brint'], developer_subnet, 14)
+
+    # Set External Subnet
+    createServer('eweb', webserver, external_subnet, 2)
+    createLinuxClient('e1', nodes['brex'], external_subnet, 3)
+    createLinuxClient('e2', nodes['brex'], external_subnet, 4)
+
+    # Set Configuration Files
+    [setLinuxClientFileConfig(nodes[f'm{i}'], management_subnet, 'management') for i in range(1, 5)]
+    [setLinuxClientFileConfig(nodes[f'o{i}'], office_subnet, 'office') for i in range(1,3)]
+    [setLinuxClientFileConfig(nodes[f'd{i}'], developer_subnet, 'administrator') for i in range(1,3)]
+    [setLinuxClientFileConfig(nodes[f'd{i}'], developer_subnet, 'developer') for i in range(3,12)]
+    [setLinuxClientFileConfig(nodes[f'd{i}'], developer_subnet, 'attacker') for i in range(12,14)]
+    [setLinuxClientFileConfig(nodes[f'e{i}'], developer_subnet, 'external_attacker') for i in range(1,3)]
 
 except Exception as e:
     [node.delete() for _,node in nodes.items()]
