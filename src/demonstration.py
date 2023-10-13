@@ -171,13 +171,16 @@ try:
     nodes["brint"].connect(nodes["brext"], "brintbrext", "brextbrint")
 
     # Creating Seafile Server
+    print("[LFT] ... Creating Seafile server")
     nodes['seafile'] = Seafile('seafile')
     nodes['seafile'].instantiate()
     setNetworkConfig(nodes['seafile'], nodes['brint'], external_subnet, 1, setFiles=False)
     nodes['seafile'].updateServerConfig()
-
-    """ # Create server subnet
+    
+    # Create server subnet
+    print("[LFT] ... Creating server subnet")
     createServer('mail',   mailserver,   server_subnet, 1)
+    """
     createServer('file',   fileserver,   server_subnet, 2)
     createServer('web',    webserver,    server_subnet, 3)
     createServer('backup', backupserver, server_subnet, 4)
