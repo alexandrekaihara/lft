@@ -81,7 +81,7 @@ def setNetworkConfig(node: Node, bridge: Node, subnet: str, address: int, setFil
     if subnet != external_subnet: node.addRoute(external_subnet+'0', 24, node.getNodeName() + bridge.getNodeName())
     if setFiles:
         subprocess.run(f"docker cp serverconfig.ini {node.getNodeName()}:/home/debian/serverconfig.ini", shell=True)
-        subprocess.run(f"docker cp backup.py {node.getNodeName()}:/home/debian/backup.py", shell=True)
+        # subprocess.run(f"docker cp backup.py {node.getNodeName()}:/home/debian/backup.py", shell=True)
 
 def setLinuxClientFileConfig(node: LinuxClient, subnet: str, behaviour: str):
     print(f"[LFT] Copying Configuration Files to Container {node.getNodeName()}")
@@ -180,7 +180,6 @@ try:
     # Create server subnet
     print("[LFT] ... Creating server subnet")
     createServer('mail',   mailserver,   server_subnet, 1)
-    """
     createServer('file',   fileserver,   server_subnet, 2)
     createServer('web',    webserver,    server_subnet, 3)
     createServer('backup', backupserver, server_subnet, 4)
@@ -190,7 +189,7 @@ try:
     createLinuxClient('m1', nodes['brint'], management_subnet, 2)
     createLinuxClient('m2', nodes['brint'], management_subnet, 3)
     createLinuxClient('m3', nodes['brint'], management_subnet, 4)
-    createLinuxClient('m4', nodes['brint'], management_subnet, 5)
+    #createLinuxClient('m4', nodes['brint'], management_subnet, 5)
     
     # Set Office Subnet
     createPrinter("oprinter", office_subnet)
@@ -202,22 +201,23 @@ try:
     createLinuxClient('d1', nodes['brint'], developer_subnet, 2)
     createLinuxClient('d2', nodes['brint'], developer_subnet, 3)
     createLinuxClient('d3', nodes['brint'], developer_subnet, 4)
-    createLinuxClient('d4', nodes['brint'], developer_subnet, 5)
-    createLinuxClient('d5', nodes['brint'], developer_subnet, 6)
-    createLinuxClient('d6', nodes['brint'], developer_subnet, 7)
-    createLinuxClient('d7', nodes['brint'], developer_subnet, 8)
-    createLinuxClient('d8', nodes['brint'], developer_subnet, 9)
-    createLinuxClient('d9', nodes['brint'], developer_subnet, 10)
-    createLinuxClient('d10', nodes['brint'], developer_subnet, 11)
-    createLinuxClient('d11', nodes['brint'], developer_subnet, 12)
-    createLinuxClient('d12', nodes['brint'], developer_subnet, 13)
-    createLinuxClient('d13', nodes['brint'], developer_subnet, 14)
+    #createLinuxClient('d4', nodes['brint'], developer_subnet, 5)
+    #createLinuxClient('d5', nodes['brint'], developer_subnet, 6)
+    #createLinuxClient('d6', nodes['brint'], developer_subnet, 7)
+    #createLinuxClient('d7', nodes['brint'], developer_subnet, 8)
+    #createLinuxClient('d8', nodes['brint'], developer_subnet, 9)
+    #createLinuxClient('d9', nodes['brint'], developer_subnet, 10)
+    #createLinuxClient('d10', nodes['brint'], developer_subnet, 11)
+    #createLinuxClient('d11', nodes['brint'], developer_subnet, 12)
+    #createLinuxClient('d12', nodes['brint'], developer_subnet, 13)
+    #createLinuxClient('d13', nodes['brint'], developer_subnet, 14)
 
     # Set External Subnet
     createServer('eweb', webserver, external_subnet, 2)
     createLinuxClient('e1', nodes['brext'], external_subnet, 3)
     createLinuxClient('e2', nodes['brext'], external_subnet, 4)
 
+    """
     # Set Configuration Files
     [setLinuxClientFileConfig(nodes[f'm{i}'], management_subnet, 'management') for i in range(1, 5)]
     [setLinuxClientFileConfig(nodes[f'o{i}'], office_subnet, 'office') for i in range(1,3)]
