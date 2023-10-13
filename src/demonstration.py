@@ -176,7 +176,7 @@ try:
     setNetworkConfig(nodes['seafile'], nodes['brint'], external_subnet, 1, setFiles=False)
     nodes['seafile'].updateServerConfig()
 
-    # Create server subnet
+    """ # Create server subnet
     createServer('mail',   mailserver,   server_subnet, 1)
     createServer('file',   fileserver,   server_subnet, 2)
     createServer('web',    webserver,    server_subnet, 3)
@@ -222,7 +222,7 @@ try:
     [setLinuxClientFileConfig(nodes[f'd{i}'], developer_subnet, 'developer') for i in range(3,12)]
     [setLinuxClientFileConfig(nodes[f'd{i}'], developer_subnet, 'attacker') for i in range(12,14)]
     [setLinuxClientFileConfig(nodes[f'e{i}'], developer_subnet, 'external_attacker') for i in range(1,3)]
-
+ """
 except Exception as e:
     [node.delete() for _,node in nodes.items()]
     raise(e)
