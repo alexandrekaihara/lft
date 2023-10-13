@@ -92,9 +92,9 @@ def setLinuxClientFileConfig(node: LinuxClient, subnet: str, behaviour: str):
     node.setSshIpList("sshiplist.ini")
     node.setClientBehaviour(f"client_behaviour/{behaviour}.ini")
     node.setServerConfig("serverconfig.ini")
-    node.setIpListPort80(f"{aux}_ipListPort80.txt")        
-    node.setIpList(f"{aux}_ipList.txt")
-    node.setIpRange(f"{aux}_iprange.txt")
+    node.setIpListPort80(f"attack/{aux}_ipListPort80.txt")        
+    node.setIpList(f"attack/{aux}_ipList.txt")
+    node.setIpRange(f"attack/{aux}_iprange.txt")
 
 def createLinuxClient(name:str, bridge: Node, subnet: str, address: int) -> None:
     print(f"[LFT] Creating client {name}")
@@ -217,7 +217,6 @@ try:
     createLinuxClient('e1', nodes['brext'], external_subnet, 3)
     createLinuxClient('e2', nodes['brext'], external_subnet, 4)
 
-    """
     # Set Configuration Files
     [setLinuxClientFileConfig(nodes[f'm{i}'], management_subnet, 'management') for i in range(1, 5)]
     [setLinuxClientFileConfig(nodes[f'o{i}'], office_subnet, 'office') for i in range(1,3)]
@@ -225,7 +224,7 @@ try:
     [setLinuxClientFileConfig(nodes[f'd{i}'], developer_subnet, 'developer') for i in range(3,12)]
     [setLinuxClientFileConfig(nodes[f'd{i}'], developer_subnet, 'attacker') for i in range(12,14)]
     [setLinuxClientFileConfig(nodes[f'e{i}'], developer_subnet, 'external_attacker') for i in range(1,3)]
- """
+
 except Exception as e:
     [node.delete() for _,node in nodes.items()]
     raise(e)
