@@ -185,6 +185,7 @@ try:
     createServer('backup', backupserver, server_subnet, 4)
 
     # Create Management Subnet
+    print("[LFT] ... Creating management subnet")
     createPrinter('mprinter', management_subnet)
     createLinuxClient('m1', nodes['brint'], management_subnet, 2)
     createLinuxClient('m2', nodes['brint'], management_subnet, 3)
@@ -192,27 +193,30 @@ try:
     #createLinuxClient('m4', nodes['brint'], management_subnet, 5)
     
     # Set Office Subnet
+    print("[LFT] ... Creating office subnet")
     createPrinter("oprinter", office_subnet)
     createLinuxClient("o1", nodes["brint"], office_subnet, 2)
     createLinuxClient("o2", nodes["brint"], office_subnet, 3)
 
     # Set Developer Subnet
+    print("[LFT] ... Creating developer subnet")
     createPrinter('dprinter', developer_subnet)
     createLinuxClient('d1', nodes['brint'], developer_subnet, 2)
     createLinuxClient('d2', nodes['brint'], developer_subnet, 3)
     createLinuxClient('d3', nodes['brint'], developer_subnet, 4)
-    #createLinuxClient('d4', nodes['brint'], developer_subnet, 5)
-    #createLinuxClient('d5', nodes['brint'], developer_subnet, 6)
-    #createLinuxClient('d6', nodes['brint'], developer_subnet, 7)
-    #createLinuxClient('d7', nodes['brint'], developer_subnet, 8)
-    #createLinuxClient('d8', nodes['brint'], developer_subnet, 9)
-    #createLinuxClient('d9', nodes['brint'], developer_subnet, 10)
-    #createLinuxClient('d10', nodes['brint'], developer_subnet, 11)
-    #createLinuxClient('d11', nodes['brint'], developer_subnet, 12)
-    #createLinuxClient('d12', nodes['brint'], developer_subnet, 13)
-    #createLinuxClient('d13', nodes['brint'], developer_subnet, 14)
+    createLinuxClient('d4', nodes['brint'], developer_subnet, 5)
+    createLinuxClient('d5', nodes['brint'], developer_subnet, 6)
+    createLinuxClient('d6', nodes['brint'], developer_subnet, 7)
+    createLinuxClient('d7', nodes['brint'], developer_subnet, 8)
+    createLinuxClient('d8', nodes['brint'], developer_subnet, 9)
+    createLinuxClient('d9', nodes['brint'], developer_subnet, 10)
+    createLinuxClient('d10', nodes['brint'], developer_subnet, 11)
+    createLinuxClient('d11', nodes['brint'], developer_subnet, 12)
+    createLinuxClient('d12', nodes['brint'], developer_subnet, 13)
+    createLinuxClient('d13', nodes['brint'], developer_subnet, 14)
 
     # Set External Subnet
+    print("[LFT] ... Creating external subnet")
     createServer('eweb', webserver, external_subnet, 2)
     createLinuxClient('e1', nodes['brext'], external_subnet, 3)
     createLinuxClient('e2', nodes['brext'], external_subnet, 4)
