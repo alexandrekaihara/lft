@@ -190,7 +190,7 @@ try:
     createLinuxClient('m1', nodes['brint'], management_subnet, 2)
     createLinuxClient('m2', nodes['brint'], management_subnet, 3)
     createLinuxClient('m3', nodes['brint'], management_subnet, 4)
-    #createLinuxClient('m4', nodes['brint'], management_subnet, 5)
+    createLinuxClient('m4', nodes['brint'], management_subnet, 5)
     
     # Set Office Subnet
     print("[LFT] ... Creating office subnet")
@@ -222,6 +222,7 @@ try:
     createLinuxClient('e2', nodes['brext'], external_subnet, 4)
 
     # Set Configuration Files
+    print("[LFT] Setting configuration files")
     [setLinuxClientFileConfig(nodes[f'm{i}'], management_subnet, 'management') for i in range(1, 5)]
     [setLinuxClientFileConfig(nodes[f'o{i}'], office_subnet, 'office') for i in range(1,3)]
     [setLinuxClientFileConfig(nodes[f'd{i}'], developer_subnet, 'administrator') for i in range(1,3)]
