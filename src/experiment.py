@@ -29,7 +29,7 @@ def createSwitch():
 def createONOS():
 
     print("[Experiment] Creating ONOS Controller")
-    onos.instantiate()
+    onos.instantiate(mapPorts=True)
 
 def signal_handler(sig, frame):
     print("You've pressed Ctrl+C!")
