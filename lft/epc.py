@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from node import Node
+from lft.node import Node
 from configparser import ConfigParser
 
 class EPC(Node):
@@ -23,8 +23,8 @@ class EPC(Node):
         self.defaultEPCUserDbPath = '/etc/srsran/user_db.csv'
         self.buildDir = "/srsRAN/build"
 
-    def instantiate(self, image='alexandremitsurukaihara/lft:srsran') -> None:
-        super().instantiate(image)
+    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran') -> None:
+        super().instantiate(dockerImage)
 
     def start(self) -> None:
         self.run(f"{self.buildDir}/srsepc/src/srsepc > {self.buildDir}/epc.out &")

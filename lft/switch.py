@@ -16,8 +16,7 @@
 
 import logging
 import subprocess
-from node import Node
-from exceptions import NodeInstantiationFailed
+from lft.node import Node
 
 
 class Switch(Node): 

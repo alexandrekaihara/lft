@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from node import Node
+from lft.node import Node
 
 class EnB(Node):
     def __init__(self, name: str):
@@ -22,8 +22,8 @@ class EnB(Node):
         self.buildDir = '/srsRAN/build'
         self.defaultMultiUEPath = self.buildDir + '/multiUE.py'
 
-    def instantiate(self, image='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8') -> None:
-        super().instantiate(image, dockerCommand, dns)
+    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8') -> None:
+        super().instantiate(dockerImage, dockerCommand, dns)
 
     def start(self, transmitterIp="*", transmitterPort=2000, receiverIp="localhost", receiverPort=2001) -> None:
         super().run(f"{self.buildDir}/srsenb/src/srsenb --rf.device_name=zmq --rf.device_args=\'fail_on_disconnect=true,tx_port=tcp://{transmitterIp}:{transmitterPort},rx_port=tcp://{receiverIp}:{receiverPort},id=enb,base_srate=23.04e6\' > enb.log")
