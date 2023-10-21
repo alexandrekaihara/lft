@@ -379,3 +379,6 @@ class Node:
     def __isActive(self) -> bool:
         if subprocess.run(f"docker ps | grep {self.getNodeName()}'", shell=True, capture_output=True).stdout.decode('utf8') != '': return True
         return False
+
+    def setMtuSize(self, interfaceName: str, mtu: int) -> None:
+        subprocess.run(f"ifconfig {interfaceName} mtu {str(mtu)}", shell=True)
