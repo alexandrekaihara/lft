@@ -1,20 +1,30 @@
-from host import Host
-from switch import Switch
+from lft.host import Host
+from lft.switch import Switch
 
-s1 = Switch("s1")
-h1 = Host("h1")
-h2 = Host("h2")
 
-s1.instantiate()
-h1.instantiate(dockerImage="perfsonar/testpoint")
-h2.instantiate(dockerImage="perfsonar/testpoint")
+class EmuEmuWired:
+    def __init__(self):
+        self.h1 = Host('h1')
+        self.h2 = Host('h2')
+        self.s1 = Switch('s1')
 
-s1.connect(h1, "s1h1", "h1s1")
-s1.connect(h2, "s1h2", "h2s1")
-s1.connectToInternet("10.0.0.1", 29, "s1host", "hosts1")
+    def setup(self):
+        self.h1.instantiate("perfsonar/testpoint")
+        self.h2.instantiate("perfsonar/testpoint")
+        self.s1.instantiate()
 
-h1.setIp("10.0.0.2", 32, 'h1s1')
-h2.setIp("10.0.0.3", 32, 'h2s1')
+        self.h1.connect(self.s1, "h1s1", "s1h1")
+        self.h2.connect(self.s1, "h2s1", "s1h2")
 
-h1.setDefaultGateway("10.0.0.1", "h1s1")
-h2.setDefaultGateway("10.0.0.1", "h2s1")
+        self.h1.setIp('10.0.0.1', 24, "h1s1")
+        self.h2.setIp('10.0.0.2', 24, "h2s1")
+
+        self.s1.connectToInternet('10.0.0.4', 24, "s1host", "hosts1")
+
+        self.h1.setDefaultGateway('10.0.0.4', "h1s1")
+        self.h2.setDefaultGateway('10.0.0.4', "h2s1")
+
+    def tearDown(self):
+        self.h1.delete()
+        self.h2.delete()
+        self.s1.delete()
