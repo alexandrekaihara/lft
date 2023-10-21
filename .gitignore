@@ -1,22 +1,23 @@
+lft/Backups
+lft/Cache
+lft/CachedData
+lft/CachedProfilesData/
+lft/Code Cache/
+lft/Cookies
+lft/Cookies-journal
+lft/Crashpad/
+lft/Dictionaries/
+lft/GPUCache/
+lft/Local Storage/
+lft/Network Persistent State
+lft/Preferences
+lft/Session Storage/
+lft/TransportSecurity
+lft/User/
+lft/languagepacks.json
+lft/logs/
+lft/machineid
 demonstration/__pycache__
-src/Backups
-src/Cache
-src/CachedData
-src/CachedProfilesData/
-src/Code Cache/
-src/Cookies
-src/Cookies-journal
-src/Crashpad/
-src/Dictionaries/
-src/GPUCache/
-src/Local Storage/
-src/Network Persistent State
-src/Preferences
-src/Session Storage/
-src/TransportSecurity
-src/User/
-src/__pycache__/
-src/languagepacks.json
-src/logs/
-src/machineid
-
+experiment/__pycache__
+lft/__pycache__
+experiment/results/*
