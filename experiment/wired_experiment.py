@@ -27,7 +27,7 @@ resultsPath = "experiment/results/"
 
 throughput = Throughput().Format("json").MaxRuns(maxRuns, testDuration)
 rtt = Rtt().Format("json").MaxRuns(maxRuns, testDuration)
-latency = Latency().Format("json").MaxRuns(maxRuns, testDuration)
+latency = Latency().Format("json").MaxRuns(maxRuns, testDuration).OutPutRaw()
 
 
 # wired emu-emu

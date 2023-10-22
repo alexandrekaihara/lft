@@ -127,6 +127,7 @@ class Latency(Task):
         self.TaskType(self.LATENCY)
         self.packetCountOption = "-c"
         self.packetIntervalOption = "-i"
+        self.OUTPUT_RAW = "-R"
         
     def PacketCount(self, packetCount):
         option = self.joinClauses(self.packetCountOption, packetCount)
@@ -136,6 +137,10 @@ class Latency(Task):
     def PacketInterval(self, packetInterval):
         option = self.joinClauses(self.packetIntervalOption, packetInterval)
         self.addTaskOption(option)
+        return self
+    
+    def OutputRaw(self):
+        self.addTaskOption(self.OUTPUT_RAW)
         return self
 
 class Rtt(Task):
