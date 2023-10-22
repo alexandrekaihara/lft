@@ -30,10 +30,24 @@ RUN apt install -y software-properties-common gpg-agent && \
         apt update && \
         echo -e "yes\n2\nperfsonar\nperfsonar\n" | apt install -y perfsonar-testpoint
 
+# Install UHD
+RUN apt install git cmake git libboost-all-dev libusb-1.0-0-dev libudev-dev libncurses5-dev build-essential python3-pip -y \
+        pip install mako \
+        git clone https://github.com/EttusResearch/uhd.git \
+        cd uhd \
+        git checkout v3.15.0.0 \
+        cd host \
+        mkdir build \
+        cd build \
+        cmake .. \
+        make \
+        sudo make install \
+        sudo ldconfig
+
 # Install srsRAN
 ## Cloning repository
 RUN wget https://github.com/srsran/srsRAN_4G/archive/refs/heads/master.zip
-RUN unzip master.zip && \
+RUN unzip master.zip && \apt install libpcsclite-dev \
         mv srsRAN_4G-master srsRAN
 
 ## Instaling dependencies
@@ -46,24 +60,15 @@ RUN apt-get update -y && \
 	libsctp-dev \
 	libzmq3-dev \
 	build-essential \
-        gnuradio
+        gnuradio \
+        libpcsclite-dev
 
 ## Building srsRAN
-RUN mkdir /srsRAN/build && \
+RUN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     mkdir /srsRAN/build && \
     cd /srsRAN/build && \
     cmake ../ && make && make install && ldconfig && \
    ./srsran_install_configs.sh service
 
-## Adding configuration Files
-RUN mkdir /etc/srsRAN && \ 
-    cp /srsRAN/srsue/ue.conf.example /etc/srsran/ue.conf && \
-    cp /srsRAN/srsenb/enb.conf.example /etc/srsran/enb.conf && \
-    cp /srsRAN/srsenb/rb.conf.example /etc/srsran/rb.conf && \
-    cp /srsRAN/srsenb/rr.conf.example /etc/srsran/rr.conf && \
-    cp /srsRAN/srsenb/sib.conf.example /etc/srsran/sib.conf && \
-    cp /srsRAN/srsepc/epc.conf.example /etc/srsran/epc.conf && \
-    cp /srsRAN/srsepc/user_db.csv.example /etc/srsran/user_db.csv && \
-    > /etc/srsran/user_db.csv
 COPY onboot.sh /srsRAN/build/
 COPY multiUE.py /srsRAN/build/
 RUN chmod +x /srsRAN/build/onboot.sh

@@ -17,9 +17,21 @@
 
 
 FROM ubuntu:20.04
-RUN apt update \
+
+# Install basic dependencies
+RUN apt update && apt upgrade -y \
 &&  RUNLEVEL=1 apt install -y --no-install-recommends sudo net-tools iproute2 iputils-ping iptables nano software-properties-common wget unzip
 
+# Install UHD Driver
+RUN apt install -y --no-install-recommends git cmake git libboost-all-dev libusb-1.0-0-dev libudev-dev libncurses5-dev build-essential python3-pip dpdk dpdk-dev && \
+        pip3 install mako && \
+        git clone https://github.com/EttusResearch/uhd.git && \
+        cd uhd && \
+        git checkout v3.15.0.0 && \
+        cd host && mkdir build && cd build && \
+        cmake ../ && make && sudo make install && sudo ldconfig 
+
+# Install srsRAN 4G
 RUN wget https://github.com/srsran/srsRAN_4G/archive/refs/heads/master.zip
 RUN unzip master.zip && \
         mv srsRAN_4G-master srsRAN
@@ -39,16 +51,6 @@ RUN mkdir /srsRAN/build && \
     cd /srsRAN/build && \
     cmake ../ && make && make install && ldconfig && \
    ./srsran_install_configs.sh service
-
-RUN mkdir /etc/srsRAN && \ 
-    cp /srsRAN/srsue/ue.conf.example /etc/srsran/ue.conf && \
-    cp /srsRAN/srsenb/enb.conf.example /etc/srsran/enb.conf && \
-    cp /srsRAN/srsenb/rb.conf.example /etc/srsran/rb.conf && \
-    cp /srsRAN/srsenb/rr.conf.example /etc/srsran/rr.conf && \
-    cp /srsRAN/srsenb/sib.conf.example /etc/srsran/sib.conf && \
-    cp /srsRAN/srsepc/epc.conf.example /etc/srsran/epc.conf && \
-    cp /srsRAN/srsepc/user_db.csv.example /etc/srsran/user_db.csv && \
-    > /etc/srsran/user_db.csv
 
 COPY onboot.sh /srsRAN/build/
 COPY multiUE.py /srsRAN/build/
