@@ -87,11 +87,11 @@ try:
     s2.connect(s3, "s2s3", "s3s2")
 
     print("[Experiment] Generating simple traffic for host detection")
-    subprocess.run(f"docker exec h1 ping 10.0.0.2 -c 1", shell=True)
-    subprocess.run(f"docker exec h2 ping 10.0.0.3 -c 1", shell=True)
-    subprocess.run(f"docker exec h3 ping 10.0.0.4 -c 1", shell=True)
+    subprocess.run(f"docker exec h1 ping 10.0.0.3 -c 1", shell=True)
+    subprocess.run(f"docker exec h2 ping 10.0.0.4 -c 1", shell=True)
+    subprocess.run(f"docker exec h3 ping 10.0.0.2 -c 1", shell=True)
 
-    onos.deactivateONOSApps("172.17.0.2")
+    #onos.deactivateONOSApps("172.17.0.2")
     print("[Experiment] Setup complete!")
 
 except Exception as e:
