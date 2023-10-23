@@ -97,11 +97,6 @@ try:
         inp = input(" Proceed to fwd deactivation? [y]")
     onos.deactivateONOSApps("172.17.0.2")
 
-    while(inp != 'y'):
-        inp = input(" Proceed to intent creation? [y]")
-    onos.runOnosCliCommands("172.17.0")
-
-
 except Exception as e:
     onos.delete()
     s1.delete()
