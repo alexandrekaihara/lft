@@ -1,4 +1,3 @@
-from lft.switch import Switch
 from lft.ue import UE
 from lft.epc import EPC
 from lft.enb import EnB
@@ -39,7 +38,6 @@ class EmuEmuWireless:
         self.enb.setEnBAddress("10.0.0.2")
         self.enb.setMultiUEEnBAddr("11.0.0.1", 2101, '11.0.0.1', 2100)
         self.enb.setMultiUEUE1Addr("11.0.0.2", 2001, "11.0.0.1", 2000)
-        self.enb.setMultiUEUE2Addr("11.0.0.6", 2011, "11.0.0.5", 2010)
 
         # Define UE Config
         self.ue.setUEID("001010123456780")
