@@ -44,7 +44,7 @@ class ONOS(Controller):
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(server_ip, port=8101, username=username, password=password)
 
-            command = 'app deactivate app activate org.onosproject.fwd'
+            command = 'app deactivate activate org.onosproject.fwd'
             stdin, stdout, stderr = ssh.exec_command(command)
 
             command_output = stdout.read().decode('utf-8')
