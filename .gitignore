@@ -21,3 +21,5 @@ demonstration/__pycache__
 experiment/__pycache__
 lft/__pycache__
 experiment/results/*
+results/data/*
+results/__pycache__
