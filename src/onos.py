@@ -19,7 +19,32 @@ class ONOS(Controller):
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(server_ip, port=8101, username=username, password=password)
 
-            command = 'app activate org.onosproject.openflow' # && app activate org.onosproject.fwd
+            command = 'app activate org.onosproject.openflow && app activate org.onosproject.fwd'
+            stdin, stdout, stderr = ssh.exec_command(command)
+
+            command_output = stdout.read().decode('utf-8')
+            error_output = stderr.read().decode('utf-8')
+
+            print("Command Output:")
+            print(command_output)
+
+            print("Error Output:")
+            print(error_output)
+
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+        finally:
+            ssh.close()
+
+    def deactivateONOSApps(self, server_ip, username='karaf', password='karaf') -> None:
+        print("[Experiment] Deactivating ONOS apps!")
+
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(server_ip, port=8101, username=username, password=password)
+
+            command = 'app deactivate app activate org.onosproject.fwd'
             stdin, stdout, stderr = ssh.exec_command(command)
 
             command_output = stdout.read().decode('utf-8')

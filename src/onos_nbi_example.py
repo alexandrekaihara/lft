@@ -90,6 +90,8 @@ try:
     subprocess.run(f"docker exec h1 ping 10.0.0.2 -c 1", shell=True)
     subprocess.run(f"docker exec h2 ping 10.0.0.3 -c 1", shell=True)
     subprocess.run(f"docker exec h3 ping 10.0.0.4 -c 1", shell=True)
+
+    onos.deactivateONOSApps("172.17.0.2")
     print("[Experiment] Setup complete!")
 
 except Exception as e:
