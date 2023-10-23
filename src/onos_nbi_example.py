@@ -55,6 +55,7 @@ try:
     inp = ''
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
+    onos.setCliIp("172.17.0.2")
     onos.activateONOSApps("172.17.0.2")
     createSwitch()
     print("[Experiment] Setting controller for the s1 and s2")
@@ -90,9 +91,16 @@ try:
     subprocess.run(f"docker exec h1 ping 10.0.0.3 -c 1", shell=True)
     subprocess.run(f"docker exec h2 ping 10.0.0.4 -c 1", shell=True)
     subprocess.run(f"docker exec h3 ping 10.0.0.2 -c 1", shell=True)
-
-    #onos.deactivateONOSApps("172.17.0.2")
     print("[Experiment] Setup complete!")
+
+    while(inp != 'y'):
+        inp = input(" Proceed to fwd deactivation? [y]")
+    onos.deactivateONOSApps("172.17.0.2")
+
+    while(inp != 'y'):
+        inp = input(" Proceed to intent creation? [y]")
+    onos.runOnosCliCommands("172.17.0")
+
 
 except Exception as e:
     onos.delete()
