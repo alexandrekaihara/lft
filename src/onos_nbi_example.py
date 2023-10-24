@@ -92,7 +92,7 @@ try:
     subprocess.run(f"docker exec h2 ping 10.0.0.4 -c 1", shell=True)
     subprocess.run(f"docker exec h3 ping 10.0.0.2 -c 1", shell=True)
     print("[Experiment] Setup complete!")
-
+    inp = ''
     while(inp != 'y'):
         inp = input(" Proceed to fwd deactivation? [y]")
     onos.deactivateONOSApps("172.17.0.2")
