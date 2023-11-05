@@ -122,8 +122,10 @@ def createServer(name: str, serverImage: str, subnet: str, address: int):
 def convertPcap():
     print(f"[LFT] Converting pcap files with CICFlowMeter")
     pcaps = glob('flows/brint/*')
-    pcaps = pcaps + glob('flows/brex/*')
-    if len(pcaps) == 0: return
+    pcaps = pcaps + glob('flows/brext/*')
+    if len(pcaps) == 0: 
+        print(" ... 0 pcaps")
+        return
 
     hostPath = getcwd()+'/flows'
     containerPath = '/home/flows'
@@ -157,6 +159,14 @@ def convertPcap():
     print(f"[LFT] ... Saving CSV File")
     with open(hostPath+'/final_report.csv', 'w') as f:
         f.write(csv_content)
+
+def collectLogs():
+    print(f"[LFT] Collecting Client Logs")
+    hosts = ['e1', 'e2', 'm1', 'm2', 'm3', 'm4', 'o1', 'o2', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'd9', 'd10', 'd11', 'd12', 'd13']
+    ips = ['50.3', '50.4', '200.2', '200.3', '200.4', '200.5', '210.2', '210.3', '220.2', '220.3', '220.4', '220.5', '220.6', '220.7', '220.8', '220.9', '220.10', '220.11', '220.12', '220.13', '220.14']
+    def getLog(ip, host):
+        subprocess.run(f'docker cp {host}:/home/debian/log/192.168.{ip}.log logs/192.168.{ip}.log > /dev/null 2>&1', shell=True)
+    [getLog(ip, host) for ip, host in zip(ips, hosts)]
 
 def signal_handler(sig, frame):
     print("You've pressed Ctrl+C!")
@@ -273,8 +283,9 @@ try:
     [setLinuxClientFileConfig(nodes[f'e{i}'], developer_subnet, 'external_attacker') for i in range(1,3)]
 
     nodes['brint'].collectFlows(path='home/pcap', sniffAll=True)
-    nodes['brex'].collectFlows(path='home/pcap', sniffAll=True)
+    nodes['brext'].collectFlows(path='home/pcap', sniffAll=True)
 except Exception as e:
+    collectLogs()
     [node.delete() for _,node in nodes.items()]
     convertPcap()
     raise(e)
