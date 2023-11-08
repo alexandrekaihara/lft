@@ -16,6 +16,8 @@
 
 import logging
 import subprocess
+import hashlib
+from configparser import ConfigParser
 import json
 from lft.exceptions import *
 from lft.constants import *
@@ -34,9 +36,13 @@ class Node:
     # Return:
     #   None
     def __init__(self, nodeName: str) -> None:
+        self.__createTmpFolder()
         self.__nodeName = nodeName
         self.memory = ''
         self.cpu = ''
+
+    def __createTmpFolder(self) -> None:
+        subprocess.run("mkdir -p /tmp/lft/", shell=True)
 
     # OBS: Create nodes with short name lenght due to a restriction on a iproute2 to define and create interfaces.
     # Brief: Instantiate the container
@@ -47,61 +53,65 @@ class Node:
     #   String cpus: It is the amount of cpu dedicated to the container, can be a fractional value such as "0.5"
     # Return:
     #   None
-    def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dockerCommand='', dns='8.8.8.8', memory='', cpus='') -> None:        
-        def addDockerRun(command):
+    def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dockerCommand='', dns='8.8.8.8', memory='', cpus='', runCommand='') -> None:        
+        command = []
+        
+        def addDockerRun():
             command.append(DOCKER_RUN)
 
-        def addRunOptions(command):
+        def addRunOptions():
             command.append("-d")
 
-        def addNetwork(command):
+        def addNetwork():
             command.append(NETWORK + "=none")
 
-        def addContainerName(command):
+        def addContainerName():
             command.append(NAME + '=' + self.getNodeName())
 
-        def addPrivileged(command):
+        def addPrivileged():
             command.append(PRIVILEGED)
 
-        def addDNS(command, dns):
+        def addDNS(dns):
             command.append(DNS + '=' + dns)
 
-        def addContainerMemory(command, memory):
+        def addContainerMemory(memory):
             if memory != '': 
                 command.append(MEMORY + '=' + memory)
 
-        def addContainerCPUs(command, cpus):
+        def addContainerCPUs(cpus):
             if cpus != '': 
                 command.append(CPUS + '=' + cpus)
 
-        def addContainerImage(command, image):
+        def addContainerImage(image):
             command.append(image)
 
-        def buildCommand(command):
+        def addRunCommand(runCommand):
+            command.append(runCommand)
+
+        def buildCommand():
             return " ".join(command)
 
-        
         if not self.__imageExists(dockerImage):
             logging.info(f"Image {dockerImage} not found, pulling from remote repository...")
             self.__pullImage(dockerImage)
         
         if dockerCommand == '':
-            command = []
-            addDockerRun(command)
-            addRunOptions(command)
-            addNetwork(command)
-            addContainerName(command)
-            addPrivileged(command)
-            addDNS(command, dns)
-            addContainerMemory(command, memory)
-            addContainerCPUs(command, cpus)
-            addContainerImage(command, dockerImage)
+            addDockerRun()
+            addRunOptions()
+            addNetwork()
+            addContainerName()
+            addPrivileged()
+            addDNS(dns)
+            addContainerMemory(memory)
+            addContainerCPUs(cpus)
+            addContainerImage(dockerImage)
+            addRunCommand(runCommand)
     
         try:    
             if dockerCommand != '':
                 subprocess.run(dockerCommand, shell=True, capture_output=True)            
             else:
-                subprocess.run(buildCommand(command), shell=True, capture_output=True)
+                subprocess.run(buildCommand(), shell=True, capture_output=True)
         except Exception as ex:
             logging.error(f"Error while criating the container {self.getNodeName()}: {str(ex)}")
             raise NodeInstantiationFailed(f"Error while criating the container {self.getNodeName()}: {str(ex)}")
@@ -193,6 +203,7 @@ class Node:
         subprocess.run(f"iptables -t nat -I POSTROUTING -o {hostInterfaceName} -j MASQUERADE", shell=True)
         subprocess.run(f"iptables -A FORWARD -i {hostInterfaceName} -o {hostGatewayInterfaceName} -j ACCEPT", shell=True)
         subprocess.run(f"iptables -A FORWARD -i {hostGatewayInterfaceName} -o {hostInterfaceName} -j ACCEPT", shell=True)
+        subprocess.run(f"firewall-cmd --zone=trusted --add-interface={hostInterfaceName}", shell=True)
 
     def enableForwarding(self, interfaceName: str, otherInterfaceName: str) -> None:
         self.run(f"iptables -t nat -I POSTROUTING -o {otherInterfaceName} -j MASQUERADE")
@@ -224,6 +235,21 @@ class Node:
             logging.error(f"Error adding route {ip}/{mask} via {interfaceName} in {self.getNodeName()}: {str(ex)}")
             raise Exception(f"Error adding route {ip}/{mask} via {interfaceName} in {self.getNodeName()}: {str(ex)}")
 
+    # Brief: Add a route in routing table of host
+    # Params:
+    #   String ip: IP address of the route
+    #   String mask: Network mask for the IP address route
+    #   String interfaceName: Name of the interface to forward to
+    # Return:
+    #   None
+    def addRouteOnHost(self, ip: str, mask: int, interfaceName: str, gateway="0.0.0.0") -> None:
+        try:
+            subprocess.run(f"ip route add {ip}/{mask} via {gateway} dev {interfaceName}", shell=True)
+        except Exception as ex:
+            logging.error(f"Error adding route {ip}/{mask} via {interfaceName} in {self.getNodeName()}: {str(ex)}")
+            raise Exception(f"Error adding route {ip}/{mask} via {interfaceName} in {self.getNodeName()}: {str(ex)}")
+
+
     # Brief: Set Ip to an interface (the ip must be set only after connecting it to a container, because)
     # Params:
     #   String destinationIp: The destination IP address of the gateway in format "XXX.XXX.XXX.XXX"
@@ -252,7 +278,7 @@ class Node:
             command = command.replace('\"', 'DOUBLEQUOTESDELIMITER')
             command = f"docker exec {self.getNodeName()} bash -c \"" + command + f"\""
             command = command.replace('DOUBLEQUOTESDELIMITER','\\"')
-            return subprocess.Popen(command, shell=True)#, capture_output=True)
+            return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, text=True)
         except Exception as ex:
             logging.error(f"Error executing command {command} in {self.getNodeName()}: {str(ex)}")
             raise Exception(f"Error executing command {command} in {self.getNodeName()}: {str(ex)}")
@@ -381,4 +407,34 @@ class Node:
         return False
 
     def setMtuSize(self, interfaceName: str, mtu: int) -> None:
+        self.run()
         subprocess.run(f"ifconfig {interfaceName} mtu {str(mtu)}", shell=True)
+
+    # Brief: It retrieves the config file inside the container and reads it, and then returns a ConfigParser instance
+    # Params:
+    #   String containerPath: Path inside the container of the config file including filename
+    # Return:
+    #   Returns a ConfigParser instance with the config file read
+    def readConfigFile(self, containerPath: str) -> None:
+        randomTmpName = self.getHashFromString(containerPath) 
+        self.copyContainerToLocal(containerPath, f"/tmp/lft/{randomTmpName}")
+        
+        config = ConfigParser()
+        config.read(f"/tmp/lft/{randomTmpName}")
+        return config
+
+    def saveConfig(self, config: ConfigParser, containerPath: str) -> None:
+        randomTmpName = self.getHashFromString(containerPath)
+        with open(f"/tmp/lft/{randomTmpName}", "w") as f:
+            config.write(f)
+        self.copyLocalToContainer(f"/tmp/lft/{randomTmpName}", containerPath)
+        
+    def getHashFromString(self, anyStr: str) -> str:
+        h = hashlib.md5()
+        h.update(anyStr.encode('utf-8'))
+        return h.hexdigest()
+    
+    def setHost(self, ip: str) -> None:
+        result = self.run(f"hostname")
+        hostname = result.stdout.read().replace("\n", "")
+        self.run(f"HOSTNAME=$(hostname) && echo \"{ip} {hostname}\" >> /etc/hosts")

@@ -13,18 +13,24 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from lft.node import Node
+from lft.perfsonar import Perfsonar
 from configparser import ConfigParser
+from lft.constants import *
+import pandas as pd
 
-class EPC(Node):
+class EPC(Perfsonar):
     def __init__(self, name: str):
         super().__init__(name)
         self.defaultEPCConfigPath = '/etc/srsran/epc.conf'
+        self.configEPC = None
         self.defaultEPCUserDbPath = '/etc/srsran/user_db.csv'
+        self.userDb = None 
         self.buildDir = "/srsRAN/build"
 
     def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran') -> None:
         super().instantiate(dockerImage)
+        self.configEPC = self.readConfigFile(self.defaultEPCConfigPath)
+        self.userDb = self.createUserDb()
 
     def start(self) -> None:
         self.run(f"{self.buildDir}/srsepc/src/srsepc > {self.buildDir}/epc.out &")
@@ -38,26 +44,37 @@ class EPC(Node):
     def getDefaultEPCConfigPath(self) -> str:
         return self.defaultEPCConfigPath
 
-    def setConfigurationFile(self, filePath, destinationPath='') -> None:
-        if destinationPath == '':
-            destinationPath = self.defaultEPCConfigPath
-        self.copyLocalToContainer(filePath, destinationPath)
-
-    def setEPCAddress(self, ip='127.0.1.100', epcConfigPath='') -> None:
-        if epcConfigPath == '':
-            epcConfigPath = self.defaultEPCConfigPath
-        self.run(f"sed -i \'s/^mme_bind_addr.* =.*/mme_bind_addr = {ip}/\' {epcConfigPath}")
-        self.run(f"sed -i \'s/^gtpu_bind_addr.* =.*/gtpu_bind_addr = {ip}/\' {epcConfigPath}")
+    def setEPCAddress(self, ip='127.0.1.100') -> None:
+        self.configEPC[MME_SECTION][MME_BIND_ADDR] = ip
+        self.configEPC[SPGW_SECTION][GTPU_BIND_ADDR] = ip
+        self.saveConfig(self.configEPC, self.defaultEPCConfigPath)
         
-    def setSgiInterfaceAddress(self, ip='172.16.0.1', epcConfigPath='') -> None:
-        if epcConfigPath == '':
-            epcConfigPath = self.defaultEPCConfigPath
-        self.run(f"sed -i \'s/^sgi_if_addr =.*/sgi_if_addr = {ip}/\' {epcConfigPath}")
-
+    def setSgiInterfaceAddress(self, ip='172.16.0.1') -> None:
+        self.configEPC[SPGW_SECTION][SGI_IF_ADDR] = ip
+        self.saveConfig(self.configEPC, self.defaultEPCConfigPath)
+        
     # Each UE ID must be unique and must be set in "imsi" parameter located inside the ue.conf
-    def addNewUE(self, name: str, ID: str, IP="dynamic", configFilePath='') -> None:
-        if configFilePath == '':
-            configFilePath = self.defaultEPCUserDbPath
-        self.run(f"echo \'{name},mil,{ID},00112233445566778899aabbccddeeff,opc,63bfa50ee6523365ff14c1f45f88737d,9001,000000001234,7,{IP}\' >> {configFilePath}")
+    def addNewUE(self, name: str, ID: str, IP="dynamic") -> None:
+        newRow = {
+            "Name": name,
+            "Auth": "mil",
+            "IMSI": ID,
+            "Key": "00112233445566778899aabbccddeeff",
+            "OP_Type": "opc",
+            "OP/OPc": "63bfa50ee6523365ff14c1f45f88737d",
+            "AMF": "9001",
+            "SQN": "000000001234",
+            "QCI": "7",
+            "IP_alloc": IP
+        }
+        self.userDb.loc[len(self.userDb)] = newRow
+        self.saveUserDb()
+        #self.run(f"echo \'{name},mil,{ID},00112233445566778899aabbccddeeff,opc,63bfa50ee6523365ff14c1f45f88737d,9001,000000001234,7,{IP}\' >> {self.defaultEPCUserDbPath}")
 
+    def createUserDb(self) -> None:
+        return pd.DataFrame(columns=["Name","Auth","IMSI","Key","OP_Type","OP/OPc","AMF","SQN","QCI","IP_alloc"]) 
     
+    def saveUserDb(self) -> None:
+        randomTmpName = self.getHashFromString(self.defaultEPCUserDbPath)
+        self.userDb.to_csv(f"/tmp/lft/{randomTmpName}", header=None, index=False)
+        self.copyLocalToContainer(f"/tmp/lft/{randomTmpName}", self.defaultEPCUserDbPath)

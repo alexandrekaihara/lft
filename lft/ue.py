@@ -13,19 +13,20 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from lft.node import Node
+from lft.perfsonar import Perfsonar
 from configparser import ConfigParser
+from lft.constants import *
 
-class UE(Node):
+class UE(Perfsonar):
     def __init__(self, name: str, ueConfigPath='/etc/srsran/ue.conf', buildDir='/srsRAN/build'):
         super().__init__(name)
         self.configPath = ueConfigPath
-        self.config = ConfigParser()
-        self.config.read(ueConfigPath)
+        self.config = None
         self.buildDir = buildDir
 
     def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8') -> None:
         super().instantiate(dockerImage, dockerCommand, dns)
+        self.config = self.readConfigFile(self.configPath)
 
     def start(self, deviceArgs='') -> None:
         # , transmitterIp="*", transmitterPort=2001, receiverIp="localhost", receiverPort=2000
@@ -45,33 +46,28 @@ class UE(Node):
         if destinationPath == '':
             destinationPath = self.configPath
         super().copyLocalToContainer(filePath, destinationPath)
-        
-    def __saveConfigFile(self):
-        with open(self.configPath, 'w') as configfile:
-            self.config.write(configfile)
 
     def setDeviceArgs(self, deviceArgs: str) -> None:
         self.config[RF_SECTION][DEVICE_ARGS_ATTR] = deviceArgs
-        self.__saveConfigFile()
+        self.saveConfig(self.config, self.configPath)
 
     def setDeviceName(self, deviceName: str) -> None:
         self.config[RF_SECTION][DEVICE_NAME_ATTR] = deviceName
-        self.__saveConfigFile()
+        self.saveConfig(self.config, self.configPath)
 
     def setTxGain(self, txGain: int) -> None:
         self.config[RF_SECTION][TX_GAIN_ATTR] = txGain
-        self.__saveConfigFile()
+        self.saveConfig(self.config, self.configPath)
 
     def setRxGain(self, rxGain: int) -> None:
         self.config[RF_SECTION][RX_GAIN_ATTR] = rxGain
-        self.__saveConfigFile()
+        self.saveConfig(self.config, self.configPath)
 
     def setAuthenticationAlgorithm(self, algorithmName: str) -> None:
         self.config[USIM_SECTION][ALGORITHM_ATTR] = algorithmName
-        self.__saveConfigFile()
+        self.saveConfig(self.config, self.configPath)
 
     def setUEID(self, id: str) -> None:
         self.config[USIM_SECTION][IMSI_ATTR] = id
-        self.__saveConfigFile()
-        
+        self.saveConfig(self.config, self.configPath)
         
