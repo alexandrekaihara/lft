@@ -54,6 +54,7 @@ RUN mkdir /srsRAN/build && \
 
 COPY onboot.sh /srsRAN/build/
 COPY multiUE.py /srsRAN/build/
+COPY singleUE.pY /srsRAN/build/
 
 RUN apt install iperf3 -y
 
