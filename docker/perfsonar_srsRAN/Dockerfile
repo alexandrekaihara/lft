@@ -71,6 +71,7 @@ RUN                                                                             
 
 COPY onboot.sh /srsRAN/build/
 COPY multiUE.py /srsRAN/build/
+COPY singleUE.py /srsRAN/build/
 RUN chmod +x /srsRAN/build/onboot.sh
 CMD ["./srsRAN/build/onboot.sh"] 
 
