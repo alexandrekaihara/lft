@@ -49,7 +49,7 @@ blocks:
   parameters:
     address: tcp://*:2000
     affinity: ''
-    alias: ''
+    alias: ue
     comment: ''
     hwm: '-1'
     pass_tags: 'False'
@@ -68,7 +68,7 @@ blocks:
   parameters:
     address: tcp://*:2100
     affinity: ''
-    alias: ''
+    alias: enb
     comment: ''
     hwm: '-1'
     pass_tags: 'False'
@@ -87,7 +87,7 @@ blocks:
   parameters:
     address: tcp://localhost:2101
     affinity: ''
-    alias: ''
+    alias: enb
     comment: ''
     hwm: '-1'
     maxoutbuf: '0'
@@ -100,7 +100,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [438, 445]
+    coordinate: [438, 444]
     rotation: 0
     state: true
 - name: zeromq_req_source_0_0
@@ -108,7 +108,7 @@ blocks:
   parameters:
     address: tcp://localhost:2001
     affinity: ''
-    alias: ''
+    alias: ue
     comment: ''
     hwm: '-1'
     maxoutbuf: '0'

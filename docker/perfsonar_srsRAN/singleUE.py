@@ -30,18 +30,16 @@ class single_ue(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.zeromq_req_source_0_0 = zeromq.req_source(gr.sizeof_gr_complex, 1, 'tcp://localhost:2001', 100, False, -1)
-        self.zeromq_req_source_0 = zeromq.req_source(gr.sizeof_gr_complex, 1, 'tcp://localhost:2101', 100, False, -1)
-        self.zeromq_rep_sink_0_0 = zeromq.rep_sink(gr.sizeof_gr_complex, 1, 'tcp://*:2100', 100, False, -1)
-        self.zeromq_rep_sink_0 = zeromq.rep_sink(gr.sizeof_gr_complex, 1, 'tcp://*:2000', 100, False, -1)
-
-
+        self.zeromq_req_source_ue = zeromq.req_source(gr.sizeof_gr_complex, 1, 'tcp://11.0.0.2:2001', 100, False, -1)
+        self.zeromq_req_source_enb = zeromq.req_source(gr.sizeof_gr_complex, 1, 'tcp://11.0.0.1:2101', 100, False, -1)
+        self.zeromq_rep_sink_enb = zeromq.rep_sink(gr.sizeof_gr_complex, 1, 'tcp://11.0.0.1:2100', 100, False, -1)
+        self.zeromq_rep_sink_ue = zeromq.rep_sink(gr.sizeof_gr_complex, 1, 'tcp://11.0.0.1:2000', 100, False, -1)
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.zeromq_req_source_0, 0), (self.zeromq_rep_sink_0, 0))
-        self.connect((self.zeromq_req_source_0_0, 0), (self.zeromq_rep_sink_0_0, 0))
+        self.connect((self.zeromq_req_source_enb, 0), (self.zeromq_rep_sink_ue, 0))
+        self.connect((self.zeromq_req_source_ue, 0), (self.zeromq_rep_sink_enb, 0))
 
     def get_samp_rate(self):
         return self.samp_rate

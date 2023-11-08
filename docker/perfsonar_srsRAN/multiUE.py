@@ -30,7 +30,7 @@ class top_block(gr.top_block):
         self.zeromq_req_source_2 = zeromq.req_source(gr.sizeof_gr_complex, 1, 'tcp://10.0.0.2:2101', 100, False, -1)
         self.zeromq_req_source_1 = zeromq.req_source(gr.sizeof_gr_complex, 1, 'tcp://10.0.0.4:2011', 100, False, -1)
         self.zeromq_req_source_0 = zeromq.req_source(gr.sizeof_gr_complex, 1, 'tcp://10.0.0.3:2001', 100, False, -1)
-        self.zeromq_rep_sink_2 = zeromq.rep_sink(gr.sizeof_gr_complex, 1, 'tcp://10.0.0.2: 2010', 100, False, -1)
+        self.zeromaddNewUEq_rep_sink_2 = zeromq.rep_sink(gr.sizeof_gr_complex, 1, 'tcp://10.0.0.2: 2010', 100, False, -1)
         self.zeromq_rep_sink_1 = zeromq.rep_sink(gr.sizeof_gr_complex, 1, 'tcp://10.0.0.2: 2000', 100, False, -1)
         self.zeromq_rep_sink_0 = zeromq.rep_sink(gr.sizeof_gr_complex, 1, 'tcp://10.0.0.2: 2100', 100, False, -1)
         self.blocks_add_xx_0 = blocks.add_vcc(1)
