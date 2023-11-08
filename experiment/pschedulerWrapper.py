@@ -15,9 +15,12 @@ class PSchedulerWrapper:
         self.archiverConf = ""
 
 
-    def MaxRuns(self, maxRuns: int, interval: str) -> None:
+    def MaxRuns(self, maxRuns: int) -> None:
         option = self.joinClauses(self.maxRunsOption, str(maxRuns), sep="=")
         self.addOption(option)
+        return self
+    
+    def Repeat(self, interval: str) -> None:
         option = self.joinClauses(self.repeatOption, interval, sep="=")
         self.addOption(option)
         return self
@@ -109,15 +112,17 @@ class Task(PSchedulerWrapper):
         self.Command(self.joinClauses(self.program, self.programOption, options, self.taskType, taskOptions))
         return self
 
+    def getCommand(self):
+        return self.command
 
 class Throughput(Task):
     def __init__(self, centralArchiverPath = "central_archiver.json"):
         super().__init__(centralArchiverPath)
         self.TaskType(self.THROUGHPUT)
-        self.durationOption = "-d"
+        self.durationOption = "--duration"
 
-    def Duration(self, duration: int) -> None:
-        option = self.joinClauses(self.durationOption, duration)
+    def ThroughputDuration(self, duration: int) -> None:
+        option = self.joinClauses(self.durationOption, str(duration))
         self.addTaskOption(option)
         return self
 
