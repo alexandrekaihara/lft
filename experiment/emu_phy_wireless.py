@@ -6,7 +6,7 @@ class EmuPhyWireless:
         self.usrpAddr = "192.168.107.2"
 
     def setup(self):
-        self.ue.instantiate(dockerImage="alexandremitsurukaihara/lft:perfsonar-toolkit-srsRAN")
+        self.ue.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd2", runCommand='/usr/sbin/init')
         self.ue.connectToInternet('10.0.0.1', 29, "uehost", "hostue")
         self.ue.setIp('10.0.0.2', 29, "uehost")
         self.ue.setDefaultGateway('10.0.0.1', "hostue")
@@ -17,6 +17,8 @@ class EmuPhyWireless:
         self.ue.setDeviceArgs(f"type=x300,addr={self.usrpAddr}")
 
         self.ue.start()
+
+        self.ue.setHost('10.0.0.1')
 
     def tearDown(self):
         self.ue.delete()
