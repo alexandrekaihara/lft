@@ -135,7 +135,7 @@ class Latency(Task):
         self.OUTPUT_RAW = "-R"
         
     def PacketCount(self, packetCount):
-        option = self.joinClauses(self.packetCountOption, packetCount)
+        option = self.joinClauses(self.packetCountOption, str(packetCount))
         self.addTaskOption(option)
         return self
 
@@ -152,3 +152,9 @@ class Rtt(Task):
     def __init__(self, centralArchiverPath = "central_archiver.json"):
         super().__init__(centralArchiverPath)
         self.TaskType(self.RTT)
+        self.countOption = "--count"
+
+    def Count(self, count: int) -> None:
+        option = self.joinClauses(self.countOption, str(count))
+        self.addTaskOption(option)
+        return self

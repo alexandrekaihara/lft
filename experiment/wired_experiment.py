@@ -2,29 +2,30 @@ from experiment.pschedulerWrapper import Throughput, Rtt, Latency
 from experiment.emu_emu_wired import EmuEmuWired
 from experiment.emu_phy_wired import EmuPhyWired
 
-interval = "PT1M"
-maxRuns = 1
-resultsPath = "results/test/"
+interval = "PT10M"
+maxRuns = 5
+resultsPath = "results/data/"
 
 throughput = Throughput().Format("json").MaxRuns(maxRuns).Repeat(interval)
-rtt = Rtt().Format("json").MaxRuns(maxRuns).Repeat(interval)
+rtt = Rtt().Format("json").MaxRuns(25).Repeat("PT3M")
 latency = Latency().Format("json").MaxRuns(maxRuns).Repeat(interval)
 
 def runExperiments(testname, sourceIp, targetIp):
-        #throughput_duration = 30
-        #.ThroughputDuration(throughput_duration)\
         throughput.Source(sourceIp)\
                 .Dest(targetIp)\
                 .OutputFile(resultsPath, testname + "throughput_%n.json")\
+                .ThroughputDuration(500)\
                 .mountCommand()
         rtt.Source(sourceIp)\
                 .Dest(targetIp)\
                 .OutputFile(resultsPath, testname + "rtt_%n.json")\
+                .Count(100)\
                 .mountCommand()
         latency.Source(sourceIp)\
                 .Dest(targetIp)\
                 .OutputRaw()\
                 .OutputFile(resultsPath, testname + "latency_%n.json")\
+                .PacketCount(500)\
                 .mountCommand()
         print("Running now command " + throughput.command)
         throughput.run()
