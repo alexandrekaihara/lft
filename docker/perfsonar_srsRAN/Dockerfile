@@ -31,7 +31,7 @@ RUN apt install -y software-properties-common gpg-agent && \
         echo -e "yes\n2\nperfsonar\nperfsonar\n" | apt install -y perfsonar-testpoint
 
 # Install UHD
-RUN apt install git cmake git libboost-all-dev libusb-1.0-0-dev libudev-dev libncurses5-dev build-essential python3-pip -y && \
+RUN apt install -y --no-install-recommends git cmake git libboost-all-dev libusb-1.0-0-dev libudev-dev libncurses5-dev build-essential python3-pip dpdk dpdk-dev -y && \
         pip install mako && \
         git clone https://github.com/EttusResearch/uhd.git && \
         cd uhd && \
