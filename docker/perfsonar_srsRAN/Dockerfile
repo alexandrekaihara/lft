@@ -31,24 +31,25 @@ RUN apt install -y software-properties-common gpg-agent && \
         echo -e "yes\n2\nperfsonar\nperfsonar\n" | apt install -y perfsonar-testpoint
 
 # Install UHD
-RUN apt install git cmake git libboost-all-dev libusb-1.0-0-dev libudev-dev libncurses5-dev build-essential python3-pip -y \
-        pip install mako \
-        git clone https://github.com/EttusResearch/uhd.git \
-        cd uhd \
-        git checkout v3.15.0.0 \
-        cd host \
-        mkdir build \
-        cd build \
-        cmake .. \
-        make \
-        sudo make install \
+RUN apt install git cmake git libboost-all-dev libusb-1.0-0-dev libudev-dev libncurses5-dev build-essential python3-pip -y && \
+        pip install mako && \
+        git clone https://github.com/EttusResearch/uhd.git && \
+        cd uhd && \
+        git checkout v3.15.0.0 && \
+        cd host && \
+        mkdir build && \
+        cd build && \
+        cmake .. && \
+        make && \
+        sudo make install && \
         sudo ldconfig
 
 # Install srsRAN
 ## Cloning repository
 RUN wget https://github.com/srsran/srsRAN_4G/archive/refs/heads/master.zip
-RUN unzip master.zip && \apt install libpcsclite-dev \
-        mv srsRAN_4G-master srsRAN_4G
+RUN unzip master.zip && apt install libpcsclite-dev -y && \
+        mv srsRAN_4G-master /srsRAN && \
+        cd /srsRAN
 
 ## Instaling dependencies
 RUN apt-get update -y && \
@@ -63,10 +64,10 @@ RUN apt-get update -y && \
         gnuradio \
         libpcsclite-dev
 
-## Building srsRAN
-RUN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     mkdir /srsRAN/build && \
-    cd /srsRAN_4G/build && \
-    cmake ../ && make && make install && ldconfig && \
+## Building srsRAN                                                                                                                                                                                                                                                                                                                                                          
+RUN  mkdir /srsRAN/build && \
+    cd /srsRAN/build && \
+    cmake ../ && make && make install && ldconfig && make test && \
    ./srsran_install_configs.sh service
 
 COPY onboot.sh /srsRAN_4G/build/

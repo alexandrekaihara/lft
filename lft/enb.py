@@ -20,7 +20,7 @@ class EnB(Perfsonar):
     def __init__(self, name: str, eNBConfigPath = '/etc/srsran/enb.conf'):
         super().__init__(name)
         self.defaultEnBConfigPath = eNBConfigPath
-        self.buildDir = '/srsRAN_4G/build'
+        self.buildDir = '/srsRAN/build'
         self.config = None
         self.defaultMultiUEPath = self.buildDir + '/multiUE.py'
         self.defaultSingleUEPath = self.buildDir + '/singleUE.py'
