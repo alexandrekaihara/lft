@@ -53,7 +53,7 @@ class Node:
     #   String cpus: It is the amount of cpu dedicated to the container, can be a fractional value such as "0.5"
     # Return:
     #   None
-    def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dockerCommand='', dns='8.8.8.8', memory='', cpus='', runCommand='') -> None:        
+    def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dockerCommand='', dns='8.8.8.8', memory='', cpus='', runCommand='') -> None:
         command = []
         
         def addDockerRun():

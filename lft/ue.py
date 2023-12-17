@@ -24,8 +24,8 @@ class UE(Perfsonar):
         self.config = None
         self.buildDir = buildDir
 
-    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8') -> None:
-        super().instantiate(dockerImage, dockerCommand, dns)
+    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8', runCommand='') -> None:
+        super().instantiate(dockerImage, dockerCommand, dns, runCommand=runCommand)
         self.config = self.readConfigFile(self.configPath)
 
     def start(self, deviceArgs='') -> None:

@@ -20,18 +20,18 @@ class EnB(Perfsonar):
     def __init__(self, name: str, eNBConfigPath = '/etc/srsran/enb.conf'):
         super().__init__(name)
         self.defaultEnBConfigPath = eNBConfigPath
-        self.buildDir = '/srsRAN/build'
+        self.buildDir = '/srsRAN_4G/build'
         self.config = None
         self.defaultMultiUEPath = self.buildDir + '/multiUE.py'
         self.defaultSingleUEPath = self.buildDir + '/singleUE.py'
 
-    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8') -> None:
-        super().instantiate(dockerImage, dockerCommand, dns)
+    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8', runCommand='') -> None:
+        super().instantiate(dockerImage=dockerImage, dockerCommand=dockerCommand, dns=dns, runCommand=runCommand)
         self.config = self.readConfigFile(self.defaultEnBConfigPath)
 
     def start(self, transmitterIp="*", transmitterPort=2000, receiverIp="localhost", receiverPort=2001) -> None:
         super().run(f"{self.buildDir}/srsenb/src/srsenb --rf.device_name=zmq --rf.device_args=\'fail_on_disconnect=true,tx_port=tcp://{transmitterIp}:{transmitterPort},rx_port=tcp://{receiverIp}:{receiverPort},id=enb,base_srate=23.04e6\' > enb.log")
-    
+
     def stop(self) -> None:
         super().run("pkill -f -9 srsenb")
 
@@ -97,8 +97,8 @@ class EnB(Perfsonar):
     def setEPCAddress(self, ip: str) -> None:
         self.config[ENB_SECTION][MME_ADDR] = ip
         self.saveConfig(self.config, self.defaultEnBConfigPath)
-        
+
     def setEnBAddress(self, ip: str) -> None:
         self.config[ENB_SECTION][GTP_BIND_ADDR] = ip
-        self.config[ENB_SECTION][S1C_BIND_ADDR] = ip      
+        self.config[ENB_SECTION][S1C_BIND_ADDR] = ip
         self.saveConfig(self.config, self.defaultEnBConfigPath)

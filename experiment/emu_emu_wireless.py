@@ -11,8 +11,8 @@ class EmuEmuWireless:
 
     def setup(self):
         self.epc.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd")
-        self.enb.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd")
-        self.ue.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd")
+        self.enb.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd", runCommand='/usr/sbin/init')
+        self.ue.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd", runCommand='/usr/sbin/init')
 
         self.enb.connect(self.epc, "enbepc", "epcenb")
         self.ue.connect(self.enb, "ueenb", "enbue")
@@ -46,6 +46,19 @@ class EmuEmuWireless:
         self.enb.start("11.0.0.1", 2101, "11.0.0.1", 2100)
         time.sleep(5)  
         self.ue.start("--rf.device_name=zmq --rf.device_args=\"tx_port=tcp://11.0.0.2:2001,rx_port=tcp://11.0.0.1:2000,id=ue,base_srate=23.04e6\"")
+
+
+        self.ue.setHost('172.16.0.2')
+        self.enb.setHost('172.16.0.1')
+
+#        self.ue.readLimitFile()
+#        self.enb.readLimitFile()
+
+#        self.u.addRouteException("192.0.0.0", 24)
+#        self.h2.addRouteException("192.0.0.0", 24)
+
+#        self.h1.saveLimitFile()
+#        self.h2.saveLimitFile()
 
     def tearDown(self):
         self.epc.delete()

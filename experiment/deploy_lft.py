@@ -10,7 +10,7 @@ class DeployLFT():
 
 	def __addHost(self, counter, switch):
 		host = Host(f"h{counter}")
-		host.instantiate()
+		host.instantiate(dockerImage="ubuntu:trusty", runCommand="tail -f /dev/null")
 		switch.connect(host, f"s1h{counter}", f"h{counter}s1")
 		host.setIp(f"10.0.0.{counter+2}", 24, f"h{counter}s1")
 

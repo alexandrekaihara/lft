@@ -48,7 +48,7 @@ RUN apt install git cmake git libboost-all-dev libusb-1.0-0-dev libudev-dev libn
 ## Cloning repository
 RUN wget https://github.com/srsran/srsRAN_4G/archive/refs/heads/master.zip
 RUN unzip master.zip && \apt install libpcsclite-dev \
-        mv srsRAN_4G-master srsRAN
+        mv srsRAN_4G-master srsRAN_4G
 
 ## Instaling dependencies
 RUN apt-get update -y && \
@@ -65,15 +65,15 @@ RUN apt-get update -y && \
 
 ## Building srsRAN
 RUN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     mkdir /srsRAN/build && \
-    cd /srsRAN/build && \
+    cd /srsRAN_4G/build && \
     cmake ../ && make && make install && ldconfig && \
    ./srsran_install_configs.sh service
 
-COPY onboot.sh /srsRAN/build/
-COPY multiUE.py /srsRAN/build/
-COPY singleUE.py /srsRAN/build/
-RUN chmod +x /srsRAN/build/onboot.sh
-CMD ["./srsRAN/build/onboot.sh"] 
+COPY onboot.sh /srsRAN_4G/build/
+COPY multiUE.py /srsRAN_4G/build/
+COPY singleUE.py /srsRAN_4G/build/
+RUN chmod +x /srsRAN_4G/build/onboot.sh
+CMD ["./srsRAN_4G/build/onboot.sh"] 
 
 # For conecting via Open SSL
 EXPOSE 22
