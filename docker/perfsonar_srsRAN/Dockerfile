@@ -70,11 +70,11 @@ RUN  mkdir /srsRAN/build && \
     cmake ../ && make && make install && ldconfig && make test && \
    ./srsran_install_configs.sh service
 
-COPY onboot.sh /srsRAN_4G/build/
-COPY multiUE.py /srsRAN_4G/build/
-COPY singleUE.py /srsRAN_4G/build/
-RUN chmod +x /srsRAN_4G/build/onboot.sh
-CMD ["./srsRAN_4G/build/onboot.sh"] 
+COPY onboot.sh /srsRAN/build/
+COPY multiUE.py /srsRAN/build/
+COPY singleUE.py /srsRAN/build/
+RUN chmod +x /srsRAN/build/onboot.sh
+CMD ["./srsRAN/build/onboot.sh"] 
 
 # For conecting via Open SSL
 EXPOSE 22
