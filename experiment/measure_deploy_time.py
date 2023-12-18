@@ -16,9 +16,11 @@ def barPlot(dataframe, title):
 
 
 maxMem = 0
+continueThread = True
 def measureMemory():
     maxMem = 0
-    while(True):
+    continueThread = True
+    while(continueThread):
         out = run('free | grep Mem | grep -oP \'^\D*\d+\D*\K\d+\'', shell=True, capture_output=True, text=True)
         aux = int(out.stdout)
         if aux > maxMem:
@@ -71,7 +73,8 @@ try:
             t = Thread(measureMemory)
             t.start()
             dlft.deploy(size)
-            t.stop()
+            continueThread = False
+            t.join()
             lftDeployMem.append(maxMem)
             dlft.getReferences(size)
             dlft.undeploy()
@@ -122,7 +125,8 @@ try:
             t = Thread(measureMemory)
             t.start()
             dmn.deploy(size)
-            t.stop()
+            continueThread = False
+            t.join()
             lftDeployMem.append(maxMem)
             dmn.undeploy()
             sleep(coolDownTime)
