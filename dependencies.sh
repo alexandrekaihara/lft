@@ -16,4 +16,4 @@ do
   echo "${packagesAptGet[$i-1]} found."
 done
 
-pip install pandas -y
+pip install pandas
