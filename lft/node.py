@@ -438,3 +438,6 @@ class Node:
         result = self.run(f"hostname")
         hostname = result.stdout.read().replace("\n", "")
         self.run(f"HOSTNAME=$(hostname) && echo \"{ip} {hostname}\" >> /etc/hosts")
+
+    def acceptPacketsFromInterface(self, interfaceName: str):
+        self.run(f"iptables -A INPUT -i {interfaceName} -j ACCEPT")

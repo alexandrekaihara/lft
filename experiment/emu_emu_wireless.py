@@ -2,6 +2,7 @@ from lft.ue import UE
 from lft.epc import EPC
 from lft.enb import EnB
 import time
+import subprocess
 
 class EmuEmuWireless:
     def __init__(self):
@@ -10,23 +11,28 @@ class EmuEmuWireless:
         self.ue = UE('ue')
 
     def setup(self):
-        self.epc.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd3")
-        self.enb.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd3", runCommand='/usr/sbin/init')
+        self.epc.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd3", runCommand='/usr/sbin/init')
+        self.enb.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd3")
         self.ue.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd3", runCommand='/usr/sbin/init')
 
         self.enb.connect(self.epc, "enbepc", "epcenb")
         self.ue.connect(self.enb, "ueenb", "enbue")
 
-        self.epc.connectToInternet('10.0.0.3', 24, "epchost", "hostepc")
+        self.epc.connectToInternet('9.0.0.2', 24, "epchost", "hostepc")
+        self.ue.connectToInternet('12.0.0.2', 24, "uehost", "hostue")
 
+        self.epc.setIp('9.0.0.1', 24, "epchost")
         self.epc.setIp('10.0.0.1', 24, "epcenb")
         self.enb.setIp('10.0.0.2', 24, "enbepc")
         self.enb.setIp('11.0.0.1', 30, "enbue")
+        self.ue.setIp('12.0.0.1', 24, "uehost")
         self.ue.setIp('11.0.0.2', 29, "ueenb")
 
         self.epc.setDefaultGateway('10.0.0.3', "epchost")
         self.enb.setDefaultGateway('10.0.0.3', "enbepc")
         self.ue.setDefaultGateway('10.0.0.2', "ueenb")
+
+        self.enb.acceptPacketsFromInterface("enbue")
 
         # Define EPC config
         self.epc.setEPCAddress("10.0.0.1")
@@ -47,13 +53,14 @@ class EmuEmuWireless:
         time.sleep(5)  
         self.ue.start("--rf.device_name=zmq --rf.device_args=\"tx_port=tcp://11.0.0.2:2001,rx_port=tcp://11.0.0.1:2000,id=ue,base_srate=23.04e6\"")
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
         self.ue.setHost('172.16.0.2')
-        self.enb.setHost('172.16.0.1')
+        self.epc.setHost('172.16.0.1')
 
+        self.epc.enableForwarding("epchost", "srs_spgw_sgi")
+        self.ue.enableForwarding("uehost", "tun_srsue")
+
+        subprocess.run("ip route add 172.16.0.2/32 via 12.0.0.1 dev hostue", shell=True)
+        subprocess.run("ip route add 172.16.0.1/32 via 9.0.0.1 dev hostepc", shell=True)
 #        self.ue.readLimitFile()
 #        self.enb.readLimitFile()
 
