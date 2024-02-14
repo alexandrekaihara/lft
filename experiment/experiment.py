@@ -20,7 +20,7 @@ def runThroughput(testname, sourceIp, targetIp):
 def runRTT(testname, sourceIp, targetIp):
         rtt.Source(sourceIp)\
                 .Dest(targetIp)\
-                .OutputFile(RESULTS_PATH, testname + THROUGHPUT_JSON_FORMAT)\
+                .OutputFile(RESULTS_PATH, testname + RTT_JSON_FORMAT)\
                 .Count(60)\
                 .mountCommand()
         print("Running now command " + rtt.command)
@@ -31,7 +31,7 @@ def runLatency(testname, sourceIp, targetIp):
         latency.Source(sourceIp)\
                 .Dest(targetIp)\
                 .OutputRaw()\
-                .OutputFile(RESULTS_PATH, testname + THROUGHPUT_JSON_FORMAT)\
+                .OutputFile(RESULTS_PATH, testname + LATENCY_JSON_FORMAT)\
                 .PacketCount(60)\
                 .mountCommand()
         print("Running now command " + latency.command)

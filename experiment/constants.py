@@ -4,6 +4,8 @@ MAX_RUNS = 10
 RESULTS_PATH = "results/data/"
 REPEAT_INTERVAL = "PT3M"
 THROUGHPUT_JSON_FORMAT = "throughput_%n.json"
+RTT_JSON_FORMAT = "rtt_%n.json"
+LATENCY_JSON_FORMAT = "latency_%n.json"
 PERFSONAR_JSON_OUTPUT_FORMAT = "json"
 
 
