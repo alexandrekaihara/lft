@@ -5,7 +5,7 @@ from experiment.emu_phy_wireless import EmuPhyWireless
 
 emuEmu = EmuEmuWireless()
 emuEmu.setup()
-runExperiments("wireless_emu_emu_", "172.16.0.1", "172.16.0.2")
+runExperiments("wireless_emu_emu_", EMU_EMU_WIRELESS_EPC_IP_ADDR, EMU_EMU_WIRELESS_EPC_IP_ADDR)
 emuEmu.tearDown()
 
 emuPhy = EmuPhyWireless()

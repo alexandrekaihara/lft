@@ -1,34 +1,39 @@
 from experiment.pschedulerWrapper import Throughput, Rtt, Latency
+from experiment.constants import *
 
 
-interval = "PT15M"
-maxRuns = 10
-resultsPath = "results/data/"
+throughput = Throughput().Format(PERFSONAR_JSON_OUTPUT_FORMAT).MaxRuns(MAX_RUNS).Repeat(INTERVAL)
+rtt = Rtt().Format(PERFSONAR_JSON_OUTPUT_FORMAT).MaxRuns(25).Repeat(REPEAT_INTERVAL)
+latency = Latency().Format(PERFSONAR_JSON_OUTPUT_FORMAT).MaxRuns(INTERVAL)
 
-throughput = Throughput().Format("json").MaxRuns(maxRuns).Repeat(interval)
-rtt = Rtt().Format("json").MaxRuns(25).Repeat("PT3M")
-latency = Latency().Format("json").MaxRuns(maxRuns).Repeat(interval)
 
-def runExperiments(testname, sourceIp, targetIp):
+def runThroughput(testname, sourceIp, targetIp):
         throughput.Source(sourceIp)\
                 .Dest(targetIp)\
-                .OutputFile(resultsPath, testname + "throughput_%n.json")\
+                .OutputFile(RESULTS_PATH, testname + THROUGHPUT_JSON_FORMAT)\
                 .ThroughputDuration(60)\
-                .mountCommand()
-        rtt.Source(sourceIp)\
-                .Dest(targetIp)\
-                .OutputFile(resultsPath, testname + "rtt_%n.json")\
-                .Count(60)\
-                .mountCommand()
-        latency.Source(sourceIp)\
-                .Dest(targetIp)\
-                .OutputRaw()\
-                .OutputFile(resultsPath, testname + "latency_%n.json")\
-                .PacketCount(60)\
                 .mountCommand()
         print("Running now command " + throughput.command)
         throughput.run()
+
+
+def runRTT(testname, sourceIp, targetIp):
+        rtt.Source(sourceIp)\
+                .Dest(targetIp)\
+                .OutputFile(RESULTS_PATH, testname + THROUGHPUT_JSON_FORMAT)\
+                .Count(60)\
+                .mountCommand()
         print("Running now command " + rtt.command)
         rtt.run()
+
+
+def runLatency(testname, sourceIp, targetIp):
+        latency.Source(sourceIp)\
+                .Dest(targetIp)\
+                .OutputRaw()\
+                .OutputFile(RESULTS_PATH, testname + THROUGHPUT_JSON_FORMAT)\
+                .PacketCount(60)\
+                .mountCommand()
         print("Running now command " + latency.command)
         latency.run()
+        

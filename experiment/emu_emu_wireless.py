@@ -3,6 +3,8 @@ from lft.epc import EPC
 from lft.enb import EnB
 import time
 import subprocess
+from time import sleep
+from experiment.constants import *
 
 class EmuEmuWireless:
     def __init__(self):
@@ -11,9 +13,9 @@ class EmuEmuWireless:
         self.ue = UE('ue')
 
     def setup(self):
-        self.epc.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd3", runCommand='/usr/sbin/init')
-        self.enb.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd3")
-        self.ue.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd3", runCommand='/usr/sbin/init')
+        self.epc.instantiate(dockerImage=SRSRAN_PERFSONAR_UHD_IMAGE, runCommand=USR_SBIN_INIT_COMMAND)
+        self.enb.instantiate(dockerImage=SRSRAN_PERFSONAR_UHD_IMAGE)
+        self.ue.instantiate(dockerImage=SRSRAN_PERFSONAR_UHD_IMAGE, runCommand=USR_SBIN_INIT_COMMAND)
 
         self.enb.connect(self.epc, "enbepc", "epcenb")
         self.ue.connect(self.enb, "ueenb", "enbue")
@@ -36,7 +38,7 @@ class EmuEmuWireless:
 
         # Define EPC config
         self.epc.setEPCAddress("10.0.0.1")
-        self.epc.addNewUE(self.ue.getNodeName(), "001010123456780", "172.16.0.2")
+        self.epc.addNewUE(self.ue.getNodeName(), "001010123456780", EMU_EMU_WIRELESS_UE_IP_ADDR)
 
         # Define ENB Config
         self.enb.setEPCAddress("10.0.0.1")
@@ -53,14 +55,16 @@ class EmuEmuWireless:
         time.sleep(5)  
         self.ue.start("--rf.device_name=zmq --rf.device_args=\"tx_port=tcp://11.0.0.2:2001,rx_port=tcp://11.0.0.1:2000,id=ue,base_srate=23.04e6\"")
 
-        self.ue.setHost('172.16.0.2')
-        self.epc.setHost('172.16.0.1')
+        self.ue.setHost(EMU_EMU_WIRELESS_UE_IP_ADDR)
+        self.epc.setHost(EMU_EMU_WIRELESS_EPC_IP_ADDR)
 
         self.epc.enableForwarding("epchost", "srs_spgw_sgi")
         self.ue.enableForwarding("uehost", "tun_srsue")
 
-        subprocess.run("ip route add 172.16.0.2/32 via 12.0.0.1 dev hostue", shell=True)
-        subprocess.run("ip route add 172.16.0.1/32 via 9.0.0.1 dev hostepc", shell=True)
+        subprocess.run(f"ip route add {EMU_EMU_WIRELESS_UE_IP_ADDR}/32 via 12.0.0.1 dev hostue", shell=True)
+        subprocess.run(f"ip route add {EMU_EMU_WIRELESS_EPC_IP_ADDR}/32 via 9.0.0.1 dev hostepc", shell=True)
+
+        self.__startPerfsonarServices()
 #        self.ue.readLimitFile()
 #        self.enb.readLimitFile()
 
@@ -69,6 +73,11 @@ class EmuEmuWireless:
 
 #        self.h1.saveLimitFile()
 #        self.h2.saveLimitFile()
+
+    def __startPerfsonarServices(self):
+         self.epc.run("service pscheduler-runner start && service pscheduler-ticker start && service pscheduler-scheduler start && service pscheduler-archiver start")
+         sleep(5)
+         self.ue.run("service pscheduler-runner start && service pscheduler-ticker start && service pscheduler-scheduler start && service pscheduler-archiver start")
 
     def tearDown(self):
         self.epc.delete()

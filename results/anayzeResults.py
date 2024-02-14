@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 from results.preprocess_throughput import Throughput
 from scipy import stats
 import numpy as np
+from json import load
+from glob import glob
 
 
 def confidence_interval(data, confidence=0.95):
@@ -13,36 +15,45 @@ def confidence_interval(data, confidence=0.95):
     return lower_bound, mean, upper_bound
 
 
-t = Throughput()
-t1 = t.readJson("results/data/wired_emu_emu_throughput_1.json")
-t2 = t.readJson("results/data/wired_emu_emu_throughput_2.json")
-t3 = t.readJson("results/data/wired_emu_emu_throughput_3.json")
+def getPaths(path):
+    return glob(path)
 
-throughput_data_1 = t.getThroughputs(t1)
-throughput_data_2 = t.getThroughputs(t2)
-throughput_data_3 = t.getThroughputs(t3)
 
-plt.plot(throughput_data_1, label='Arary 1')
-plt.plot(throughput_data_2, label='Arary 2')
-plt.plot(throughput_data_3, label='Arary 3')
+def flattenList(listOfLists):
+    return [element for singleList in listOfLists for element in singleList ]
+
+def loadThroughputData(path):
+    throughput = Throughput()
+    throughputPaths = getPaths(path)
+    throughputJsons = [load(open(path)) for path in throughputPaths]
+    return flattenList([throughput.getThroughputs(json) for json in throughputJsons])
+    
+
+wiredEmuEmuThroughputData = loadThroughputData("results/data/wired_emu_emu_throughput_*.json")
+wiredEmuPhyThroughputData = loadThroughputData("results/data/wired_emu_emu_throughput_*.json")
+wiredPhyPhyThroughputData = loadThroughputData("results/data/wired_emu_emu_throughput_*.json")
+
+wirelessEmuEmuThroughputPaths = loadThroughputData("results/data/wireless_emu_emu_throughput_*.json")
+
+
+#plt.plot(wiredThroughputData, label='Wired')
+plt.plot(wirelessThroughputData, label='Wireless')
 plt.title('Throughput Data')
 plt.xlabel('Time')
 plt.ylabel('Throughput')
 plt.show()
 
 
-c1 = confidence_interval(throughput_data_1)
-c2 = confidence_interval(throughput_data_2)
-c3 = confidence_interval(throughput_data_3)
+c1 = confidence_interval(wiredThroughputData)
+c2 = confidence_interval(wirelessThroughputData)
 
 plt.plot(c1, (0, 0),'ro-',color='orange')
 plt.plot(c2, (1, 1),'ro-',color='orange')
-plt.plot(c3, (2, 2),'ro-',color='orange')
 
 plt.xlabel('Confidence Intervals')
 plt.ylabel('Mean')
 plt.title('Three Confidence Intervals')
 
-plt.yticks(range(len(3)), ['CI 1', 'CI 2', 'CI 3'])
+plt.yticks(range(len(3)), ['CI Wired', 'CI Wireless'])
 
 plt.show()
