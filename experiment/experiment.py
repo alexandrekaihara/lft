@@ -4,7 +4,7 @@ from experiment.constants import *
 
 throughput = Throughput().Format(PERFSONAR_JSON_OUTPUT_FORMAT).MaxRuns(MAX_RUNS).Repeat(INTERVAL)
 rtt = Rtt().Format(PERFSONAR_JSON_OUTPUT_FORMAT).MaxRuns(25).Repeat(REPEAT_INTERVAL)
-latency = Latency().Format(PERFSONAR_JSON_OUTPUT_FORMAT).MaxRuns(MAX_RUNS)
+latency = Latency().Format(PERFSONAR_JSON_OUTPUT_FORMAT).MaxRuns(MAX_RUNS).Repeat(INTERVAL)
 
 
 def runThroughput(testname, sourceIp, targetIp):

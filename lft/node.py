@@ -441,3 +441,26 @@ class Node:
 
     def acceptPacketsFromInterface(self, interfaceName: str):
         self.run(f"iptables -A INPUT -i {interfaceName} -j ACCEPT")
+
+    # Brief: Shapes the Linux network interface throughput, latency and burst using Traffic Control (TC)
+    # Params:
+    #   String interfaceName: Name of the interface to set the traffic control
+    #   int throughput: Value of the throughput in bits
+    #   int Latency: 
+    # Return:
+    #   Returns a ConfigParser instance with the config file read
+    def setInterfaceTraffic(self, interfaceName: str, throughput: int, latency: int, burst: int, ceil: int) -> None:
+        rate = self.__formatRate(throughput)
+        ceilOption = ""
+        if (ceil != None):
+            ceilOption = f"ceil {self.__formatRate(ceil)}"
+        self.run(f"ip netns exec {self.getNodeName()} tc qdisc add dev {interfaceName} root tbf rate {rate} {ceilOption} latency {latency}ms burst {burst}")
+
+    def __formatRate(self, value: int) -> str:
+        power_labels = { 0: "", 1: "k", 2: "m", 3: "g"}
+        stepSize = 2**10
+        power = 0
+        while value > stepSize:
+            value /= stepSize
+            power += 1
+        return "{:.1f}".format(value) + power_labels[power] + 'bit'
