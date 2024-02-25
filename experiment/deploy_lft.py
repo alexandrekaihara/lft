@@ -4,8 +4,8 @@ from lft.switch import Switch
 
 class DeployLFT():
 	def deploy(self, size):
-		s1 = Switch("s1");
-		s1.instantiate();
+		s1 = Switch("s1")
+		s1.instantiate()
 		[self.__addHost(i, s1) for i in range(size)]
 
 	def __addHost(self, counter, switch):

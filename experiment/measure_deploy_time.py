@@ -5,6 +5,7 @@ from pandas import DataFrame
 from matplotlib import pyplot as plt
 from subprocess import run
 from threading import Thread
+from experiment.constants import *
 
 
 def barPlot(dataframe, title):
@@ -28,10 +29,9 @@ def measureMemory():
         sleep(1)
 
 
-replicas = 30
+replicas = 1
 sizes = [1, 4, 16, 64, 248]
-coolDownTime = 10
-
+coolDownTime = 20
 
 # Measure deployment and Undeployment time of LFT
 deployLftDf = DataFrame(columns = sizes)
@@ -39,26 +39,32 @@ undeployLftDf = DataFrame(columns = sizes)
 dlft = DeployLFT()
 try:
     for i in range(replicas):
+        print(f'LFT Deployment and Undeployment Assessment: Replica {i}')
         lftDeployTime = []
         lftUndeployTime = []
         for size in sizes:
+            print(f'Deploying {size} nodes')
             start = time()
             dlft.deploy(size)
             lftDeployTime.append(time() - start)
+            print(f'LFT Deployment Time: {lftDeployTime}')
             dlft.getReferences(size)
             sleep(coolDownTime)
             start = time()
             dlft.undeploy()
             end = time()
             lftUndeployTime.append(time() - start)
+            print(f'LFT Undeployment Time: {lftUndeployTime}')
             sleep(coolDownTime)
         deployLftDf.loc[i] = lftDeployTime
         undeployLftDf.loc[i] = lftUndeployTime
 except:
     dlft.getReferences(sizes[-1])
     dlft.undeploy()
-deployLftDf.to_csv('results/data/deployLftTime.csv', index=False)
-undeployLftDf.to_csv('results/data/undeployLftTime.csv', index=False)
+
+
+deployLftDf.to_csv(f'{RESULTS_PATH}deployLftTime.csv', index=False)
+undeployLftDf.to_csv(f'{RESULTS_PATH}undeployLftTime.csv', index=False)
 #barPlot(deployLftDf, "LFT deployment time")
 #barPlot(undeployLftDf, "LFT undeployment time")
 
@@ -68,13 +74,16 @@ undeployLftDf.to_csv('results/data/undeployLftTime.csv', index=False)
 deployMemLftDf = DataFrame(columns = sizes)
 try:
     for i in range(replicas):
+        print(f'LFT Memory Consumption Assessment: Replica {i}')
         lftDeployMem = []
         for size in sizes:
+            print(f'Deploying {size} nodes')
             t = Thread(measureMemory)
             t.start()
             dlft.deploy(size)
             continueThread = False
             t.join()
+            print(f'LFT Deployment Max Memory Consumption: {lftDeployMem}')
             lftDeployMem.append(maxMem)
             dlft.getReferences(size)
             dlft.undeploy()
@@ -83,7 +92,9 @@ try:
 except:
     dlft.getReferences(sizes[-1])
     dlft.undeploy()
-deployMemLftDf.to_csv('results/data/deployLftMem.csv', index=False)
+
+
+deployMemLftDf.to_csv(f'{RESULTS_PATH}deployLftMem.csv', index=False)
 
 
 
@@ -92,24 +103,30 @@ deployMnDf = DataFrame(columns = sizes)
 undeployMnDf = DataFrame(columns = sizes)
 try:
     for i in range(replicas):
+        print(f'Mininet-WiFi Deployment and Undeployment Assessment: Replica {i}')
         mnDeployTime = []
         mnUndeployTime = []
         dmn = DeployMininet()
         for size in sizes:
+            print(f'Deploying {size} nodes')
             start = time()
             dmn.deploy(size)
             mnDeployTime.append(time() - start)
+            print(f'Mininet-WiFi Deployment Time: {mnDeployTime}')
             sleep(coolDownTime)
             start = time()
             dmn.undeploy()
             mnUndeployTime.append(time() - start)
+            print(f'Mininet-WiFi Undeployment Time: {mnUndeployTime}')
             sleep(coolDownTime)
         deployMnDf.loc[i] = mnDeployTime
         undeployMnDf.loc[i] = mnUndeployTime
 except:
     dmn.undeploy()
-deployMnDf.to_csv('results/data/deployMnTime.csv', index=False)
-undeployMnDf.to_csv('results/data/undeployMnTime.csv', index=False)
+
+
+deployMnDf.to_csv(f'{RESULTS_PATH}deployMnTime.csv', index=False)
+undeployMnDf.to_csv(f'{RESULTS_PATH}undeployMnTime.csv', index=False)
 #barPlot(deployMnDf, "ContainerNet deployment time")
 #barPlot(undeployLftDf, "ContainerNet undeployment time")
 
@@ -119,18 +136,23 @@ undeployMnDf.to_csv('results/data/undeployMnTime.csv', index=False)
 deployMemMnDf = DataFrame(columns = sizes)
 try:
     for i in range(replicas):
+        print(f'Mininet-Wifi Memory Consumption Assessment: Replica {i}')
         mnDeployMem = []
         dmn = DeployMininet()
         for size in sizes:
+            print(f'Deploying {size} nodes')
             t = Thread(measureMemory)
             t.start()
             dmn.deploy(size)
             continueThread = False
             t.join()
             lftDeployMem.append(maxMem)
+            print(f'Mininet-WiFi Deployment Max Memory Consumption: {lftDeployMem}')
             dmn.undeploy()
             sleep(coolDownTime)
         deployMnDf.loc[i] = mnDeployMem
 except:
     dmn.undeploy()
-deployMemMnDf.to_csv('results/data/deployMnTime.csv', index=False)
+
+    
+deployMemMnDf.to_csv(f'{RESULTS_PATH}deployMnTime.csv', index=False)

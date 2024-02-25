@@ -446,13 +446,14 @@ class Node:
     # Params:
     #   String interfaceName: Name of the interface to set the traffic control
     #   int throughput: Value of the throughput in bits
-    #   int Latency: 
+    #   int latency: Value of the latency in milisseconds
+    #    
     # Return:
     #   Returns a ConfigParser instance with the config file read
-    def setInterfaceTraffic(self, interfaceName: str, throughput: int, latency: int, burst: int, ceil: int) -> None:
+    def setInterfaceTraffic(self, interfaceName: str, throughput: int, latency: int, burst: int, ceil=-1) -> None:
         rate = self.__formatRate(throughput)
         ceilOption = ""
-        if (ceil != None):
+        if (ceil != -1):
             ceilOption = f"ceil {self.__formatRate(ceil)}"
         self.run(f"ip netns exec {self.getNodeName()} tc qdisc add dev {interfaceName} root tbf rate {rate} {ceilOption} latency {latency}ms burst {burst}")
 
