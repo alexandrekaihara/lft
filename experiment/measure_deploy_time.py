@@ -29,7 +29,7 @@ def measureMemory():
         sleep(1)
 
 
-replicas = 1
+replicas = 60
 sizes = [1, 4, 16, 64, 248]
 coolDownTime = 20
 
@@ -39,26 +39,29 @@ undeployLftDf = DataFrame(columns = sizes)
 dlft = DeployLFT()
 try:
     for i in range(replicas):
-        print(f'LFT Deployment and Undeployment Assessment: Replica {i}')
+        print(f'LFT Deployment and Undeployment Assessment: Replica {i+1}')
         lftDeployTime = []
         lftUndeployTime = []
         for size in sizes:
-            print(f'Deploying {size} nodes')
+            print(f'Deploying {size} node(s)')
             start = time()
             dlft.deploy(size)
             lftDeployTime.append(time() - start)
-            print(f'LFT Deployment Time: {lftDeployTime}')
+            print(f'LFT Deployment Time: {lftDeployTime[-1]}')
             dlft.getReferences(size)
             sleep(coolDownTime)
             start = time()
             dlft.undeploy()
             end = time()
             lftUndeployTime.append(time() - start)
-            print(f'LFT Undeployment Time: {lftUndeployTime}')
+            print(f'LFT Undeployment Time: {lftUndeployTime[-1]}')
             sleep(coolDownTime)
+        print(f'LFT Deployment times for replica {i+1} were {lftDeployTime}')
+        print(f'LFT Undeployment times for replica {i+1} were {lftUndeployTime}')
         deployLftDf.loc[i] = lftDeployTime
         undeployLftDf.loc[i] = lftUndeployTime
-except:
+except Exception as ex:
+    print(f"Caught an exception. {ex}")
     dlft.getReferences(sizes[-1])
     dlft.undeploy()
 
@@ -74,10 +77,10 @@ undeployLftDf.to_csv(f'{RESULTS_PATH}undeployLftTime.csv', index=False)
 deployMemLftDf = DataFrame(columns = sizes)
 try:
     for i in range(replicas):
-        print(f'LFT Memory Consumption Assessment: Replica {i}')
+        print(f'LFT Memory Consumption Assessment: Replica {i+1}')
         lftDeployMem = []
         for size in sizes:
-            print(f'Deploying {size} nodes')
+            print(f'Deploying {size} node(s)')
             t = Thread(measureMemory)
             t.start()
             dlft.deploy(size)
@@ -88,8 +91,10 @@ try:
             dlft.getReferences(size)
             dlft.undeploy()
             sleep(coolDownTime)
+        print(f'LFT Deployment Memory Consumption for replica {i+1} were {lftDeployMem}')
         deployMemLftDf.loc[i] = lftDeployMem
-except:
+except Exception as ex:
+    print(f"Caught an exception. {ex}")
     dlft.getReferences(sizes[-1])
     dlft.undeploy()
 
@@ -103,25 +108,28 @@ deployMnDf = DataFrame(columns = sizes)
 undeployMnDf = DataFrame(columns = sizes)
 try:
     for i in range(replicas):
-        print(f'Mininet-WiFi Deployment and Undeployment Assessment: Replica {i}')
+        print(f'Mininet-WiFi Deployment and Undeployment Assessment: Replica {i+1}')
         mnDeployTime = []
         mnUndeployTime = []
         dmn = DeployMininet()
         for size in sizes:
-            print(f'Deploying {size} nodes')
+            print(f'Deploying {size} node(s)')
             start = time()
             dmn.deploy(size)
             mnDeployTime.append(time() - start)
-            print(f'Mininet-WiFi Deployment Time: {mnDeployTime}')
+            print(f'Mininet-WiFi Deployment Time: {mnDeployTime[-1]}')
             sleep(coolDownTime)
             start = time()
             dmn.undeploy()
             mnUndeployTime.append(time() - start)
-            print(f'Mininet-WiFi Undeployment Time: {mnUndeployTime}')
+            print(f'Mininet-WiFi Undeployment Time: {mnUndeployTime[-1]}')
             sleep(coolDownTime)
+        print(f'Mininet Containernet Deployment times for replica {i+1} were {mnDeployTime}')
+        print(f'Mininet Containernet Undeployment times for replica {i+1} were {mnUndeployTime}')
         deployMnDf.loc[i] = mnDeployTime
         undeployMnDf.loc[i] = mnUndeployTime
-except:
+except Exception as ex:
+    print(f"Caught an exception. {ex}")
     dmn.undeploy()
 
 
@@ -136,23 +144,25 @@ undeployMnDf.to_csv(f'{RESULTS_PATH}undeployMnTime.csv', index=False)
 deployMemMnDf = DataFrame(columns = sizes)
 try:
     for i in range(replicas):
-        print(f'Mininet-Wifi Memory Consumption Assessment: Replica {i}')
+        print(f'Mininet-Wifi Memory Consumption Assessment: Replica {i+1}')
         mnDeployMem = []
         dmn = DeployMininet()
         for size in sizes:
-            print(f'Deploying {size} nodes')
+            print(f'Deploying {size} node(s)')
             t = Thread(measureMemory)
             t.start()
             dmn.deploy(size)
             continueThread = False
             t.join()
             lftDeployMem.append(maxMem)
-            print(f'Mininet-WiFi Deployment Max Memory Consumption: {lftDeployMem}')
+            print(f'Mininet-WiFi Deployment Max Memory Consumption: {mnDeployMem}')
             dmn.undeploy()
             sleep(coolDownTime)
+        print(f'Mininet-WiFi Deployment Memory Consumption for replica {i+1} were {mnDeployMem}')
         deployMnDf.loc[i] = mnDeployMem
-except:
+except Exception as ex:
+    print(f"Caught an exception. {ex}")
     dmn.undeploy()
 
-    
+
 deployMemMnDf.to_csv(f'{RESULTS_PATH}deployMnTime.csv', index=False)
