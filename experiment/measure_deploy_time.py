@@ -36,6 +36,8 @@ def measureMemory():
 replicas = 60
 sizes = [1, 4, 16, 64, 248]
 coolDownTime = 20
+cleanupContainers()
+
 
 # Measure deployment and Undeployment time of LFT
 deployLftDf = DataFrame(columns = sizes)
@@ -71,6 +73,7 @@ for i in range(replicas):
     undeployLftDf.loc[i] = lftUndeployTime
 
 
+cleanupContainers()
 deployLftDf.to_csv(f'{RESULTS_PATH}deployLftTime.csv', index=False)
 undeployLftDf.to_csv(f'{RESULTS_PATH}undeployLftTime.csv', index=False)
 #barPlot(deployLftDf, "LFT deployment time")
@@ -105,6 +108,7 @@ for i in range(replicas):
     deployMemLftDf.loc[i] = lftDeployMem
 
 
+cleanupContainers()
 deployMemLftDf.to_csv(f'{RESULTS_PATH}deployLftMem.csv', index=False)
 
 
@@ -140,7 +144,7 @@ for i in range(replicas):
     undeployMnDf.loc[i] = mnUndeployTime
 
 
-
+cleanupContainers()
 deployMnDf.to_csv(f'{RESULTS_PATH}deployMnTime.csv', index=False)
 undeployMnDf.to_csv(f'{RESULTS_PATH}undeployMnTime.csv', index=False)
 #barPlot(deployMnDf, "ContainerNet deployment time")
@@ -174,4 +178,5 @@ for i in range(replicas):
     deployMnDf.loc[i] = mnDeployMem
 
 
+cleanupContainers()
 deployMemMnDf.to_csv(f'{RESULTS_PATH}deployMnTime.csv', index=False)
