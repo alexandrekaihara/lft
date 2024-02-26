@@ -104,8 +104,8 @@ for i in range(replicas):
             sleep(awaitStabilizeMemoryTime)
             continueThread = False
             t.join()
-            print(f'LFT Deployment Max Memory Consumption: {lftDeployMem}')
             lftDeployMem.append(maxMem)
+            print(f'LFT Deployment Max Memory Consumption: {lftDeployMem}')
             dlft.getReferences(size)
             dlft.undeploy()
             sleep(coolDownTime)
@@ -181,7 +181,7 @@ for i in range(replicas):
             sleep(awaitStabilizeMemoryTime)
             continueThread = False
             t.join()
-            lftDeployMem.append(maxMem)
+            mnDeployMem.append(maxMem)
             print(f'Mininet-WiFi Deployment Max Memory Consumption: {mnDeployMem}')
             dmn.undeploy()
             sleep(coolDownTime)
