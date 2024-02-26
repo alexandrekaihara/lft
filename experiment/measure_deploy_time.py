@@ -23,13 +23,12 @@ def cleanupContainers():
 maxMem = 0
 continueThread = True
 def measureMemory():
-    maxMem = 0
-    continueThread = True
     while(continueThread):
         out = run('free | grep Mem | grep -oP \'^\D*\d+\D*\K\d+\'', shell=True, capture_output=True, text=True)
         aux = int(out.stdout)
         if aux > maxMem:
             maxMem = aux
+        print(maxMem)
         sleep(1)
 
 
@@ -89,7 +88,9 @@ for i in range(replicas):
     for size in sizes:
         try:
             print(f'Deploying {size} node(s)')
-            t = Thread(measureMemory)
+            maxMem = 0
+            continueThread = True
+            t = Thread(target=measureMemory)
             t.start()
             dlft.deploy(size)
             continueThread = False
@@ -161,7 +162,9 @@ for i in range(replicas):
     for size in sizes:
         try:
             print(f'Deploying {size} node(s)')
-            t = Thread(measureMemory)
+            maxMem = 0
+            continueThread = True
+            t = Thread(target=measureMemory)
             t.start()
             dmn.deploy(size)
             continueThread = False
