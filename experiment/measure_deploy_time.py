@@ -30,7 +30,6 @@ def measureMemory():
         aux = int(out.stdout)
         if aux > maxMem:
             maxMem = aux
-        print(maxMem)
         sleep(1)
 
 
@@ -54,18 +53,18 @@ for i in range(replicas):
             start = time()
             dlft.deploy(size)
             lftDeployTime.append(time() - start)
-            print(f'LFT Deployment Time: {lftDeployTime[-1]}')
+            print(f'LFT Deployment Time: {lftDeployTime}')
             dlft.getReferences(size)
             sleep(coolDownTime)
             start = time()
             dlft.undeploy()
             end = time()
             lftUndeployTime.append(time() - start)
-            print(f'LFT Undeployment Time: {lftUndeployTime[-1]}')
+            print(f'LFT Undeployment Time: {lftUndeployTime}')
             sleep(coolDownTime)
         except Exception as ex:
             print(f"Caught an exception. {ex}")
-            dlft.getReferences(sizes[-1])
+            dlft.getReferences(sizes)
             cleanupContainers()
             continue
     print(f'LFT Deployment times for replica {i+1} were {lftDeployTime}')
@@ -83,6 +82,7 @@ undeployLftDf.to_csv(f'{RESULTS_PATH}undeployLftTime.csv', index=False)
 
 
 # Measure Memory consumption of LFT
+awaitStabilizeMemoryTime = 5
 deployMemLftDf = DataFrame(columns = sizes)
 for i in range(replicas):
     print(f'LFT Memory Consumption Assessment: Replica {i+1}')
@@ -94,7 +94,9 @@ for i in range(replicas):
             continueThread = True
             t = Thread(target=measureMemory)
             t.start()
+            sleep(awaitStabilizeMemoryTime)
             dlft.deploy(size)
+            sleep(awaitStabilizeMemoryTime)
             continueThread = False
             t.join()
             print(f'LFT Deployment Max Memory Consumption: {lftDeployMem}')
@@ -104,7 +106,7 @@ for i in range(replicas):
             sleep(coolDownTime)
         except Exception as ex:
             print(f"Caught an exception. {ex}")
-            dlft.getReferences(sizes[-1])
+            dlft.getReferences(sizes)
             cleanupContainers()
             continue
     print(f'LFT Deployment Memory Consumption for replica {i+1} were {lftDeployMem}')
@@ -130,12 +132,12 @@ for i in range(replicas):
             start = time()
             dmn.deploy(size)
             mnDeployTime.append(time() - start)
-            print(f'Mininet-WiFi Deployment Time: {mnDeployTime[-1]}')
+            print(f'Mininet-WiFi Deployment Time: {mnDeployTime}')
             sleep(coolDownTime)
             start = time()
             dmn.undeploy()
             mnUndeployTime.append(time() - start)
-            print(f'Mininet-WiFi Undeployment Time: {mnUndeployTime[-1]}')
+            print(f'Mininet-WiFi Undeployment Time: {mnUndeployTime}')
             sleep(coolDownTime)
         except Exception as ex:
             print(f"Caught an exception. {ex}")
@@ -168,7 +170,9 @@ for i in range(replicas):
             continueThread = True
             t = Thread(target=measureMemory)
             t.start()
+            sleep(awaitStabilizeMemoryTime)
             dmn.deploy(size)
+            sleep(awaitStabilizeMemoryTime)
             continueThread = False
             t.join()
             lftDeployMem.append(maxMem)
