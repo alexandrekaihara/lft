@@ -15,22 +15,26 @@ def barPlot(dataframe, title):
     plt.legend()
     plt.show()
 
+
 def cleanupContainers():
     out = run('docker ps -qa', shell=True, capture_output=True)
     containerIds = out.stdout.decode().split()
     [run(f'docker rm -f {id}', shell=True) for id in containerIds]
 
+
 maxMem = 0
 continueThread = True
+result = 0
 def measureMemory(startMemoryUsage):
-    global maxMem
+    global result, maxMem, continueThread
     maxMem = startMemoryUsage
-    global continueThread
     while(continueThread):
         aux = getCurrentMemoryUsage()
         if aux > maxMem:
             maxMem = aux
+            result = maxMem - startMemoryUsage
         sleep(1)
+
 
 def getCurrentMemoryUsage():
     out = run('free | grep Mem | grep -oP \'^\D*\d+\D*\K\d+\'', shell=True, capture_output=True, text=True)
@@ -104,7 +108,7 @@ for i in range(replicas):
             sleep(awaitStabilizeMemoryTime)
             continueThread = False
             t.join()
-            lftDeployMem.append(maxMem)
+            lftDeployMem.append(result)
             print(f'LFT Deployment Max Memory Consumption: {lftDeployMem}')
             dlft.getReferences(size)
             dlft.undeploy()
