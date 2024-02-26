@@ -23,6 +23,8 @@ def cleanupContainers():
 maxMem = 0
 continueThread = True
 def measureMemory():
+    global maxMem
+    global continueThread
     while(continueThread):
         out = run('free | grep Mem | grep -oP \'^\D*\d+\D*\K\d+\'', shell=True, capture_output=True, text=True)
         aux = int(out.stdout)
