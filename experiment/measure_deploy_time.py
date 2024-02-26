@@ -22,15 +22,19 @@ def cleanupContainers():
 
 maxMem = 0
 continueThread = True
-def measureMemory():
+def measureMemory(startMemoryUsage):
     global maxMem
+    maxMem = startMemoryUsage
     global continueThread
     while(continueThread):
-        out = run('free | grep Mem | grep -oP \'^\D*\d+\D*\K\d+\'', shell=True, capture_output=True, text=True)
-        aux = int(out.stdout)
+        aux = getCurrentMemoryUsage()
         if aux > maxMem:
             maxMem = aux
         sleep(1)
+
+def getCurrentMemoryUsage():
+    out = run('free | grep Mem | grep -oP \'^\D*\d+\D*\K\d+\'', shell=True, capture_output=True, text=True)
+    return int(out.stdout)
 
 
 replicas = 60
@@ -92,7 +96,8 @@ for i in range(replicas):
             print(f'Deploying {size} node(s)')
             maxMem = 0
             continueThread = True
-            t = Thread(target=measureMemory)
+            startMemoryUsage = getCurrentMemoryUsage()
+            t = Thread(target=measureMemory, args=(startMemoryUsage,))
             t.start()
             sleep(awaitStabilizeMemoryTime)
             dlft.deploy(size)
@@ -168,7 +173,8 @@ for i in range(replicas):
             print(f'Deploying {size} node(s)')
             maxMem = 0
             continueThread = True
-            t = Thread(target=measureMemory)
+            startMemoryUsage = getCurrentMemoryUsage()
+            t = Thread(target=measureMemory, args=(startMemoryUsage,))
             t.start()
             sleep(awaitStabilizeMemoryTime)
             dmn.deploy(size)
