@@ -14,7 +14,8 @@ cd mininet-wifi
 sudo util/install.sh -Wlnfv
 
 # Install Container Net
-sudo apt-get install -y ansible git aptitude
+sudo apt-get install -y ansible git aptitude 
+pip install docker
 git clone https://github.com/ramonfontes/containernet.git
 sudo util/install.sh -W
 mv containernet/containernet ../
