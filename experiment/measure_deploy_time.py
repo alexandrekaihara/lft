@@ -1,10 +1,11 @@
 from experiment.deploy_lft import DeployLFT
 from time import time, sleep
 from experiment.deploy_mininet import DeployMininet
-from pandas import DataFrame
+from pandas import DataFrame, read_csv
 from matplotlib import pyplot as plt
 from subprocess import run
 from threading import Thread
+from os.path import isfile
 from experiment.constants import *
 
 
@@ -20,6 +21,13 @@ def cleanupContainers():
     out = run('docker ps -qa', shell=True, capture_output=True)
     containerIds = out.stdout.decode().split()
     [run(f'docker rm -f {id}', shell=True) for id in containerIds]
+
+
+def saveFile(dataframe, filename):
+    if isfile(filename):
+        dataframe.concat(read_csv(filename))
+    dataframe.to_csv(filename, index=False)
+
 
 
 maxMem = 0
@@ -82,8 +90,8 @@ for i in range(replicas):
 
 
 cleanupContainers()
-deployLftDf.to_csv(f'{RESULTS_PATH}deployLftTime.csv', index=False)
-undeployLftDf.to_csv(f'{RESULTS_PATH}undeployLftTime.csv', index=False)
+saveFile(deployLftDf, f'{RESULTS_PATH}deployLftTime.csv')
+saveFile(undeployLftDf, f'{RESULTS_PATH}undeployLftTime.csv')
 #barPlot(deployLftDf, "LFT deployment time")
 #barPlot(undeployLftDf, "LFT undeployment time")
 
@@ -123,7 +131,7 @@ for i in range(replicas):
 
 
 cleanupContainers()
-deployMemLftDf.to_csv(f'{RESULTS_PATH}deployLftMem.csv', index=False)
+saveFile(deployMemLftDf, f'{RESULTS_PATH}deployLftMem.csv')
 
 
 
@@ -159,8 +167,8 @@ for i in range(replicas):
 
 
 cleanupContainers()
-deployMnDf.to_csv(f'{RESULTS_PATH}deployMnTime.csv', index=False)
-undeployMnDf.to_csv(f'{RESULTS_PATH}undeployMnTime.csv', index=False)
+saveFile(deployMnDf, f'{RESULTS_PATH}deployMnTime.csv')
+saveFile(undeployMnDf, f'{RESULTS_PATH}undeployMnTime.csv')
 #barPlot(deployMnDf, "ContainerNet deployment time")
 #barPlot(undeployLftDf, "ContainerNet undeployment time")
 
@@ -198,4 +206,4 @@ for i in range(replicas):
 
 
 cleanupContainers()
-deployMemMnDf.to_csv(f'{RESULTS_PATH}deployMnTime.csv', index=False)
+saveFile(deployMemMnDf, f'{RESULTS_PATH}deployMnTime.csv')
