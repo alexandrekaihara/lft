@@ -1,7 +1,7 @@
 from experiment.deploy_lft import DeployLFT
 from time import time, sleep
 from experiment.deploy_mininet import DeployMininet
-from pandas import DataFrame, read_csv
+from pandas import DataFrame, read_csv, concat
 from matplotlib import pyplot as plt
 from subprocess import run
 from threading import Thread
@@ -25,9 +25,8 @@ def cleanupContainers():
 
 def saveFile(dataframe, filename):
     if isfile(filename):
-        dataframe.concat(read_csv(filename))
+        dataframe = concat([dataframe, read_csv(filename)], axis=0)
     dataframe.to_csv(filename, index=False)
-
 
 
 maxMem = 0
