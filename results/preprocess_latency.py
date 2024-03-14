@@ -1,10 +1,15 @@
 from datetime import datetime, timedelta
 from json import load
 from results.preprocess import Preprocess
+from experiment.constants import *
 
 
 class Latency(Preprocess):
-    def getLatencies(self, json) -> list:
+    def get(self, json, keyName):
+        if keyName == LATENCY:
+            return self._getLatencies(json)
+        
+    def _getLatencies(self, json) -> list:
         packets = json["raw-packets"]
         return [self.__getLatency(packet["src-ts"], packet["dst-ts"]) for packet in packets]
 

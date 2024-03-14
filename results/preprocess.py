@@ -3,6 +3,9 @@ import numpy as np
 
 
 class Preprocess:
+    def get(self, json, keyName):
+        pass
+
     def readJson(self, path: str):
         with open(path, "r") as f:
             json = load(f)

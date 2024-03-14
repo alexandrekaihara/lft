@@ -1,11 +1,17 @@
 from json import load
 from results.preprocess import Preprocess
+from experiment.constants import *
+
 
 class Rtt(Preprocess):
-    def getRTTs(self, json: dict) -> list:
+    def get(self, json, keyName):
+        if keyName == RTT:
+            return self._getRTTs(json)
+    
+    def _getRTTs(self, json: dict) -> list:
         def preprocess(rtt: str):
-            return float(rtt.replace("PT", "").replace("S", ""))
+            return int(float(rtt.replace("PT", "").replace("S", ""))*1000000)
 
-        rtts = json["rtt"]
-        return [preprocess(rtt) for rtt in rtts]
+        roundtrips = json["roundtrips"]
+        return [preprocess(roundtrip["rtt"]) for roundtrip in roundtrips]
     

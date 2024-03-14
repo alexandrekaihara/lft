@@ -11,6 +11,8 @@ LATENCY_JSON_FORMAT = "latency_%n.json"
 LATENCY_JSON_FORMAT_WILDCARD = "latency_*.json"
 PERFSONAR_JSON_OUTPUT_FORMAT = "json"
 THROUGHPUT_EXPERIMENT_NAME = "Throughput"
+RTT_EXPERIMENT_NAME = "Round Trip Time (RTT)"
+LATENCY_EXPERIMENT_NAME = "Latency"
 
 
 # Wired
@@ -50,3 +52,8 @@ SRSRAN_PERFSONAR_UHD_IMAGE = "alexandremitsurukaihara/lft:srsran-perfsonar-uhd4"
 # Emu Emu Wireless
 EMU_EMU_WIRELESS_EPC_IP_ADDR = "172.16.0.1"
 EMU_EMU_WIRELESS_UE_IP_ADDR = "172.16.0.2"
+
+THROUGHPUT = "Throughput"
+RTT = "RTT"
+LATENCY = "Latency"
+JITTER = "Jitter"
