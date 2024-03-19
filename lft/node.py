@@ -452,7 +452,7 @@ class Node:
     #   Returns a ConfigParser instance with the config file read
     def setInterfaceTraffic(self, interfaceName: str, throughput: int, latency: int, burst: int) -> None:
         rate = self.__formatRate(throughput)
-        self.run(f"ip netns exec {self.getNodeName()} tc qdisc add dev {interfaceName} root tbf rate {rate} latency {latency}ms burst {burst}")
+        self.run(f"tc qdisc add dev {interfaceName} root tbf rate {rate} latency {latency}ms burst {burst}")
 
     def __formatRate(self, value: int) -> str:
         power_labels = { 0: "", 1: "k", 2: "m", 3: "g"}
