@@ -451,14 +451,4 @@ class Node:
     # Return:
     #   Returns a ConfigParser instance with the config file read
     def setInterfaceTraffic(self, interfaceName: str, throughput: int, latency: int, burst: int) -> None:
-        rate = self.__formatRate(throughput)
-        self.run(f"tc qdisc add dev {interfaceName} root tbf rate {rate} latency {latency}ms burst {burst}")
-
-    def __formatRate(self, value: int) -> str:
-        power_labels = { 0: "", 1: "k", 2: "m", 3: "g"}
-        stepSize = 2**10
-        power = 0
-        while value > stepSize:
-            value /= stepSize
-            power += 1
-        return "{:.1f}".format(value) + power_labels[power] + 'bit'
+        self.run(f"tc qdisc add dev {interfaceName} root tbf rate {throughput} latency {latency}ms burst {burst}")
