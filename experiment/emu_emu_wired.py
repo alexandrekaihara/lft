@@ -38,6 +38,9 @@ class EmuEmuWired:
 
         self.__startPerfsonarServices()
 
+        self.h1.setInterfaceTraffic("h1h2", 1000000, 0.006, 1600)
+        self.h2.setInterfaceTraffic("h2h1", 1000000, 0.006, 1600)
+
     def __startPerfsonarServices(self):
          self.h1.run("service pscheduler-runner start && service pscheduler-ticker start && service pscheduler-scheduler start && service pscheduler-archiver start")
          sleep(5)
