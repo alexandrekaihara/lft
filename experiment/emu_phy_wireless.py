@@ -9,7 +9,7 @@ class EmuPhyWireless:
         self.ue.instantiate(dockerImage=SRSRAN_PERFSONAR_UHD_IMAGE, runCommand=USR_SBIN_INIT_COMMAND)
         self.ue.connectToInternet(EMU_PHY_WIRELESS_UE_IP_ADDR, 29, "uehost", "hostue")
         self.ue.setIp('10.0.0.2', 29, "uehost")
-        self.ue.setDefaultGateway(EMU_PHY_WIRELESS_UE_IP_ADDR, "hostue")
+        self.ue.setDefaultGateway(EMU_PHY_WIRELESS_UE_IP_ADDR, "uehost")
 
         self.ue.setDeviceName("uhd")
         self.ue.setTxGain(25)
