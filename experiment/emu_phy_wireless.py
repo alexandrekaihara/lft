@@ -1,24 +1,24 @@
+from experiment.constants import *
 from lft.ue import UE
 
 class EmuPhyWireless:
     def __init__(self):
         self.ue = UE('ue1')
-        self.usrpAddr = "192.168.107.2"
 
     def setup(self):
-        self.ue.instantiate(dockerImage="alexandremitsurukaihara/lft:srsran-perfsonar-uhd2", runCommand='/usr/sbin/init')
-        self.ue.connectToInternet('10.0.0.1', 29, "uehost", "hostue")
+        self.ue.instantiate(dockerImage=SRSRAN_PERFSONAR_UHD_IMAGE, runCommand=USR_SBIN_INIT_COMMAND)
+        self.ue.connectToInternet(EMU_PHY_WIRELESS_UE_IP_ADDR, 29, "uehost", "hostue")
         self.ue.setIp('10.0.0.2', 29, "uehost")
-        self.ue.setDefaultGateway('10.0.0.1', "hostue")
+        self.ue.setDefaultGateway(EMU_PHY_WIRELESS_UE_IP_ADDR, "hostue")
 
         self.ue.setDeviceName("uhd")
         self.ue.setTxGain(25)
         self.ue.setRxGain(25)
-        self.ue.setDeviceArgs(f"type=x300,addr={self.usrpAddr}")
+        self.ue.setDeviceArgs(f"type=x300,addr={EMU_PHY_WIRELESS_USRP_IP_ADDR}")
 
         self.ue.start()
 
-        self.ue.setHost('10.0.0.1')
+        self.ue.setHost(EMU_PHY_WIRELESS_UE_IP_ADDR)
 
     def tearDown(self):
         self.ue.delete()
