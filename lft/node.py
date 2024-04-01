@@ -407,8 +407,7 @@ class Node:
         return False
 
     def setMtuSize(self, interfaceName: str, mtu: int) -> None:
-        self.run()
-        subprocess.run(f"ifconfig {interfaceName} mtu {str(mtu)}", shell=True)
+        self.run(f"ifconfig {interfaceName} mtu {str(mtu)}")
 
     # Brief: It retrieves the config file inside the container and reads it, and then returns a ConfigParser instance
     # Params:
