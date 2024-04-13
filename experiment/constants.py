@@ -13,6 +13,8 @@ PERFSONAR_JSON_OUTPUT_FORMAT = "json"
 THROUGHPUT_EXPERIMENT_NAME = "Throughput"
 RTT_EXPERIMENT_NAME = "Round Trip Time (RTT)"
 LATENCY_EXPERIMENT_NAME = "Latency"
+WIRELESS = "Wireless"
+WIRED = "Wired"
 
 
 # Wired

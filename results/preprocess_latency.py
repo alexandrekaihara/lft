@@ -7,7 +7,8 @@ from experiment.constants import *
 class Latency(Preprocess):
     def get(self, json, keyName):
         if keyName == LATENCY:
-            return self._getLatencies(json)
+            latencies = self._getLatencies(json)
+            return [latency for latency in latencies if latency > 0]
         
     def _getLatencies(self, json) -> list:
         packets = json["raw-packets"]
