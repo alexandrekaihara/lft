@@ -448,8 +448,8 @@ class Node:
     #    
     # Return:
     #   Returns a ConfigParser instance with the config file read
-    def setInterfaceThroughput(self, interfaceName: str, throughput: str, burst: int, ceil="80mbit") -> None:
-        self.run(f"tc qdisc add dev {interfaceName} root tbf rate {throughput} burst {burst} ceil {ceil}")
+    def setInterfaceThroughput(self, interfaceName: str, throughput: str, burst: int, limit: str) -> None:
+        self.run(f"tc qdisc add dev {interfaceName} root tbf rate {throughput} burst {burst} limit {limit}")
 
     def setInterfaceLatency(self, interfaceName: str, delay: str, jitter: str) -> None:
         self.run(f"tc qdisc add dev {interfaceName} root netem delay {delay} {jitter}")

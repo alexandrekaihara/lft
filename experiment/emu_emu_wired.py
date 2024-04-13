@@ -38,9 +38,9 @@ class EmuEmuWired:
 
         self.__startPerfsonarServices()
 
-        self.h1.setInterfaceTraffic("h1h2", "1gbit", 1600)
+        self.h1.setInterfaceThroughput("h1h2", "1gbit", 1600, "60mbit")
         self.h1.setInterfaceLatency("h1h2", "650ms", "60ms")
-        self.h2.setInterfaceTraffic("h2h1", "1gbit", 1600)
+        self.h2.setInterfaceThroughput("h2h1", "1gbit", 1600, "60mbit")
         self.h2.setInterfaceLatency("h2h1", "650ms", "60ms")
 
     def __startPerfsonarServices(self):
