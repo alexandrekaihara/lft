@@ -38,8 +38,10 @@ class EmuEmuWired:
 
         self.__startPerfsonarServices()
 
-        self.h1.setInterfaceTraffic("h1h2", "1gbit", 0.571, 1600)
-        self.h2.setInterfaceTraffic("h2h1", "1gbit", 0.571, 1600)
+        self.h1.setInterfaceTraffic("h1h2", "1gbit", 1600)
+        self.h1.setInterfaceLatency("h1h2", "650ms", "60ms")
+        self.h2.setInterfaceTraffic("h2h1", "1gbit", 1600)
+        self.h2.setInterfaceLatency("h2h1", "650ms", "60ms")
 
     def __startPerfsonarServices(self):
          self.h1.run("service pscheduler-runner start && service pscheduler-ticker start && service pscheduler-scheduler start && service pscheduler-archiver start")

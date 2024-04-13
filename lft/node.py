@@ -445,9 +445,11 @@ class Node:
     # Params:
     #   String interfaceName: Name of the interface to set the traffic control
     #   int throughput: Value of the throughput in bits
-    #   int latency: Value of the latency in milisseconds
     #    
     # Return:
     #   Returns a ConfigParser instance with the config file read
-    def setInterfaceTraffic(self, interfaceName: str, throughput: int, latency: int, burst: int) -> None:
-        self.run(f"tc qdisc add dev {interfaceName} root tbf rate {throughput} latency {latency}ms burst {burst}")
+    def setInterfaceThroughput(self, interfaceName: str, throughput: str, burst: int, ceil="80mbit") -> None:
+        self.run(f"tc qdisc add dev {interfaceName} root tbf rate {throughput} burst {burst} ceil {ceil}")
+
+    def setInterfaceLatency(self, interfaceName: str, delay: str, jitter: str) -> None:
+        self.run(f"tc qdisc add dev {interfaceName} root netem delay {delay} {jitter}")
