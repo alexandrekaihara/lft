@@ -88,13 +88,13 @@ def loadData(path, keyName):
     return clearOutliers(flatListValues)
 
 
-def simplePlot(emuEmu, emuPhy, phyPhy, experimentLabel, mediumType):
+def simplePlot(emuEmu, emuPhy, phyPhy, experimentLabel, mediumType, unitOfMeasure):
     plt.plot(emuEmu, label='Emulated')
     plt.plot(emuPhy, label='Hybrid')
     plt.plot(phyPhy, label='Physical')
     plt.title(f'{experimentLabel} - {mediumType}')
     plt.xlabel('Data Points')
-    plt.ylabel(experimentLabel)
+    plt.ylabel(f"{experimentLabel} ({unitOfMeasure})")
     plt.legend()
     plt.show()
 
@@ -109,6 +109,28 @@ def plotConfidenceInterval(ciEmuEmu, ciEmuPhy, ciPhyPhy, experimentLabel, medium
     plt.yticks(range(3), ['Emulated Only', 'Hybrid', 'Physical Only'])
     plt.show()
 
+
+def plotBars(emuEmu, ciEmuEmu, emuPhy, ciEmuPhy, phyPhy, ciPhyPhy, experimentName, medium, unitOfMeasure):
+    emulated_mean = mean(emuEmu)
+    hybrid_mean = mean(emuPhy)
+    physical_mean = mean(phyPhy)
+    
+    means = [emulated_mean, hybrid_mean, physical_mean]
+    errs = [ciEmuEmu[1] - emulated_mean, ciEmuPhy[1] - hybrid_mean, ciPhyPhy[1] - physical_mean]
+    
+    higher = max(max([emuEmu, emuPhy, phyPhy]))
+    
+    columns = ["Emulated Only", "Hybrid", "Physical Only"]
+    colors = ["red", "green", "blue"]
+    
+    plt.bar(range(len(columns)), means, 
+            yerr=errs, align='center', alpha=0.5, color=colors, edgecolor='black', capsize=7)
+    
+    plt.ylim(0, higher)
+    plt.xticks(range(len(columns)), columns)
+    plt.ylabel(f"{experimentName} ({unitOfMeasure})")
+    plt.title(f'{medium} Experiment {experimentName}')
+    plt.show()
 
 
 ####################### Load Data #######################
@@ -143,7 +165,6 @@ wirelessPhyPhyRttData = loadData(RESULTS_PATH + PHY_PHY_WIRELESS_PREFIX + RTT_JS
 wirelessEmuEmuLatencyData = loadData(RESULTS_PATH + EMU_EMU_WIRELESS_PREFIX + LATENCY_JSON_FORMAT_WILDCARD, LATENCY)
 wirelessEmuPhyLatencyData = loadData(RESULTS_PATH + EMU_PHY_WIRELESS_PREFIX + LATENCY_JSON_FORMAT_WILDCARD, LATENCY)
 wirelessPhyPhyLatencyData = loadData(RESULTS_PATH + PHY_PHY_WIRELESS_PREFIX + LATENCY_JSON_FORMAT_WILDCARD, LATENCY)
-
 
 ####################### Get Confidence Intervals #######################
 # Wired
@@ -182,33 +203,40 @@ ciWirelessPhyPhyLatencyData = confidenceInterval(wirelessPhyPhyLatencyData)
 ####################### Plots #######################
 # Wired
 ## Throughput
-simplePlot(wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED)
-plotConfidenceInterval(ciWiredEmuEmuThroughputData, ciWiredEmuPhyThroughputData, ciWiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED)
+simplePlot(wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED, THROUGHPUT_UNIT_OF_MEASURE)
+#plotConfidenceInterval(ciWiredEmuEmuThroughputData, ciWiredEmuPhyThroughputData, ciWiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED)
+plotBars(wiredEmuEmuThroughputData, ciWiredEmuEmuThroughputData, wiredEmuPhyThroughputData, ciWiredEmuPhyThroughputData, wiredPhyPhyThroughputData, ciWiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED, THROUGHPUT_UNIT_OF_MEASURE)
 
 ## RTT
-simplePlot(wiredEmuEmuRttData, wiredEmuPhyRttData, wiredPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRED)
-plotConfidenceInterval(ciWiredEmuEmuRttData, ciWiredEmuPhyRttData, ciWiredPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRED)
+simplePlot(wiredEmuEmuRttData, wiredEmuPhyRttData, wiredPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRED, RTT_UNIT_OF_MEASURE)
+#plotConfidenceInterval(ciWiredEmuEmuRttData, ciWiredEmuPhyRttData, ciWiredPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRED)
+plotBars(wiredEmuEmuRttData, ciWiredEmuEmuRttData, wiredEmuPhyRttData, ciWiredEmuPhyRttData, wiredPhyPhyRttData, ciWiredPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRED, RTT_UNIT_OF_MEASURE)
 
 ## Latency
-simplePlot(wiredEmuEmuLatencyData, wiredEmuPhyLatencyData, wiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED)
-plotConfidenceInterval(ciWiredEmuEmuLatencyData, ciWiredEmuPhyLatencyData, ciWiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED)
+simplePlot(wiredEmuEmuLatencyData, wiredEmuPhyLatencyData, wiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED, LATENCY_UNIT_OF_MEASURE)
+#plotConfidenceInterval(ciWiredEmuEmuLatencyData, ciWiredEmuPhyLatencyData, ciWiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED)
+plotBars(wiredEmuEmuLatencyData, ciWiredEmuEmuLatencyData, wiredEmuPhyLatencyData, ciWiredEmuPhyLatencyData, wiredPhyPhyLatencyData, ciWiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED, LATENCY_UNIT_OF_MEASURE)
 
 
 # Wireless
 ## Throughput
-simplePlot(wirelessEmuEmuLatencyData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS)
-plotConfidenceInterval(ciWirelessEmuEmuThroughputData, ciWirelessEmuPhyThroughputData, ciWirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS)
+simplePlot(wirelessEmuEmuLatencyData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS, THROUGHPUT_UNIT_OF_MEASURE)
+#plotConfidenceInterval(ciWirelessEmuEmuThroughputData, ciWirelessEmuPhyThroughputData, ciWirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS)
+plotBars(wirelessEmuEmuThroughputData, ciWirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, ciWirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData, ciWirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS, LATENCY_UNIT_OF_MEASURE)
 
 ## RTT
-simplePlot(wirelessEmuEmuRttData, wirelessEmuPhyRttData, wirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS)
-plotConfidenceInterval(ciWirelessEmuEmuRttData, ciWirelessEmuPhyRttData, ciWirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS)
+simplePlot(wirelessEmuEmuRttData, wirelessEmuPhyRttData, wirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS, RTT_UNIT_OF_MEASURE)
+#plotConfidenceInterval(ciWirelessEmuEmuRttData, ciWirelessEmuPhyRttData, ciWirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS)
+plotBars(wirelessEmuEmuRttData, ciWirelessEmuEmuRttData, wirelessEmuPhyRttData, ciWirelessEmuPhyRttData, wirelessPhyPhyRttData, ciWirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS, RTT_UNIT_OF_MEASURE)
 
 ## Latency
-simplePlot(wirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS)
-plotConfidenceInterval(ciWirelessEmuEmuLatencyData, ciWirelessEmuPhyLatencyData, ciWirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS)
+simplePlot(wirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS, LATENCY_UNIT_OF_MEASURE)
+#plotConfidenceInterval(ciWirelessEmuEmuLatencyData, ciWirelessEmuPhyLatencyData, ciWirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS)
+plotBars(wirelessEmuEmuLatencyData, ciWirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, ciWirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData, ciWirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS, LATENCY_UNIT_OF_MEASURE)
 
 
 
+# TESTING
 # set width of bars
 barWidth = 0.25
 
@@ -249,7 +277,7 @@ columns = ["Emulated Only", "Hybrid", "Physical Only"]
 colors=["red", "green", "blue"]
 plt.bar(range(len(columns)), means, 
         yerr=errs, align='center', alpha=0.5, color=colors, edgecolor='black', capsize=7)
-plt.ylim(smallest, higher)
+plt.ylim(0, 1100)
 plt.xticks(range(len(columns)), columns)
 plt.ylabel("Throughput (MBps)")
 plt.title('Wired Experiment Throughput')
