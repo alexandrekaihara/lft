@@ -126,7 +126,7 @@ def plotBars(emuEmu, ciEmuEmu, emuPhy, ciEmuPhy, phyPhy, ciPhyPhy, experimentNam
     plt.bar(range(len(columns)), means, 
             yerr=errs, align='center', alpha=0.5, color=colors, edgecolor='black', capsize=7)
     
-    plt.ylim(0, higher)
+    plt.ylim(0, higher*1.1)
     plt.xticks(range(len(columns)), columns)
     plt.ylabel(f"{experimentName} ({unitOfMeasure})")
     plt.title(f'{medium} Experiment {experimentName}')
