@@ -204,6 +204,16 @@ class Node:
         subprocess.run(f"iptables -A FORWARD -i {hostInterfaceName} -o {hostGatewayInterfaceName} -j ACCEPT", shell=True)
         subprocess.run(f"iptables -A FORWARD -i {hostGatewayInterfaceName} -o {hostInterfaceName} -j ACCEPT", shell=True)
         subprocess.run(f"firewall-cmd --zone=trusted --add-interface={hostInterfaceName}", shell=True)
+            
+    def connectToInternetWithoutNAT(self, hostIP: str, hostMask: int, interfaceName: str, hostInterfaceName: str) -> None:
+        self.__create(interfaceName, hostInterfaceName)
+        self.__setInterface(self.getNodeName(), interfaceName)
+        if self.__class__.__name__ == 'Switch':
+            self._Switch__createPort(self.getNodeName(), interfaceName)
+        
+        subprocess.run(f"ip link set {hostInterfaceName} up", shell=True)
+        subprocess.run(f"ip addr add {hostIP}/{hostMask} dev {hostInterfaceName}", shell=True)
+        subprocess.run(f"firewall-cmd --zone=trusted --add-interface={hostInterfaceName}", shell=True)
 
     def enableForwarding(self, interfaceName: str, otherInterfaceName: str) -> None:
         self.run(f"iptables -t nat -I POSTROUTING -o {otherInterfaceName} -j MASQUERADE")
