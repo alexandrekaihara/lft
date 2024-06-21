@@ -17,18 +17,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# docker run -d --privileged alexandremitsurukaihara/lft:perfonar-toolkit
-# docker exec -it {containerid} /bin/bash
-
-/usr/lib/perfsonar/scripts/service_watcher
-
-systemctl start pscheduler-scheduler
-systemctl start pscheduler-runner
-systemctl start pscheduler-archiver
-systemctl start pscheduler-ticker
-systemctl start psconfig-pscheduler-agent
-systemctl start perfsonar-lsregistrationdaemon
-systemctl start owamp-server
+service start pscheduler-scheduler
+service start pscheduler-runner
+service start pscheduler-archiver
+service start pscheduler-ticker
+service start psconfig-pscheduler-agent
+service start perfsonar-lsregistrationdaemon
+service start owamp-server
 
 # Keep alive
 tail -f /dev/null

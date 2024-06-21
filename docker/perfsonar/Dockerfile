@@ -16,14 +16,18 @@
 #
 
 
-FROM centos:centos7
+FROM ubuntu:20.04
 
-RUN yum -y update && \
-        yum -y install epel-release openssh-server && \
-        yum -y install http://software.internet2.edu/rpms/el7/x86_64/latest/packages/perfsonar-repo-0.11-1.noarch.rpm && \
-        yum clean all
+# Basic depencencies needed for network debugging inside a container
+RUN apt update \
+&&  RUNLEVEL=1 apt install -y --no-install-recommends sudo net-tools iproute2 iputils-ping iptables nano software-properties-common curl wget unzip iperf3
 
-RUN  yum -y install perfsonar-toolkit
+# Install perfsonar-testpoint
+RUN apt install -y software-properties-common gpg-agent curl && \
+        cd /etc/apt/sources.list.d/ && \
+        curl -o perfsonar-release.list http://downloads.perfsonar.net/debian/perfsonar-release.list && \
+        curl http://downloads.perfsonar.net/debian/perfsonar-official.gpg.key | tac | tac | apt-key add - && \
+        apt update
 
 COPY onboot.sh /
 
@@ -31,7 +35,5 @@ RUN chmod +x /onboot.sh
 
 CMD ["./onboot.sh"] 
 
-# For conecting via Open SSL
 EXPOSE 22
-EXPOSE 80
 
