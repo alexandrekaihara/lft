@@ -9,7 +9,7 @@ apt install -y perfsonar-toolkit
 
 
 # Install Mininet-Wifi
-git clone git://github.com/intrig-unicamp/mininet-wifi
+git clone https://github.com/intrig-unicamp/mininet-wifi
 cd mininet-wifi
 sudo util/install.sh -Wlnfv
 
