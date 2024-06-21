@@ -17,13 +17,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-service start pscheduler-scheduler
-service start pscheduler-runner
-service start pscheduler-archiver
-service start pscheduler-ticker
-service start psconfig-pscheduler-agent
-service start perfsonar-lsregistrationdaemon
-service start owamp-server
+service pscheduler-scheduler start 
+service pscheduler-runner start 
+service pscheduler-archiver start 
+service pscheduler-ticker  start
+service psconfig-pscheduler-agent start
+service perfsonar-lsregistrationdaemon start 
+service owamp-server start
 
 # Keep alive
 tail -f /dev/null
