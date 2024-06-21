@@ -210,16 +210,16 @@ lftDeployTime1 = list(lftDeployTimeDf['1'])
 lftDeployTime4 = list(lftDeployTimeDf['4'])
 lftDeployTime16 = list(lftDeployTimeDf['16'])
 lftDeployTime64 = list(lftDeployTimeDf['64'])
-lftDeployTime248 = list(lftDeployTimeDf['248'])
+lftDeployTime256 = list(lftDeployTimeDf['256'])
 
 mnDeployTime1 = list(mnDeployTimeDf['1'])
 mnDeployTime4 = list(mnDeployTimeDf['4'])
 mnDeployTime16 = list(mnDeployTimeDf['16'])
 mnDeployTime64 = list(mnDeployTimeDf['64'])
-mnDeployTime248 = list(mnDeployTimeDf['248'])
+mnDeployTime256 = list(mnDeployTimeDf['256'])
 
-lftDeploymentValues = [mean(lftDeployTime1), mean(lftDeployTime4), mean(lftDeployTime16), mean(lftDeployTime64), mean(lftDeployTime248)]
-mininetDeploymentValues = [mean(mnDeployTime1), mean(mnDeployTime4), mean(mnDeployTime16), mean(mnDeployTime64), mean(mnDeployTime248)]
+lftDeploymentValues = [mean(lftDeployTime1), mean(lftDeployTime4), mean(lftDeployTime16), mean(lftDeployTime64), mean(lftDeployTime256)]
+mininetDeploymentValues = [mean(mnDeployTime1), mean(mnDeployTime4), mean(mnDeployTime16), mean(mnDeployTime64), mean(mnDeployTime256)]
 
 ## Undeployment Time
 lftUndeployTimeDf = pd.read_csv("results/data/undeployLftTime.csv")
@@ -229,16 +229,16 @@ lftUndeployTime1 = list(lftUndeployTimeDf['1'])
 lftUndeployTime4 = list(lftUndeployTimeDf['4'])
 lftUndeployTime16 = list(lftUndeployTimeDf['16'])
 lftUndeployTime64 = list(lftUndeployTimeDf['64'])
-lftUndeployTime248 = list(lftUndeployTimeDf['248'])
+lftUndeployTime256 = list(lftUndeployTimeDf['256'])
 
 mnUndeployTime1 = list(mnUndeployTimeDf['1'])
 mnUndeployTime4 = list(mnUndeployTimeDf['4'])
 mnUndeployTime16 = list(mnUndeployTimeDf['16'])
 mnUndeployTime64 = list(mnUndeployTimeDf['64'])
-mnUndeployTime248 = list(mnUndeployTimeDf['248'])
+mnUndeployTime256 = list(mnUndeployTimeDf['256'])
 
-lftUndeploymentValues = [mean(lftUndeployTime1), mean(lftUndeployTime4), mean(lftUndeployTime16), mean(lftUndeployTime64), mean(lftUndeployTime248)]
-mininetUndeploymentValues = [mean(mnUndeployTime1), mean(mnUndeployTime4), mean(mnUndeployTime16), mean(mnUndeployTime64), mean(mnUndeployTime248)]
+lftUndeploymentValues = [mean(lftUndeployTime1), mean(lftUndeployTime4), mean(lftUndeployTime16), mean(lftUndeployTime64), mean(lftUndeployTime256)]
+mininetUndeploymentValues = [mean(mnUndeployTime1), mean(mnUndeployTime4), mean(mnUndeployTime16), mean(mnUndeployTime64), mean(mnUndeployTime256)]
 
 ## Memory Consumption
 lftDeployMemDf = pd.read_csv("results/data/deployLftMem.csv")
@@ -248,16 +248,16 @@ lftDeployMem1 = list(lftDeployMemDf['1'])
 lftDeployMem4 = list(lftDeployMemDf['4'])
 lftDeployMem16 = list(lftDeployMemDf['16'])
 lftDeployMem64 = list(lftDeployMemDf['64'])
-lftDeployMem248 = list(lftDeployMemDf['248'])
+lftDeployMem256 = list(lftDeployMemDf['256'])
 
 mnDeployMem1 = list(mnDeployMemDf['1'])
 mnDeployMem4 = list(mnDeployMemDf['4'])
 mnDeployMem16 = list(mnDeployMemDf['16'])
 mnDeployMem64 = list(mnDeployMemDf['64'])
-mnDeployMem248 = list(mnDeployMemDf['248'])
+mnDeployMem256 = list(mnDeployMemDf['256'])
 
-lftDeploymentMemValues = [mean(lftDeployMem1), mean(lftDeployMem4), mean(lftDeployMem16), mean(lftDeployMem64), mean(lftDeployMem248)]
-mininetDeploymentMemValues = [mean(mnDeployMem1), mean(mnDeployMem4), mean(mnDeployMem16), mean(mnDeployMem64), mean(mnDeployMem248)]
+lftDeploymentMemValues = [mean(lftDeployMem1), mean(lftDeployMem4), mean(lftDeployMem16), mean(lftDeployMem64), mean(lftDeployMem256)]
+mininetDeploymentMemValues = [mean(mnDeployMem1), mean(mnDeployMem4), mean(mnDeployMem16), mean(mnDeployMem64), mean(mnDeployMem256)]
 
 
 ####################### Get Confidence Intervals #######################
@@ -300,7 +300,7 @@ errLftDeployTime1  = confidenceInterval(lftDeployTime1)[1] - mean(lftDeployTime1
 errLftDeployTime4  = confidenceInterval(lftDeployTime4)[1] - mean(lftDeployTime4)
 errLftDeployTime16  = confidenceInterval(lftDeployTime16)[0] - mean(lftDeployTime16)
 errLftDeployTime64  = confidenceInterval(lftDeployTime64)[0] - mean(lftDeployTime64)
-errLftDeployTime256  = confidenceInterval(lftDeployTime248)[0] - mean(lftDeployTime248)
+errLftDeployTime256  = confidenceInterval(lftDeployTime256)[0] - mean(lftDeployTime256)
 
 errLftDeployTime = [errLftDeployTime1, errLftDeployTime4, errLftDeployTime16, errLftDeployTime64, errLftDeployTime256]
 
@@ -309,7 +309,7 @@ errLftUndeployTime1  = confidenceInterval(lftUndeployTime1)[1] - mean(lftUndeplo
 errLftUndeployTime4  = confidenceInterval(lftUndeployTime4)[1] - mean(lftUndeployTime4)
 errLftUndeployTime16  = confidenceInterval(lftUndeployTime16)[0] - mean(lftUndeployTime16)
 errLftUndeployTime64  = confidenceInterval(lftUndeployTime64)[0] - mean(lftUndeployTime64)
-errLftUndeployTime256  = confidenceInterval(lftUndeployTime248)[0] - mean(lftUndeployTime248)
+errLftUndeployTime256  = confidenceInterval(lftUndeployTime256)[0] - mean(lftUndeployTime256)
 
 errLftUndeployTime = [errLftUndeployTime1, errLftUndeployTime4, errLftUndeployTime16, errLftUndeployTime64, errLftUndeployTime256]
 
@@ -318,7 +318,7 @@ errLftDeployMem1  = confidenceInterval(lftDeployMem1)[1] - mean(lftDeployMem1)
 errLftDeployMem4  = confidenceInterval(lftDeployMem4)[1] - mean(lftDeployMem4)
 errLftDeployMem16  = confidenceInterval(lftDeployMem16)[0] - mean(lftDeployMem16)
 errLftDeployMem64  = confidenceInterval(lftDeployMem64)[0] - mean(lftDeployMem64)
-errLftDeployMem256  = confidenceInterval(lftDeployMem248)[0] - mean(lftDeployMem248)
+errLftDeployMem256  = confidenceInterval(lftDeployMem256)[0] - mean(lftDeployMem256)
 
 errLftDeployMem = [errLftDeployMem1, errLftDeployMem4, errLftDeployMem16, errLftDeployMem64, errLftDeployMem256]
 
@@ -328,7 +328,7 @@ errMnDeployTime1  = confidenceInterval(mnDeployTime1)[1] - mean(mnDeployTime1)
 errMnDeployTime4  = confidenceInterval(mnDeployTime4)[1] - mean(mnDeployTime4)
 errMnDeployTime16  = confidenceInterval(mnDeployTime16)[0] - mean(mnDeployTime16)
 errMnDeployTime64  = confidenceInterval(mnDeployTime64)[0] - mean(mnDeployTime64)
-errMnDeployTime256  = confidenceInterval(mnDeployTime248)[0] - mean(mnDeployTime248)
+errMnDeployTime256  = confidenceInterval(mnDeployTime256)[0] - mean(mnDeployTime256)
 
 errMnDeployTime = [errMnDeployTime1, errMnDeployTime4, errMnDeployTime16, errMnDeployTime64, errMnDeployTime256]
 
@@ -337,7 +337,7 @@ errMnUndeployTime1  = confidenceInterval(mnUndeployTime1)[1] - mean(mnUndeployTi
 errMnUndeployTime4  = confidenceInterval(mnUndeployTime4)[1] - mean(mnUndeployTime4)
 errMnUndeployTime16  = confidenceInterval(mnUndeployTime16)[0] - mean(mnUndeployTime16)
 errMnUndeployTime64  = confidenceInterval(mnUndeployTime64)[0] - mean(mnUndeployTime64)
-errMnUndeployTime256  = confidenceInterval(mnUndeployTime248)[0] - mean(mnUndeployTime248)
+errMnUndeployTime256  = confidenceInterval(mnUndeployTime256)[0] - mean(mnUndeployTime256)
 
 errMnUndeployTime = [errMnUndeployTime1, errMnUndeployTime4, errMnUndeployTime16, errMnUndeployTime64, errMnUndeployTime256]
 
@@ -346,7 +346,7 @@ errMnDeployMem1  = confidenceInterval(mnDeployMem1)[1] - mean(mnDeployMem1)
 errMnDeployMem4  = confidenceInterval(mnDeployMem4)[1] - mean(mnDeployMem4)
 errMnDeployMem16  = confidenceInterval(mnDeployMem16)[0] - mean(mnDeployMem16)
 errMnDeployMem64  = confidenceInterval(mnDeployMem64)[0] - mean(mnDeployMem64)
-errMnDeployMem256  = confidenceInterval(mnDeployMem248)[0] - mean(mnDeployMem248)
+errMnDeployMem256  = confidenceInterval(mnDeployMem256)[0] - mean(mnDeployMem256)
 
 errMnDeployMem = [errMnDeployMem1, errMnDeployMem4, errMnDeployMem16, errMnDeployMem64, errMnDeployMem256]
 

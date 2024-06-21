@@ -49,7 +49,7 @@ def getCurrentMemoryUsage():
 
 
 replicas = 60
-sizes = [1, 4, 16, 64, 248]
+sizes = [1, 4, 16, 64, 256]
 coolDownTime = 20
 cleanupContainers()
 
@@ -192,7 +192,7 @@ for i in range(replicas):
             sleep(awaitStabilizeMemoryTime)
             continueThread = False
             t.join()
-            mnDeployMem.append(maxMem)
+            mnDeployMem.append(result)
             print(f'Mininet-WiFi Deployment Max Memory Consumption: {mnDeployMem}')
             dmn.undeploy()
             sleep(coolDownTime)
@@ -201,8 +201,8 @@ for i in range(replicas):
             cleanupContainers()
             continue
     print(f'Mininet-WiFi Deployment Memory Consumption for replica {i+1} were {mnDeployMem}')
-    deployMnDf.loc[i] = mnDeployMem
+    deployMemMnDf.loc[i] = mnDeployMem
 
 
 cleanupContainers()
-saveFile(deployMemMnDf, f'{RESULTS_PATH}deployMnTime.csv')
+saveFile(deployMemMnDf, f'{RESULTS_PATH}deployMnMem.csv')
