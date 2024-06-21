@@ -18,9 +18,10 @@ class Latency(Preprocess):
         return [latencies[i] - latencies[i+1] for i in range(len(latencies)-2)]
 
     def __getLatency(self, src_timestamp, dst_timestamp):
-        src = self.__timestampToUTC(src_timestamp)
-        dst = self.__timestampToUTC(dst_timestamp)
-        return dst.microsecond - src.microsecond
+        return dst_timestamp - src_timestamp
+        #src = self.__timestampToUTC(src_timestamp)
+        #dst = self.__timestampToUTC(dst_timestamp)
+        #return dst.microsecond - src.microsecond
     
     def __timestampToUTC(self, ntp_timestamp) -> datetime:
         ntp_epoch = datetime(1900, 1, 1)
