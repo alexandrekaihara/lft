@@ -29,6 +29,7 @@ def saveFile(dataframe, filename):
     dataframe.to_csv(filename, index=False)
 
 
+awaitStabilizeMemoryTime = 5
 maxMem = 0
 continueThread = True
 result = 0
@@ -44,11 +45,12 @@ def measureMemory(startMemoryUsage):
 
 
 def getCurrentMemoryUsage():
-    out = run('free | grep Mem | grep -oP \'^\D*\d+\D*\K\d+\'', shell=True, capture_output=True, text=True)
+    command = 'free | grep Mem | grep -oP \'^\D*\d+\D*\K\d+\''
+    out = run(command, shell=True, capture_output=True, text=True)
     return int(out.stdout)
 
 
-replicas = 60
+replicas = 30
 sizes = [1, 4, 16, 64, 256]
 coolDownTime = 20
 cleanupContainers()
@@ -98,6 +100,7 @@ saveFile(undeployLftDf, f'{RESULTS_PATH}undeployLftTime.csv')
 
 # Measure Memory consumption of LFT
 awaitStabilizeMemoryTime = 5
+
 deployMemLftDf = DataFrame(columns = sizes)
 for i in range(replicas):
     print(f'LFT Memory Consumption Assessment: Replica {i+1}')
@@ -183,6 +186,7 @@ for i in range(replicas):
         try:
             print(f'Deploying {size} node(s)')
             maxMem = 0
+            result = 0
             continueThread = True
             startMemoryUsage = getCurrentMemoryUsage()
             t = Thread(target=measureMemory, args=(startMemoryUsage,))

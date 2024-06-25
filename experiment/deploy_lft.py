@@ -12,7 +12,7 @@ class DeployLFT():
 		host = Host(f"h{counter}")
 		host.instantiate(dockerImage="ubuntu:trusty", runCommand="tail -f /dev/null")
 		switch.connect(host, f"s1h{counter}", f"h{counter}s1")
-		host.setIp(f"10.0.0.{counter+2}", 24, f"h{counter}s1")
+		host.setIp(f"10.0.{int(counter/256)}.{(counter+2)%256}", 24, f"h{counter}s1")
 
 	def getReferences(self, size):
 		self.nodes = []
