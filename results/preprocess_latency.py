@@ -12,13 +12,13 @@ class Latency(Preprocess):
         
     def _getLatencies(self, json) -> list:
         packets = json["raw-packets"]
-        return [self.__getLatency(packet["src-ts"], packet["dst-ts"]) for packet in packets]
+        return [self.__getLatency(packet["src-ts"], packet["dst-ts"], packet['dst-clock-err']) for packet in packets]
 
     def getJitters(self, latencies: list) -> list:
         return [latencies[i] - latencies[i+1] for i in range(len(latencies)-2)]
 
-    def __getLatency(self, src_timestamp, dst_timestamp):
-        return dst_timestamp - src_timestamp
+    def __getLatency(self, src_timestamp, dst_timestamp, clockErr):
+        return (dst_timestamp - src_timestamp - clockErr)/1000000
         #src = self.__timestampToUTC(src_timestamp)
         #dst = self.__timestampToUTC(dst_timestamp)
         #return dst.microsecond - src.microsecond
