@@ -3,8 +3,8 @@ from json import load, dump
 
 
 class Perfsonar(Node):
-    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8', runCommand='') -> None:
-        super().instantiate(dockerImage=dockerImage, dockerCommand=dockerCommand, dns=dns, runCommand=runCommand)
+    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8', runCommand='', cpus='', memory='') -> None:
+        super().instantiate(dockerImage=dockerImage, dockerCommand=dockerCommand, dns=dns, runCommand=runCommand, cpus=cpus, memory=memory)
 
     def readLimitFile(self, limitPath="/etc/pscheduler/limits.conf"):
         randomTmpName = self.getHashFromString(limitPath) 
