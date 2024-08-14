@@ -57,6 +57,13 @@ def loadJsons(jsonPaths):
     print(f"Read successfully {successfulReadFiles}/{len(jsonPaths)}")
     return jsons
 
+def loadCustomThroughputJson(path):
+    jsons = []
+    paths = glob(path)
+    for path in paths:
+        json = load(open(path))
+        jsons.append(json)
+    return clearOutliers(clearOutliers(clearOutliers(flattenList(jsons))))
 
 def extractMetricsFromJsons(jsons, keyName):
     successfulExtractions = 0
@@ -93,9 +100,9 @@ def loadData(path, keyName):
 
 
 def simplePlot(emuEmu, emuPhy, phyPhy, experimentLabel, mediumType, unitOfMeasure):
-    plt.plot(emuEmu, label='Emulated')
-    plt.plot(emuPhy, label='Hybrid')
-    plt.plot(phyPhy, label='Physical')
+    plt.plot(emuEmu, label='Emulated', color=EMU_EMU_PLOT_COLOR)
+    plt.plot(emuPhy, label='Hybrid', color=EMU_PHY_PLOT_COLOR)
+    plt.plot(phyPhy, label='Physical', color=PHY_PHY_PLOT_COLOR)
     plt.title(f'{experimentLabel} - {mediumType}')
     plt.xlabel('Data Points')
     plt.ylabel(f"{experimentLabel} ({unitOfMeasure})")
@@ -104,9 +111,9 @@ def simplePlot(emuEmu, emuPhy, phyPhy, experimentLabel, mediumType, unitOfMeasur
 
 
 def plotConfidenceInterval(ciEmuEmu, ciEmuPhy, ciPhyPhy, experimentLabel, mediumType):
-    plt.plot(ciEmuEmu, (0, 0),'ro-',color='green')
-    plt.plot(ciEmuPhy, (1, 1),'ro-',color='yellow')
-    plt.plot(ciPhyPhy, (2, 2),'ro-',color='red')
+    plt.plot(ciEmuEmu, (0, 0),'ro-')
+    plt.plot(ciEmuPhy, (1, 1),'ro-')
+    plt.plot(ciPhyPhy, (2, 2),'ro-')
     plt.xlabel(f'Confidence Intervals for {experimentLabel} - {mediumType}')
     plt.ylabel('Mean')
     plt.title(f'{experimentLabel} Confidence Intervals')
@@ -138,15 +145,15 @@ def plotBars(emuEmu, ciEmuEmu, emuPhy, ciEmuPhy, phyPhy, ciPhyPhy, experimentNam
     higher = max([max(emuEmu), max(emuPhy), max(phyPhy)])
     
     columns = ["Emulated Only", "Hybrid", "Physical Only"]
-    colors = ["red", "green", "blue"]
+    colors = [EMU_EMU_PLOT_COLOR, EMU_PHY_PLOT_COLOR, PHY_PHY_PLOT_COLOR]
     
-    plt.bar(range(len(columns)), means, 
-            yerr=errs, align='center', alpha=0.5, color=colors, edgecolor='black', capsize=7)
+    plt.bar(range(len(columns)), means, yerr=errs, align='center', alpha=0.5, color=colors, edgecolor='black', capsize=7)
     
     plt.ylim(0, higher*1.1)
-    plt.xticks(range(len(columns)), columns)
-    plt.ylabel(f"{experimentName} ({unitOfMeasure})")
-    plt.title(f'{medium} Experiment {experimentName}')
+    plt.yticks(fontsize=14)
+    plt.xticks(range(len(columns)), columns, fontsize=14)
+    plt.ylabel(f"{experimentName} ({unitOfMeasure})", fontsize=16)
+    plt.title(f'{medium} Experiment {experimentName}', fontsize=16)
     plt.show()
 
 
@@ -158,12 +165,13 @@ def plotToolComparison(lftValues, lftErr, mnValues, mnErr, title, unitOfMeasure)
     barWidth = 0.25
     r1 = np.arange(len(lftValues))
     r2 = [x + barWidth for x in r1]
-    plt.title(title)
+    plt.title(title, fontsize=20)
     plt.bar(r1, lftValues, color='#7f6d5f', width=barWidth, edgecolor='white', label='LFT', yerr=lftErr, capsize=3)
     plt.bar(r2, mnValues, color='#557f2d', width=barWidth, edgecolor='white', label='Mininet-WIFI (Containernet)', yerr=mnErr, capsize=3)
-    plt.xticks([r + barWidth for r in range(len(lftValues))], ['1', '4', '16', '64', '256'])
-    plt.xlabel('Medium', fontweight='bold')
-    plt.ylabel(f"{title} ({unitOfMeasure})")
+    plt.yticks(fontsize=14)
+    plt.xticks([r + barWidth for r in range(len(lftValues))], ['1', '4', '16', '64', '256'], fontsize=14)
+    plt.xlabel('Medium', fontweight='bold', fontsize=16)
+    plt.ylabel(f"{title} ({unitOfMeasure})", fontsize=16)
     plt.legend()
     plt.show()
 
@@ -188,7 +196,7 @@ wiredPhyPhyLatencyData = loadData(RESULTS_PATH + PHY_PHY_WIRED_PREFIX + LATENCY_
 # Wireless
 ## Throughput
 wirelessEmuEmuThroughputData = loadData(RESULTS_PATH + EMU_EMU_WIRELESS_PREFIX + THROUGHPUT_JSON_FORMAT_WILDCARD, THROUGHPUT)
-wirelessEmuPhyThroughputData = loadData(RESULTS_PATH + EMU_PHY_WIRELESS_PREFIX + THROUGHPUT_JSON_FORMAT_WILDCARD, THROUGHPUT)
+wirelessEmuPhyThroughputData = loadCustomThroughputJson(RESULTS_PATH + "wireless_emu_phy_throughput_manual*.json") # loadData(RESULTS_PATH + EMU_PHY_WIRELESS_PREFIX + THROUGHPUT_JSON_FORMAT_WILDCARD, THROUGHPUT)
 wirelessPhyPhyThroughputData = loadData(RESULTS_PATH + PHY_PHY_WIRELESS_PREFIX + THROUGHPUT_JSON_FORMAT_WILDCARD, THROUGHPUT)
 
 ## RTT
@@ -244,17 +252,17 @@ mininetUndeploymentValues = [mean(mnUndeployTime1), mean(mnUndeployTime4), mean(
 lftDeployMemDf = pd.read_csv("results/data/deployLftMem.csv")
 mnDeployMemDf = pd.read_csv("results/data/deployMnMem.csv")
 
-lftDeployMem1 = list(lftDeployMemDf['1'])
-lftDeployMem4 = list(lftDeployMemDf['4'])
-lftDeployMem16 = list(lftDeployMemDf['16'])
-lftDeployMem64 = list(lftDeployMemDf['64'])
-lftDeployMem256 = list(lftDeployMemDf['256'])
+lftDeployMem1 = list(lftDeployMemDf['1']/8000)
+lftDeployMem4 = list(lftDeployMemDf['4']/8000)
+lftDeployMem16 = list(lftDeployMemDf['16']/8000)
+lftDeployMem64 = list(lftDeployMemDf['64']/8000)
+lftDeployMem256 = list(lftDeployMemDf['256']/8000)
 
-mnDeployMem1 = list(mnDeployMemDf['1'])
-mnDeployMem4 = list(mnDeployMemDf['4'])
-mnDeployMem16 = list(mnDeployMemDf['16'])
-mnDeployMem64 = list(mnDeployMemDf['64'])
-mnDeployMem256 = list(mnDeployMemDf['256'])
+mnDeployMem1 = list(mnDeployMemDf['1']/8000)
+mnDeployMem4 = list(mnDeployMemDf['4']/8000)
+mnDeployMem16 = list(mnDeployMemDf['16']/8000)
+mnDeployMem64 = list(mnDeployMemDf['64']/8000)
+mnDeployMem256 = list(mnDeployMemDf['256']/8000)
 
 lftDeploymentMemValues = [mean(lftDeployMem1), mean(lftDeployMem4), mean(lftDeployMem16), mean(lftDeployMem64), mean(lftDeployMem256)]
 mininetDeploymentMemValues = [mean(mnDeployMem1), mean(mnDeployMem4), mean(mnDeployMem16), mean(mnDeployMem64), mean(mnDeployMem256)]
@@ -399,10 +407,7 @@ plotToolComparison(lftDeploymentValues, errLftDeployTime, mininetDeploymentValue
 plotToolComparison(lftUndeploymentValues, errLftUndeployTime, mininetUndeploymentValues, errMnUndeployTime, "Undeployment Time", "s")
 
 # DeploymentMem Time
-plotToolComparison(lftDeploymentMemValues, errLftDeployMem, mininetDeploymentMemValues, errMnDeployMem, "Deployment Memory Consumption", "bits")
-
-
-
+plotToolComparison(lftDeploymentMemValues, errLftDeployMem, mininetDeploymentMemValues, errMnDeployMem, "Deployment Memory Consumption", "MB")
 
 
 

@@ -10,7 +10,7 @@ class Rtt(Preprocess):
     
     def _getRTTs(self, json: dict) -> list:
         def preprocess(rtt: str):
-            return int(float(rtt.replace("PT", "").replace("S", ""))*1000000)
+            return int(float(rtt.replace("PT", "").replace("S", ""))*1000000)/1000
 
         roundtrips = json["roundtrips"]
         return [preprocess(roundtrip["rtt"]) for roundtrip in roundtrips]

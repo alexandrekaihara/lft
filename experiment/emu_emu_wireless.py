@@ -65,14 +65,6 @@ class EmuEmuWireless:
         subprocess.run(f"ip route add {EMU_EMU_WIRELESS_EPC_IP_ADDR}/32 via 9.0.0.1 dev hostepc", shell=True)
 
         self.__startPerfsonarServices()
-#        self.ue.readLimitFile()
-#        self.enb.readLimitFile()
-
-#        self.u.addRouteException("192.0.0.0", 24)
-#        self.h2.addRouteException("192.0.0.0", 24)
-
-#        self.h1.saveLimitFile()
-#        self.h2.saveLimitFile()
 
     def __startPerfsonarServices(self):
          self.epc.run("service pscheduler-runner start && service pscheduler-ticker start && service pscheduler-scheduler start && service pscheduler-archiver start")
