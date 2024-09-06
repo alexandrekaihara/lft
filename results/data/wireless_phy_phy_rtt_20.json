@@ -1,1 +1,1 @@
-{"max":"PT0.626946S","min":"PT0.0203S","loss":0.2,"lost":1,"mean":"PT0.172555S","sent":5,"schema":1,"stddev":"PT0.262343S","received":4,"reorders":0,"succeeded":true,"duplicates":0,"roundtrips":[{"ip":"172.16.0.1","rtt":"PT0.627S","seq":1,"ttl":64,"length":64},{"ip":"172.16.0.1","rtt":"PT0.0223S","seq":2,"ttl":64,"length":64},{"ip":"172.16.0.1","rtt":"PT0.0207S","seq":3,"ttl":64,"length":64},{"ip":"172.16.0.1","rtt":"PT0.0203S","seq":4,"ttl":64,"length":64}]}
+{"loss":1.0,"lost":5,"sent":5,"schema":1,"received":0,"reorders":0,"succeeded":true,"duplicates":0,"roundtrips":[]}
