@@ -48,6 +48,7 @@ class EmuEmuWireless:
 
         # Define UE Config
         self.ue.setUEID("001010123456780")
+        self.ue.setCorrectSyncError(true)
 
         self.epc.start()
         self.enb.starGnuRadioSingleUE()

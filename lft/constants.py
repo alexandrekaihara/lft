@@ -20,6 +20,10 @@ USIM_SECTION = "usim"
 ALGORITHM_ATTR = "algo"
 IMSI_ATTR = "imsi"
 
+## PHY section
+PHY_SECTION = "phy"
+CORRECT_SYNC_ERROR = "correct_sync_erro"
+
 # EPC config file
 MME_SECTION = "mme"
 MME_BIND_ADDR = "mme_bind_addr"
