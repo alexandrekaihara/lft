@@ -22,7 +22,7 @@ IMSI_ATTR = "imsi"
 
 ## PHY section
 PHY_SECTION = "phy"
-CORRECT_SYNC_ERROR = "correct_sync_erro"
+CORRECT_SYNC_ERROR = "correct_sync_error"
 
 # EPC config file
 MME_SECTION = "mme"
