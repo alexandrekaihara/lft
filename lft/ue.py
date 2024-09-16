@@ -72,6 +72,6 @@ class UE(Perfsonar):
         self.saveConfig(self.config, self.configPath)
         
     def setCorrectSyncError(self, enable: bool) -> None:
-        self.config[PHY_SECTION][CORRECT_SYNC_ERROR] = enable
+        self.config[PHY_SECTION][CORRECT_SYNC_ERROR] = "true" if enable else "false"
         self.saveConfig(self.config, self.configPath)
         
