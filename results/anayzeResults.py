@@ -9,12 +9,14 @@ import numpy as np
 from json import load
 from glob import glob
 from statistics import mean
+from matplotlib import use
 
+use("TkAgg")
 
-def confidenceInterval(data, confidence=0.95):
+def confidenceInterval(data, confidence=0.99):
     mean = np.mean(data)
-    stderr = np.std(data)
-    return stats.norm.interval(alpha=confidence, loc=mean, scale=stderr) 
+    stderr = stats.sem(data) # usar o erro padrao
+    return stats.norm.interval(confidence=confidence, loc=mean, scale=stderr) 
 
 def clearOutliers(data):
     npData = np.array(data)
@@ -63,7 +65,7 @@ def loadCustomThroughputJson(path):
     for path in paths:
         json = load(open(path))
         jsons.append(json)
-    return clearOutliers(clearOutliers(clearOutliers(flattenList(jsons))))
+    return clearOutliers(flattenList(jsons))
 
 def extractMetricsFromJsons(jsons, keyName):
     successfulExtractions = 0
@@ -150,9 +152,9 @@ def plotBars(emuEmu, ciEmuEmu, emuPhy, ciEmuPhy, phyPhy, ciPhyPhy, experimentNam
     plt.bar(range(len(columns)), means, yerr=errs, align='center', alpha=0.5, color=colors, edgecolor='black', capsize=7)
     
     plt.ylim(0, higher*1.1)
-    plt.yticks(fontsize=14)
-    plt.xticks(range(len(columns)), columns, fontsize=14)
-    plt.ylabel(f"{experimentName} ({unitOfMeasure})", fontsize=16)
+    plt.yticks(fontsize=12)
+    plt.xticks(range(len(columns)), columns, fontsize=12)
+    plt.ylabel(f"{experimentName} ({unitOfMeasure})", fontsize=14)
     plt.title(f'{medium} Experiment {experimentName}', fontsize=16)
     plt.show()
 
@@ -165,14 +167,14 @@ def plotToolComparison(lftValues, lftErr, mnValues, mnErr, title, unitOfMeasure)
     barWidth = 0.25
     r1 = np.arange(len(lftValues))
     r2 = [x + barWidth for x in r1]
-    plt.title(title, fontsize=20)
+    plt.title(title, fontsize=18)
     plt.bar(r1, lftValues, color='#7f6d5f', width=barWidth, edgecolor='white', label='LFT', yerr=lftErr, capsize=3)
     plt.bar(r2, mnValues, color='#557f2d', width=barWidth, edgecolor='white', label='Mininet-WIFI (Containernet)', yerr=mnErr, capsize=3)
     plt.yticks(fontsize=14)
     plt.xticks([r + barWidth for r in range(len(lftValues))], ['1', '4', '16', '64', '256'], fontsize=14)
-    plt.xlabel('Medium', fontweight='bold', fontsize=16)
+    plt.xlabel('Number of Nodes', fontsize=16)
     plt.ylabel(f"{title} ({unitOfMeasure})", fontsize=16)
-    plt.legend()
+    plt.legend(fontsize=14)
     plt.show()
 
 
@@ -252,17 +254,17 @@ mininetUndeploymentValues = [mean(mnUndeployTime1), mean(mnUndeployTime4), mean(
 lftDeployMemDf = pd.read_csv("results/data/deployLftMem.csv")
 mnDeployMemDf = pd.read_csv("results/data/deployMnMem.csv")
 
-lftDeployMem1 = list(lftDeployMemDf['1']/8000)
-lftDeployMem4 = list(lftDeployMemDf['4']/8000)
-lftDeployMem16 = list(lftDeployMemDf['16']/8000)
-lftDeployMem64 = list(lftDeployMemDf['64']/8000)
-lftDeployMem256 = list(lftDeployMemDf['256']/8000)
+lftDeployMem1 = list(lftDeployMemDf['1']/1000)
+lftDeployMem4 = list(lftDeployMemDf['4']/1000)
+lftDeployMem16 = list(lftDeployMemDf['16']/1000)
+lftDeployMem64 = list(lftDeployMemDf['64']/1000)
+lftDeployMem256 = list(lftDeployMemDf['256']/1000)
 
-mnDeployMem1 = list(mnDeployMemDf['1']/8000)
-mnDeployMem4 = list(mnDeployMemDf['4']/8000)
-mnDeployMem16 = list(mnDeployMemDf['16']/8000)
-mnDeployMem64 = list(mnDeployMemDf['64']/8000)
-mnDeployMem256 = list(mnDeployMemDf['256']/8000)
+mnDeployMem1 = list(mnDeployMemDf['1']/1000)
+mnDeployMem4 = list(mnDeployMemDf['4']/1000)
+mnDeployMem16 = list(mnDeployMemDf['16']/1000)
+mnDeployMem64 = list(mnDeployMemDf['64']/1000)
+mnDeployMem256 = list(mnDeployMemDf['256']/1000)
 
 lftDeploymentMemValues = [mean(lftDeployMem1), mean(lftDeployMem4), mean(lftDeployMem16), mean(lftDeployMem64), mean(lftDeployMem256)]
 mininetDeploymentMemValues = [mean(mnDeployMem1), mean(mnDeployMem4), mean(mnDeployMem16), mean(mnDeployMem64), mean(mnDeployMem256)]
@@ -306,27 +308,27 @@ ciWirelessPhyPhyLatencyData = confidenceInterval(wirelessPhyPhyLatencyData)
 ### Deployment Time
 errLftDeployTime1  = confidenceInterval(lftDeployTime1)[1] - mean(lftDeployTime1)
 errLftDeployTime4  = confidenceInterval(lftDeployTime4)[1] - mean(lftDeployTime4)
-errLftDeployTime16  = confidenceInterval(lftDeployTime16)[0] - mean(lftDeployTime16)
-errLftDeployTime64  = confidenceInterval(lftDeployTime64)[0] - mean(lftDeployTime64)
-errLftDeployTime256  = confidenceInterval(lftDeployTime256)[0] - mean(lftDeployTime256)
+errLftDeployTime16  = confidenceInterval(lftDeployTime16)[1] - mean(lftDeployTime16)
+errLftDeployTime64  = confidenceInterval(lftDeployTime64)[1] - mean(lftDeployTime64)
+errLftDeployTime256  = confidenceInterval(lftDeployTime256)[1] - mean(lftDeployTime256)
 
 errLftDeployTime = [errLftDeployTime1, errLftDeployTime4, errLftDeployTime16, errLftDeployTime64, errLftDeployTime256]
 
 ### Undeployment Time
 errLftUndeployTime1  = confidenceInterval(lftUndeployTime1)[1] - mean(lftUndeployTime1)
 errLftUndeployTime4  = confidenceInterval(lftUndeployTime4)[1] - mean(lftUndeployTime4)
-errLftUndeployTime16  = confidenceInterval(lftUndeployTime16)[0] - mean(lftUndeployTime16)
-errLftUndeployTime64  = confidenceInterval(lftUndeployTime64)[0] - mean(lftUndeployTime64)
-errLftUndeployTime256  = confidenceInterval(lftUndeployTime256)[0] - mean(lftUndeployTime256)
+errLftUndeployTime16  = confidenceInterval(lftUndeployTime16)[1] - mean(lftUndeployTime16)
+errLftUndeployTime64  = confidenceInterval(lftUndeployTime64)[1] - mean(lftUndeployTime64)
+errLftUndeployTime256  = confidenceInterval(lftUndeployTime256)[1] - mean(lftUndeployTime256)
 
 errLftUndeployTime = [errLftUndeployTime1, errLftUndeployTime4, errLftUndeployTime16, errLftUndeployTime64, errLftUndeployTime256]
 
 ## Memory Consumption
 errLftDeployMem1  = confidenceInterval(lftDeployMem1)[1] - mean(lftDeployMem1)
 errLftDeployMem4  = confidenceInterval(lftDeployMem4)[1] - mean(lftDeployMem4)
-errLftDeployMem16  = confidenceInterval(lftDeployMem16)[0] - mean(lftDeployMem16)
-errLftDeployMem64  = confidenceInterval(lftDeployMem64)[0] - mean(lftDeployMem64)
-errLftDeployMem256  = confidenceInterval(lftDeployMem256)[0] - mean(lftDeployMem256)
+errLftDeployMem16  = confidenceInterval(lftDeployMem16)[1] - mean(lftDeployMem16)
+errLftDeployMem64  = confidenceInterval(lftDeployMem64)[1] - mean(lftDeployMem64)
+errLftDeployMem256  = confidenceInterval(lftDeployMem256)[1] - mean(lftDeployMem256)
 
 errLftDeployMem = [errLftDeployMem1, errLftDeployMem4, errLftDeployMem16, errLftDeployMem64, errLftDeployMem256]
 
@@ -334,27 +336,27 @@ errLftDeployMem = [errLftDeployMem1, errLftDeployMem4, errLftDeployMem16, errLft
 ### Deployment Time
 errMnDeployTime1  = confidenceInterval(mnDeployTime1)[1] - mean(mnDeployTime1)
 errMnDeployTime4  = confidenceInterval(mnDeployTime4)[1] - mean(mnDeployTime4)
-errMnDeployTime16  = confidenceInterval(mnDeployTime16)[0] - mean(mnDeployTime16)
-errMnDeployTime64  = confidenceInterval(mnDeployTime64)[0] - mean(mnDeployTime64)
-errMnDeployTime256  = confidenceInterval(mnDeployTime256)[0] - mean(mnDeployTime256)
+errMnDeployTime16  = confidenceInterval(mnDeployTime16)[1] - mean(mnDeployTime16)
+errMnDeployTime64  = confidenceInterval(mnDeployTime64)[1] - mean(mnDeployTime64)
+errMnDeployTime256  = confidenceInterval(mnDeployTime256)[1] - mean(mnDeployTime256)
 
 errMnDeployTime = [errMnDeployTime1, errMnDeployTime4, errMnDeployTime16, errMnDeployTime64, errMnDeployTime256]
 
 ### Undeployment Time
 errMnUndeployTime1  = confidenceInterval(mnUndeployTime1)[1] - mean(mnUndeployTime1)
 errMnUndeployTime4  = confidenceInterval(mnUndeployTime4)[1] - mean(mnUndeployTime4)
-errMnUndeployTime16  = confidenceInterval(mnUndeployTime16)[0] - mean(mnUndeployTime16)
-errMnUndeployTime64  = confidenceInterval(mnUndeployTime64)[0] - mean(mnUndeployTime64)
-errMnUndeployTime256  = confidenceInterval(mnUndeployTime256)[0] - mean(mnUndeployTime256)
+errMnUndeployTime16  = confidenceInterval(mnUndeployTime16)[1] - mean(mnUndeployTime16)
+errMnUndeployTime64  = confidenceInterval(mnUndeployTime64)[1] - mean(mnUndeployTime64)
+errMnUndeployTime256  = confidenceInterval(mnUndeployTime256)[1] - mean(mnUndeployTime256)
 
 errMnUndeployTime = [errMnUndeployTime1, errMnUndeployTime4, errMnUndeployTime16, errMnUndeployTime64, errMnUndeployTime256]
 
 ## Memory Consumption
 errMnDeployMem1  = confidenceInterval(mnDeployMem1)[1] - mean(mnDeployMem1)
 errMnDeployMem4  = confidenceInterval(mnDeployMem4)[1] - mean(mnDeployMem4)
-errMnDeployMem16  = confidenceInterval(mnDeployMem16)[0] - mean(mnDeployMem16)
-errMnDeployMem64  = confidenceInterval(mnDeployMem64)[0] - mean(mnDeployMem64)
-errMnDeployMem256  = confidenceInterval(mnDeployMem256)[0] - mean(mnDeployMem256)
+errMnDeployMem16  = confidenceInterval(mnDeployMem16)[1] - mean(mnDeployMem16)
+errMnDeployMem64  = confidenceInterval(mnDeployMem64)[1] - mean(mnDeployMem64)
+errMnDeployMem256  = confidenceInterval(mnDeployMem256)[1] - mean(mnDeployMem256)
 
 errMnDeployMem = [errMnDeployMem1, errMnDeployMem4, errMnDeployMem16, errMnDeployMem64, errMnDeployMem256]
 
@@ -404,7 +406,7 @@ plotBars(wirelessEmuEmuLatencyData, ciWirelessEmuEmuLatencyData, wirelessEmuPhyL
 plotToolComparison(lftDeploymentValues, errLftDeployTime, mininetDeploymentValues, errMnDeployTime, "Deployment Time", "s")
 
 # Undeployment Time
-plotToolComparison(lftUndeploymentValues, errLftUndeployTime, mininetUndeploymentValues, errMnUndeployTime, "Undeployment Time", "s")
+plotToolComparison(lftUndeploymentValues, errLftUndeployTime, mininetUndeploymentValues, errMnUndeployTime, "Tear Down Topology Time", "s")
 
 # DeploymentMem Time
 plotToolComparison(lftDeploymentMemValues, errLftDeployMem, mininetDeploymentMemValues, errMnDeployMem, "Deployment Memory Consumption", "MB")
@@ -423,7 +425,7 @@ means = [emulatedMean, hybridMean, physicalMean]
 errs = [ciWiredEmuEmuThroughputData[1] - emulatedMean, ciWiredEmuPhyThroughputData[1] - hybridMean, ciWiredPhyPhyThroughputData[1] - physicalMean]
 smallest = min(min([wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wiredPhyPhyThroughputData]))
 higher = max(max([wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wiredPhyPhyThroughputData]))
-               
+            
 columns = ["Emulated Only", "Hybrid", "Physical Only"]
 colors=["red", "green", "blue"]
 plt.bar(range(len(columns)), means, 
