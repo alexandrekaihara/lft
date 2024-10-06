@@ -177,6 +177,10 @@ def plotToolComparison(lftValues, lftErr, mnValues, mnErr, title, unitOfMeasure)
     plt.legend(fontsize=14)
     plt.show()
 
+def boxPlot(data):
+    plt.boxplot(data)
+    plt.show()
+
 
 ####################### Load Data #######################
 # Wired
@@ -369,17 +373,20 @@ minimunLength = minLen([wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wi
 simplePlot(wiredEmuEmuThroughputData[:minimunLength], wiredEmuPhyThroughputData[:minimunLength], wiredPhyPhyThroughputData[:minimunLength], THROUGHPUT_EXPERIMENT_NAME, WIRED, THROUGHPUT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWiredEmuEmuThroughputData, ciWiredEmuPhyThroughputData, ciWiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED)
 plotBars(wiredEmuEmuThroughputData, ciWiredEmuEmuThroughputData, wiredEmuPhyThroughputData, ciWiredEmuPhyThroughputData, wiredPhyPhyThroughputData, ciWiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED, THROUGHPUT_UNIT_OF_MEASURE)
+boxPlot([wiredEmuEmuThroughputData, ciWiredEmuEmuThroughputData, wiredEmuPhyThroughputData])
 
 ## RTT
 minimunLength = minLen([wiredEmuEmuRttData, wiredEmuPhyRttData, wiredPhyPhyRttData])
 simplePlot(wiredEmuEmuRttData[:minimunLength], wiredEmuPhyRttData[:minimunLength], wiredPhyPhyRttData[:minimunLength], RTT_EXPERIMENT_NAME, WIRED, RTT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWiredEmuEmuRttData, ciWiredEmuPhyRttData, ciWiredPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRED)
 plotBars(wiredEmuEmuRttData, ciWiredEmuEmuRttData, wiredEmuPhyRttData, ciWiredEmuPhyRttData, wiredPhyPhyRttData, ciWiredPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRED, RTT_UNIT_OF_MEASURE)
+boxPlot([wiredEmuEmuRttData, wiredEmuPhyRttData, wiredPhyPhyRttData])
 
 ## Latency
 simplePlot(wiredEmuEmuLatencyData, wiredEmuPhyLatencyData, wiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED, LATENCY_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWiredEmuEmuLatencyData, ciWiredEmuPhyLatencyData, ciWiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED)
 plotBars(wiredEmuEmuLatencyData, ciWiredEmuEmuLatencyData, wiredEmuPhyLatencyData, ciWiredEmuPhyLatencyData, wiredPhyPhyLatencyData, ciWiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED, LATENCY_UNIT_OF_MEASURE)
+boxPlot([wiredEmuEmuLatencyData, wiredEmuPhyLatencyData, wiredPhyPhyLatencyData])
 
 
 # Wireless
@@ -387,18 +394,21 @@ plotBars(wiredEmuEmuLatencyData, ciWiredEmuEmuLatencyData, wiredEmuPhyLatencyDat
 simplePlot(wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS, THROUGHPUT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWirelessEmuEmuThroughputData, ciWirelessEmuPhyThroughputData, ciWirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS)
 plotBars(wirelessEmuEmuThroughputData, ciWirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, ciWirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData, ciWirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS, THROUGHPUT_UNIT_OF_MEASURE)
+boxPlot([wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData])
 
 ## RTT
 minimunLength = minLen([wirelessEmuEmuRttData, wirelessPhyPhyRttData])
 simplePlot(wirelessEmuEmuRttData[:minimunLength], wirelessEmuPhyRttData[:minimunLength], wirelessPhyPhyRttData[:minimunLength], RTT_EXPERIMENT_NAME, WIRELESS, RTT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWirelessEmuEmuRttData, ciWirelessEmuPhyRttData, ciWirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS)
 plotBars(wirelessEmuEmuRttData, ciWirelessEmuEmuRttData, wirelessEmuPhyRttData, ciWirelessEmuPhyRttData, wirelessPhyPhyRttData, ciWirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS, RTT_UNIT_OF_MEASURE)
+boxPlot([wirelessEmuEmuRttData, wirelessEmuPhyRttData, wirelessPhyPhyRttData])
 
 ## Latency
 minimunLength = minLen([wirelessEmuEmuLatencyData, wirelessPhyPhyLatencyData])
 simplePlot(wirelessEmuEmuLatencyData[:minimunLength], wirelessEmuPhyLatencyData[:minimunLength], wirelessPhyPhyLatencyData[:minimunLength], LATENCY_EXPERIMENT_NAME, WIRELESS, LATENCY_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWirelessEmuEmuLatencyData, ciWirelessEmuPhyLatencyData, ciWirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS)
 plotBars(wirelessEmuEmuLatencyData, ciWirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, ciWirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData, ciWirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS, LATENCY_UNIT_OF_MEASURE)
+boxPlot([wirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData])
 
 
 # LFT vs Mininet Time
