@@ -54,7 +54,7 @@ class EmuEmuWireless:
         self.enb.starGnuRadioSingleUE()
         self.enb.start("11.0.0.1", 2101, "11.0.0.1", 2100)
         time.sleep(5)  
-        self.ue.start("--rf.device_name=zmq --rf.device_args=\"tx_port=tcp://11.0.0.2:2001,rx_port=tcp://11.0.0.1:2000,id=ue,base_srate=23.04e6\"")
+        self.ue.start("--rf.device_name=zmq --rf.device_args=\"tx_port=tcp://11.0.0.2:2001,rx_port=tcp://11.0.0.1:2000,id=ue,base_srate=34.56e6\"")
 
         self.ue.setHost(EMU_EMU_WIRELESS_UE_IP_ADDR)
         self.epc.setHost(EMU_EMU_WIRELESS_EPC_IP_ADDR)
