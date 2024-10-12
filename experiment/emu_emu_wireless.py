@@ -30,9 +30,9 @@ class EmuEmuWireless:
         self.ue.setIp('12.0.0.1', 24, "uehost")
         self.ue.setIp('11.0.0.2', 29, "ueenb")
 
-        self.epc.setDefaultGateway('10.0.0.3', "epchost")
-        self.enb.setDefaultGateway('10.0.0.3', "enbepc")
-        self.ue.setDefaultGateway('10.0.0.2', "ueenb")
+        self.epc.setDefaultGateway('9.0.0.2', "epchost")
+        self.enb.setDefaultGateway('9.0.0.2', "enbepc")
+        self.ue.setDefaultGateway('12.0.0.2', "ueenb")
 
         self.enb.acceptPacketsFromInterface("enbue")
 
