@@ -15,10 +15,18 @@
 
 # This file is for defining a package in Python
 from setuptools import setup, find_packages
+from setuptools.command.install import install
+import subprocess
 
+class CustomInstall(install):
+    def run(self):
+        subprocess.run("chmod +X dependencies.sh", shell=True)
+        subprocess.run("sudo ./dependencies.sh", shell=True)
+        install.run(self)
+    
 setup(
     name='profissa_lft',
-    version='1.0.6',
+    version='1.0.7',
     packages=find_packages(),
     install_requires=['pandas'],
     author='Alexandre Mitsuru Kaihara',
@@ -33,4 +41,8 @@ setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.9',
+    cmdclass= {
+        'install': CustomInstall
+    }
 )
+
