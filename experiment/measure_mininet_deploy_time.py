@@ -1,5 +1,5 @@
 from time import time, sleep
-from .deploy_mininet import DeployMininet
+from experiment.deploy_mininet import DeployMininet
 
 
 dmn = DeployMininet()

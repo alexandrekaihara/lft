@@ -1,6 +1,6 @@
-from .experiment import *
-from .emu_emu_wired import EmuEmuWired
-from .emu_phy_wired import EmuPhyWired
+from experiment.experiment import *
+from experiment.emu_emu_wired import EmuEmuWired
+from experiment.emu_phy_wired import EmuPhyWired
 
 
 # wired emu-emu
