@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='profissa_lft',
-    version='1.0.5',
+    version='1.0.6',
     packages=find_packages(),
     install_requires=['pandas'],
     author='Alexandre Mitsuru Kaihara',
