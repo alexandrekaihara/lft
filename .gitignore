@@ -1,25 +1,31 @@
-lft/Backups
-lft/Cache
-lft/CachedData
-lft/CachedProfilesData/
-lft/Code Cache/
-lft/Cookies
-lft/Cookies-journal
-lft/Crashpad/
-lft/Dictionaries/
-lft/GPUCache/
-lft/Local Storage/
-lft/Network Persistent State
-lft/Preferences
-lft/Session Storage/
-lft/TransportSecurity
-lft/User/
-lft/languagepacks.json
-lft/logs/
-lft/machineid
+profissa_lft/Backups
+profissa_lft/Cache
+profissa_lft/CachedData
+profissa_lft/CachedProfilesData/
+profissa_lft/Code Cache/
+profissa_lft/Cookies
+profissa_lft/Cookies-journal
+profissa_lft/Crashpad/
+profissa_lft/Dictionaries/
+profissa_lft/GPUCache/
+profissa_lft/Local Storage/
+profissa_lft/Network Persistent State
+profissa_lft/Preferences
+profissa_lft/Session Storage/
+profissa_lft/TransportSecurity
+profissa_lft/User/
+profissa_lft/languagepacks.json
+profissa_lft/logs/
+profissa_lft/machineid
 demonstration/__pycache__
 experiment/__pycache__
-lft/__pycache__
+profissa_lft/__pycache__
 experiment/results/*
 results/data/*
 results/__pycache__
+containernet/
+
+build
+dist
+profissa_lft.egg-info
+.DS_Store
