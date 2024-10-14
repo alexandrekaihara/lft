@@ -7,9 +7,9 @@ This framework was developed and tested on Ubuntu Desktop 24.04 LTS. We recommen
 ## Installation
 To install the project you need to run:
 
-'''
+```
 pip3 install profissa_lft
-'''
+```
 
 In case of any missing dependency you can manually clone the repository and run the dependencies script:
 
@@ -23,7 +23,7 @@ chmod +X dependencies.sh
 ## First run
 On the source root of the project run:
 
-'''
+```
 cd examples
 python3 
-'''
+```
