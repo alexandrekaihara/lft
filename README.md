@@ -7,6 +7,12 @@ This framework was developed and tested on Ubuntu Desktop 24.04 LTS. We recommen
 ## Installation
 To install the project you need to run:
 
+'''
+pip3 install profissa_lft
+'''
+
+In case of any missing dependency you can manually clone the repository and run the dependencies script:
+
 ```
 git clone https://github.com/alexandrekaihara/lft
 cd lft
@@ -18,5 +24,6 @@ chmod +X dependencies.sh
 On the source root of the project run:
 
 '''
+cd examples
 python3 
 '''
