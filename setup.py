@@ -21,7 +21,7 @@ import subprocess
 class CustomInstall(install):
     def run(self):
         subprocess.run(f"chmod +X dependencies.sh", shell=True)
-        subprocess.run(f"sudo .dependencies.sh", shell=True)
+        subprocess.run(f"sudo ./dependencies.sh", shell=True)
         install.run(self)
     
 setup(
