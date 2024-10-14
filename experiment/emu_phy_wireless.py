@@ -1,5 +1,5 @@
 from experiment.constants import *
-from lft.ue import UE
+from profissa_lft.ue import UE
 from subprocess import run
 
 class EmuPhyWireless:

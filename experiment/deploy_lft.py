@@ -1,5 +1,5 @@
-from lft.host import Host
-from lft.switch import Switch
+from profissa_lft.host import Host
+from profissa_lft.switch import Switch
 
 
 class DeployLFT():

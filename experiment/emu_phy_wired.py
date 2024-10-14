@@ -1,4 +1,4 @@
-from lft.host import Host
+from profissa_lft.host import Host
 from experiment.constants import *
 import subprocess
 

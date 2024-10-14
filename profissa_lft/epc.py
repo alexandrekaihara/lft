@@ -13,9 +13,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from lft.perfsonar import Perfsonar
+from .perfsonar import Perfsonar
 from configparser import ConfigParser
-from lft.constants import *
+from .constants import *
 import pandas as pd
 
 class EPC(Perfsonar):

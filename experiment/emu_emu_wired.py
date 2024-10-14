@@ -1,4 +1,4 @@
-from lft.perfsonar import Perfsonar
+from profissa_lft.perfsonar import Perfsonar
 from time import sleep
 from experiment.constants import *
 

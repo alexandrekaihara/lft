@@ -14,7 +14,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from lft.node import Node
+from .node import Node
 
 
 # Brief: This class is responsible for create, deleting and configuring a host

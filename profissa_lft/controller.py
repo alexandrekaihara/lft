@@ -16,7 +16,7 @@
 
 import logging
 import subprocess
-from lft.node import Node
+from .node import Node
 
 
 class Controller(Node):

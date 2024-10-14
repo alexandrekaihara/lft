@@ -1,6 +1,6 @@
-from lft.ue import UE
-from lft.epc import EPC
-from lft.enb import EnB
+from profissa_lft.ue import UE
+from profissa_lft.epc import EPC
+from profissa_lft.enb import EnB
 import time
 import subprocess
 from time import sleep

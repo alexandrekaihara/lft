@@ -1,6 +1,6 @@
-from lft.host import Host
-from lft.switch import Switch
-from lft.controller import Controller
+from profissa_lft.host import Host
+from profissa_lft.switch import Switch
+from profissa_lft.controller import Controller
 
 h1 = Host('h1')
 h2 = Host('h2')

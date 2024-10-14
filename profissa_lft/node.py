@@ -19,8 +19,8 @@ import subprocess
 import hashlib
 from configparser import ConfigParser
 import json
-from lft.exceptions import *
-from lft.constants import *
+from .exceptions import *
+from .constants import *
 
 
 # Just to enable the declaration of Type in methods

@@ -1,4 +1,4 @@
-from lft.node import Node
+from .node import Node
 from json import load, dump
 
 

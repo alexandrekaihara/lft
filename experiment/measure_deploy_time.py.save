@@ -1,7 +1,7 @@
-from experiment.deploy_lft import DeployLFT
+from .deploy_lft import DeployLFT
 from time import time, sleep
 from time import time, sleep
-from experiment.deploy_mininet import DeployMininet
+from .deploy_mininet import DeployMininet
 
 
 dmn = DeployMininet()

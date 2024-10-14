@@ -1,7 +1,7 @@
-from switch import Switch
-from ue import UE
-from epc import EPC
-from enb import EnB
+from profissa_lft.switch import Switch
+from profissa_lft.ue import UE
+from profissa_lft.epc import EPC
+from profissa_lft.enb import EnB
 import time
 
 epc = EPC('epc')

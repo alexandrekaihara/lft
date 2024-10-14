@@ -1,6 +1,6 @@
-from experiment.experiment import *
-from experiment.emu_emu_wireless import EmuEmuWireless
-from experiment.emu_phy_wireless import EmuPhyWireless
+from .experiment import *
+from .emu_emu_wireless import EmuEmuWireless
+from .emu_phy_wireless import EmuPhyWireless
 
 
 emuEmu = EmuEmuWireless()

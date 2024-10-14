@@ -1,5 +1,5 @@
-from experiment.pschedulerWrapper import Throughput, Rtt, Latency
-from experiment.constants import *
+from .pschedulerWrapper import Throughput, Rtt, Latency
+from .constants import *
 
 
 throughput = Throughput().Format(PERFSONAR_JSON_OUTPUT_FORMAT).MaxRuns(MAX_RUNS).Repeat(INTERVAL)

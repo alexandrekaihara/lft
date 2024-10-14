@@ -13,8 +13,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from lft.perfsonar import Perfsonar
-from lft.constants import *
+from .perfsonar import Perfsonar
+from .constants import *
 
 class EnB(Perfsonar):
     def __init__(self, name: str, eNBConfigPath = '/etc/srsran/enb.conf'):

@@ -1,12 +1,12 @@
-from experiment.deploy_lft import DeployLFT
+from .deploy_lft import DeployLFT
 from time import time, sleep
-from experiment.deploy_mininet import DeployMininet
+from .deploy_mininet import DeployMininet
 from pandas import DataFrame, read_csv, concat
 from matplotlib import pyplot as plt
 from subprocess import run
 from threading import Thread
 from os.path import isfile
-from experiment.constants import *
+from .constants import *
 
 
 def barPlot(dataframe, title):
