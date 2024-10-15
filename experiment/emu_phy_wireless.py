@@ -17,7 +17,7 @@ class EmuPhyWireless:
         self.ue.setDeviceName("uhd")
         self.ue.setTxGain(str(25))
         self.ue.setRxGain(str(25))
-        self.ue.setDeviceArgs(f"type=x300,addr={EMU_PHY_WIRELESS_USRP_IP_ADDR}")
+        self.ue.setDeviceArgs(f"type=x300,addr={EMU_PHY_WIRELESS_USRP_IP_ADDR},base_srate=11.52e6")
 
         self.ue.setHost(EMU_PHY_WIRELESS_UE_HOST_INTERFACE_IP_ADDR)
         self.ue.start()
