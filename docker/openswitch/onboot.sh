@@ -20,4 +20,5 @@
 
 # Start container and keep alive
 sudo /usr/share/openvswitch/scripts/ovs-ctl start
+service start firewalld
 tail -f /dev/null
