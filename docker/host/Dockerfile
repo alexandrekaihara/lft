@@ -17,8 +17,9 @@
 
 
 FROM ubuntu:20.04
+
 RUN apt update \
-&&  RUNLEVEL=1 apt install -y --no-install-recommends sudo net-tools iproute2 iputils-ping iptables nano
+&&  RUNLEVEL=1 apt install -y --no-install-recommends sudo net-tools iproute2 iputils-ping iptables nano firewalld
 
 COPY onboot.sh /home
 RUN chmod +x /home/onboot.sh
