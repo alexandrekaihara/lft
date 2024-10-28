@@ -74,3 +74,8 @@ PHY_PHY_WIRELESS_UE_IP_ADDR = "172.16.0.2"
 EMU_EMU_PLOT_COLOR = 'red'
 EMU_PHY_PLOT_COLOR = 'green'
 PHY_PHY_PLOT_COLOR = 'blue'
+
+# Peers
+EMULATED = 'Emulated'
+HYBRID = 'Hybrid'
+PHYSICAL = 'Physical' 

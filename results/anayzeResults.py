@@ -8,8 +8,9 @@ import pandas as pd
 import numpy as np
 from json import load
 from glob import glob
-from statistics import mean
+from statistics import mean, median
 from matplotlib import use
+from itertools import combinations
 
 use("TkAgg")
 
@@ -65,7 +66,7 @@ def loadCustomThroughputJson(path):
     for path in paths:
         json = load(open(path))
         jsons.append(json)
-    return clearOutliers(flattenList(jsons))
+    return flattenList(jsons)
 
 def extractMetricsFromJsons(jsons, keyName):
     successfulExtractions = 0
@@ -98,7 +99,7 @@ def loadData(path, keyName):
     collectedMetricsList = extractMetricsFromJsons(jsons, keyName)
     print(collectedMetricsList)
     flatListValues = flattenList(collectedMetricsList)
-    return clearOutliers(clearOutliers(clearOutliers(flatListValues)))
+    return clearOutliers(flatListValues)
 
 
 def simplePlot(emuEmu, emuPhy, phyPhy, experimentLabel, mediumType, unitOfMeasure):
@@ -177,11 +178,19 @@ def plotToolComparison(lftValues, lftErr, mnValues, mnErr, title, unitOfMeasure)
     plt.legend(fontsize=14)
     plt.show()
 
-def boxPlot(data):
+
+def boxPlot(data, title, x_labels, y_axis_title, x_axis_title):
     plt.boxplot(data)
+    plt.title(title, fontsize=18)
+    plt.ylabel(y_axis_title, fontsize=16)
+    plt.xlabel(x_axis_title, fontsize=16)
+    plt.xticks(ticks=range(1, len(x_labels) + 1), labels=x_labels, fontsize=14)
+    plt.yticks(fontsize=14)
     plt.show()
 
-
+def deviation(first, second):
+    return (abs(first - second)/mean([first, second]))*100
+        
 ####################### Load Data #######################
 # Wired
 ## Throughput
@@ -258,17 +267,17 @@ mininetUndeploymentValues = [mean(mnUndeployTime1), mean(mnUndeployTime4), mean(
 lftDeployMemDf = pd.read_csv("results/data/deployLftMem.csv")
 mnDeployMemDf = pd.read_csv("results/data/deployMnMem.csv")
 
-lftDeployMem1 = list(lftDeployMemDf['1']/1000)
-lftDeployMem4 = list(lftDeployMemDf['4']/1000)
-lftDeployMem16 = list(lftDeployMemDf['16']/1000)
-lftDeployMem64 = list(lftDeployMemDf['64']/1000)
-lftDeployMem256 = list(lftDeployMemDf['256']/1000)
+lftDeployMem1 = list(lftDeployMemDf['1']/1000000)
+lftDeployMem4 = list(lftDeployMemDf['4']/1000000)
+lftDeployMem16 = list(lftDeployMemDf['16']/1000000)
+lftDeployMem64 = list(lftDeployMemDf['64']/1000000)
+lftDeployMem256 = list(lftDeployMemDf['256']/1000000)
 
-mnDeployMem1 = list(mnDeployMemDf['1']/1000)
-mnDeployMem4 = list(mnDeployMemDf['4']/1000)
-mnDeployMem16 = list(mnDeployMemDf['16']/1000)
-mnDeployMem64 = list(mnDeployMemDf['64']/1000)
-mnDeployMem256 = list(mnDeployMemDf['256']/1000)
+mnDeployMem1 = list(mnDeployMemDf['1']/1000000)
+mnDeployMem4 = list(mnDeployMemDf['4']/1000000)
+mnDeployMem16 = list(mnDeployMemDf['16']/1000000)
+mnDeployMem64 = list(mnDeployMemDf['64']/1000000)
+mnDeployMem256 = list(mnDeployMemDf['256']/1000000)
 
 lftDeploymentMemValues = [mean(lftDeployMem1), mean(lftDeployMem4), mean(lftDeployMem16), mean(lftDeployMem64), mean(lftDeployMem256)]
 mininetDeploymentMemValues = [mean(mnDeployMem1), mean(mnDeployMem4), mean(mnDeployMem16), mean(mnDeployMem64), mean(mnDeployMem256)]
@@ -373,42 +382,55 @@ minimunLength = minLen([wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wi
 simplePlot(wiredEmuEmuThroughputData[:minimunLength], wiredEmuPhyThroughputData[:minimunLength], wiredPhyPhyThroughputData[:minimunLength], THROUGHPUT_EXPERIMENT_NAME, WIRED, THROUGHPUT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWiredEmuEmuThroughputData, ciWiredEmuPhyThroughputData, ciWiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED)
 plotBars(wiredEmuEmuThroughputData, ciWiredEmuEmuThroughputData, wiredEmuPhyThroughputData, ciWiredEmuPhyThroughputData, wiredPhyPhyThroughputData, ciWiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED, THROUGHPUT_UNIT_OF_MEASURE)
-boxPlot([wiredEmuEmuThroughputData, ciWiredEmuEmuThroughputData, wiredEmuPhyThroughputData])
+boxPlot([wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wiredPhyPhyThroughputData], f"{WIRED} {THROUGHPUT_EXPERIMENT_NAME}", [EMULATED, HYBRID, PHYSICAL], f"{THROUGHPUT_EXPERIMENT_NAME} ({THROUGHPUT_UNIT_OF_MEASURE})", "Peer Types")
+print(f"Wired Throughput Deviation Emulated to Physical: {deviation(median(wiredEmuEmuThroughputData), median(wiredPhyPhyThroughputData))}")
+print(f"Wired Throughput Deviation Emulated to Physical: {deviation(median(wiredEmuPhyThroughputData), median(wiredPhyPhyThroughputData))}")
 
 ## RTT
 minimunLength = minLen([wiredEmuEmuRttData, wiredEmuPhyRttData, wiredPhyPhyRttData])
 simplePlot(wiredEmuEmuRttData[:minimunLength], wiredEmuPhyRttData[:minimunLength], wiredPhyPhyRttData[:minimunLength], RTT_EXPERIMENT_NAME, WIRED, RTT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWiredEmuEmuRttData, ciWiredEmuPhyRttData, ciWiredPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRED)
 plotBars(wiredEmuEmuRttData, ciWiredEmuEmuRttData, wiredEmuPhyRttData, ciWiredEmuPhyRttData, wiredPhyPhyRttData, ciWiredPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRED, RTT_UNIT_OF_MEASURE)
-boxPlot([wiredEmuEmuRttData, wiredEmuPhyRttData, wiredPhyPhyRttData])
+boxPlot([wiredEmuEmuRttData, wiredEmuPhyRttData, wiredPhyPhyRttData], f"{WIRED} {RTT_EXPERIMENT_NAME}", [EMULATED, HYBRID, PHYSICAL], f"{RTT_EXPERIMENT_NAME} ({RTT_UNIT_OF_MEASURE})", "Peer Types")
+print(f"Wired Rtt Deviation Emulated to Physical: {deviation(median(wiredEmuEmuRttData), median(wiredPhyPhyRttData))}")
+print(f"Wired Rtt Deviation Emulated to Physical: {deviation(median(wiredEmuPhyRttData), median(wiredPhyPhyRttData))}")
 
 ## Latency
 simplePlot(wiredEmuEmuLatencyData, wiredEmuPhyLatencyData, wiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED, LATENCY_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWiredEmuEmuLatencyData, ciWiredEmuPhyLatencyData, ciWiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED)
 plotBars(wiredEmuEmuLatencyData, ciWiredEmuEmuLatencyData, wiredEmuPhyLatencyData, ciWiredEmuPhyLatencyData, wiredPhyPhyLatencyData, ciWiredPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRED, LATENCY_UNIT_OF_MEASURE)
-boxPlot([wiredEmuEmuLatencyData, wiredEmuPhyLatencyData, wiredPhyPhyLatencyData])
-
+boxPlot([wiredEmuEmuLatencyData, wiredEmuPhyLatencyData, wiredPhyPhyLatencyData], f"{WIRED} {LATENCY_EXPERIMENT_NAME}", [EMULATED, HYBRID, PHYSICAL], f"{LATENCY_EXPERIMENT_NAME} ({LATENCY_UNIT_OF_MEASURE})", "Peer Types")
+print(f"Wired Latency Deviation Emulated to Physical: {deviation(median(wiredEmuEmuLatencyData), median(wiredPhyPhyLatencyData))}")
+print(f"Wired Latency Deviation Emulated to Physical: {deviation(median(wiredEmuPhyLatencyData), median(wiredPhyPhyLatencyData))}")
 
 # Wireless
 ## Throughput
 simplePlot(wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS, THROUGHPUT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWirelessEmuEmuThroughputData, ciWirelessEmuPhyThroughputData, ciWirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS)
 plotBars(wirelessEmuEmuThroughputData, ciWirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, ciWirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData, ciWirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS, THROUGHPUT_UNIT_OF_MEASURE)
-boxPlot([wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData])
+boxPlot([wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData], f"{WIRELESS} {THROUGHPUT_EXPERIMENT_NAME}", [EMULATED, HYBRID, PHYSICAL], f"{THROUGHPUT_EXPERIMENT_NAME} ({THROUGHPUT_UNIT_OF_MEASURE})", "Peer Types")
+deviation({EMULATED: median(wirelessEmuEmuThroughputData), HYBRID: median(wirelessEmuPhyThroughputData), PHYSICAL: median(wirelessPhyPhyThroughputData)})
+print(f"Wireless Throughput Deviation Emulated to Physical: {deviation(median(wirelessEmuEmuThroughputData), median(wirelessPhyPhyThroughputData))}")
+print(f"Wireless Throughput Deviation Emulated to Physical: {deviation(median(wirelessEmuPhyThroughputData), median(wirelessPhyPhyThroughputData))}")
 
 ## RTT
 minimunLength = minLen([wirelessEmuEmuRttData, wirelessPhyPhyRttData])
 simplePlot(wirelessEmuEmuRttData[:minimunLength], wirelessEmuPhyRttData[:minimunLength], wirelessPhyPhyRttData[:minimunLength], RTT_EXPERIMENT_NAME, WIRELESS, RTT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWirelessEmuEmuRttData, ciWirelessEmuPhyRttData, ciWirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS)
 plotBars(wirelessEmuEmuRttData, ciWirelessEmuEmuRttData, wirelessEmuPhyRttData, ciWirelessEmuPhyRttData, wirelessPhyPhyRttData, ciWirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS, RTT_UNIT_OF_MEASURE)
-boxPlot([wirelessEmuEmuRttData, wirelessEmuPhyRttData, wirelessPhyPhyRttData])
+boxPlot([wirelessEmuEmuRttData, wirelessEmuPhyRttData, wirelessPhyPhyRttData], f"{WIRELESS} {RTT_EXPERIMENT_NAME}", [EMULATED, HYBRID, PHYSICAL], f"{RTT_EXPERIMENT_NAME} ({RTT_UNIT_OF_MEASURE})", "Peer Types")
+deviation({EMULATED: median(wirelessEmuEmuRttData), HYBRID: median(wirelessEmuPhyRttData), PHYSICAL: median(wirelessPhyPhyRttData)})
+print(f"Wireless Rtt Deviation Emulated to Physical: {deviation(median(wirelessEmuEmuRttData), median(wirelessPhyPhyRttData))}")
+print(f"Wireless Rtt Deviation Emulated to Physical: {deviation(median(wirelessEmuPhyRttData), median(wirelessPhyPhyRttData))}")
 
 ## Latency
 minimunLength = minLen([wirelessEmuEmuLatencyData, wirelessPhyPhyLatencyData])
 simplePlot(wirelessEmuEmuLatencyData[:minimunLength], wirelessEmuPhyLatencyData[:minimunLength], wirelessPhyPhyLatencyData[:minimunLength], LATENCY_EXPERIMENT_NAME, WIRELESS, LATENCY_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWirelessEmuEmuLatencyData, ciWirelessEmuPhyLatencyData, ciWirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS)
 plotBars(wirelessEmuEmuLatencyData, ciWirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, ciWirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData, ciWirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS, LATENCY_UNIT_OF_MEASURE)
-boxPlot([wirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData])
+boxPlot([wirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData], f"{WIRELESS} {LATENCY_EXPERIMENT_NAME}", [EMULATED, HYBRID, PHYSICAL], f"{LATENCY_EXPERIMENT_NAME} ({LATENCY_UNIT_OF_MEASURE})", "Peer Types")
+print(f"Wireless Latency Deviation Emulated to Physical: {deviation(median(wirelessEmuEmuLatencyData), median(wirelessPhyPhyLatencyData))}")
+print(f"Latency Deviation Emulated to Physical: {deviation(median(wirelessEmuPhyLatencyData), median(wirelessPhyPhyLatencyData))}")
 
 
 # LFT vs Mininet Time
@@ -419,7 +441,7 @@ plotToolComparison(lftDeploymentValues, errLftDeployTime, mininetDeploymentValue
 plotToolComparison(lftUndeploymentValues, errLftUndeployTime, mininetUndeploymentValues, errMnUndeployTime, "Tear Down Topology Time", "s")
 
 # DeploymentMem Time
-plotToolComparison(lftDeploymentMemValues, errLftDeployMem, mininetDeploymentMemValues, errMnDeployMem, "Deployment Memory Consumption", "MB")
+plotToolComparison(lftDeploymentMemValues, errLftDeployMem, mininetDeploymentMemValues, errMnDeployMem, "Deployment Memory Consumption", "GB")
 
 
 

@@ -13,5 +13,5 @@ class Rtt(Preprocess):
             return int(float(rtt.replace("PT", "").replace("S", ""))*1000000)/1000
 
         roundtrips = json["roundtrips"]
-        return [preprocess(roundtrip["rtt"]) for roundtrip in roundtrips]
+        return [preprocess(roundtrip["rtt"]) for roundtrip in roundtrips if preprocess(roundtrip["rtt"]) < 1000]
     
