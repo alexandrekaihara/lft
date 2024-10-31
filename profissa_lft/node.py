@@ -18,9 +18,9 @@ import logging
 import subprocess
 import hashlib
 from configparser import ConfigParser
-import json
 from .exceptions import *
 from .constants import *
+from .src.factory.node_factory import NodeFactory
 
 
 # Just to enable the declaration of Type in methods
@@ -35,11 +35,11 @@ class Node:
     #   String containerName: Name of the container
     # Return:
     #   None
-    def __init__(self, nodeName: str) -> None:
+    def __init__(self, nodeName: str, factory=NodeFactory()) -> None:
         self.__createTmpFolder()
+        self.containerAdapter = factory.createContainerAdapter()
+        self.networkingAdapter = factory.createNetworkingAdapter()
         self.__nodeName = nodeName
-        self.memory = ''
-        self.cpu = ''
 
     def __createTmpFolder(self) -> None:
         subprocess.run("mkdir -p /tmp/lft/", shell=True)
@@ -54,93 +54,12 @@ class Node:
     # Return:
     #   None
     def instantiate(self, dockerImage="alexandremitsurukaihara/lst2.0:host", dockerCommand='', dns='8.8.8.8', memory='', cpus='', runCommand='') -> None:
-        command = []
-        
-        def addDockerRun():
-            command.append(DOCKER_RUN)
-
-        def addRunOptions():
-            command.append("-d")
-
-        def addNetwork():
-            command.append(NETWORK + "=none")
-
-        def addContainerName():
-            command.append(NAME + '=' + self.getNodeName())
-
-        def addPrivileged():
-            command.append(PRIVILEGED)
-
-        def addDNS(dns):
-            command.append(DNS + '=' + dns)
-
-        def addContainerMemory(memory):
-            if memory != '': 
-                command.append(MEMORY + '=' + memory)
-
-        def addContainerCPUs(cpus):
-            if cpus != '': 
-                command.append(CPUS + '=' + cpus)
-
-        def addContainerImage(image):
-            command.append(image)
-
-        def addRunCommand(runCommand):
-            command.append(runCommand)
-
-        def buildCommand():
-            return " ".join(command)
-
-        if not self.__imageExists(dockerImage):
-            logging.info(f"Image {dockerImage} not found, pulling from remote repository...")
-            self.__pullImage(dockerImage)
-        
-        if dockerCommand == '':
-            addDockerRun()
-            addRunOptions()
-            addNetwork()
-            addContainerName()
-            addPrivileged()
-            addDNS(dns)
-            addContainerMemory(memory)
-            addContainerCPUs(cpus)
-            addContainerImage(dockerImage)
-            addRunCommand(runCommand)
-    
-        try:    
-            if dockerCommand != '':
-                subprocess.run(dockerCommand, shell=True, capture_output=True)            
-            else:
-                subprocess.run(buildCommand(), shell=True, capture_output=True)
+        try:
+            self.containerAdapter.instantiate(dockerImage, dockerCommand, dns, memory, cpus, runCommand)
+            self.enableNamespace()
         except Exception as ex:
             logging.error(f"Error while criating the container {self.getNodeName()}: {str(ex)}")
             raise NodeInstantiationFailed(f"Error while criating the container {self.getNodeName()}: {str(ex)}")
-        
-        self.__enableNamespace(self.getNodeName())
-
-    # Brief: Verifies if the image exists
-    # Params:
-    #   String image: Tag of the Docker image 
-    # Return:
-    #   True if the image exists locally
-    def __imageExists(self, image: str) -> bool:
-        out = subprocess.run(f"docker inspect --type=image {image}", shell=True, capture_output=True)
-        outJson = json.loads(out.stdout.decode('utf-8'))
-        if outJson == []: return False
-        else: return True
-
-            
-    # Brief: Pulls the image from a Docker Hub repository
-    # Params:
-    #   String image: Tag of the Docker image 
-    # Return:
-    #   True if the image exists locally
-    def __pullImage(self, image):
-        try: 
-            subprocess.run(f"docker pull {image}", shell=True)
-        except Exception as ex:
-            logging.error(f"Error pulling non-existing {image} image: {str(ex)}")
-            raise NodeInstantiationFailed(f"Error pulling non-existing {image} image: {str(ex)}")
 
     # Brief: Instantiate the container
     # Params:
@@ -150,7 +69,7 @@ class Node:
     #   None
     def delete(self) -> None:
         try:    
-            subprocess.run(f"docker kill {self.getNodeName()} && docker rm {self.getNodeName()}", shell=True, capture_output=True)
+            self.containerAdapter.delete()
         except Exception as ex:
             logging.error(f"Error while deleting the host {self.getNodeName()}: {str(ex)}")
             raise NodeInstantiationFailed(f"Error while deleting the host {self.getNodeName()}: {str(ex)}")
@@ -308,7 +227,7 @@ class Node:
     # Return:
     def copyLocalToContainer(self, path: str, destPath: str) -> None:
         try:
-            subprocess.run(f"docker cp {path} {self.getNodeName()}:{destPath}", shell=True, capture_output=True)
+            self.containerAdapter.copyLocalToContainer(path, destPath)
         except Exception as ex:
             logging.error(f"Error copying file from {path} to {destPath}: {str(ex)}")
             raise Exception(f"Error copying file from {path} to {destPath}: {str(ex)}")
@@ -320,7 +239,7 @@ class Node:
     # Return:
     def copyContainerToLocal(self, path: str, destPath: str) -> None:
         try:
-            subprocess.run(f"docker cp {self.getNodeName()}:{path} {destPath}", shell=True, capture_output=True)
+            self.containerAdapter.copyContainerToLocal(path, destPath)
         except Exception as ex:
             logging.error(f"Error copying file from {path} to {destPath}: {str(ex)}")
             raise Exception(f"Error copying file from {path} to {destPath}: {str(ex)}")
@@ -392,19 +311,20 @@ class Node:
     # Params:
     # Return:
     #   None
-    def __enableNamespace(self, nodeName) -> None:
+    def enableNamespace(self, nodeName) -> None:
         try:    
-            subprocess.run(f"pid=$(docker inspect -f '{{{{.State.Pid}}}}' {nodeName}); mkdir -p /var/run/netns/; ln -sfT /proc/$pid/ns/net /var/run/netns/{nodeName}", shell=True)
+            containerPid = str(self.containerAdapter.getContainerProcessId(self.getNodeName()))
+            subprocess.run(f"pid={containerPid}; mkdir -p /var/run/netns/; ln -sfT /proc/$pid/ns/net /var/run/netns/{nodeName}", shell=True)
         except Exception as ex:
-            logging.error(f"Error while deleting the host {self.getNodeName()}: {str(ex)}")
-            raise Exception(f"Error while deleting the host {self.getNodeName()}: {str(ex)}")
+            logging.error(f"Error while enabling network namespace for host {self.getNodeName()}: {str(ex)}")
+            raise Exception(f"Error while enabling network namespace for {self.getNodeName()}: {str(ex)}")
 
     # Brief: Get all interfaces names
     # Params:
     # Return:
     #   Return a list with the name of all interfaces
     def __getAllIntefaces(self) -> list:
-        output = subprocess.run(f"docker exec {self.getNodeName()} ifconfig -a | sed 's/[ \t].*//;/^$/d'", shell=True, capture_output=True)
+        output = self.containerAdapter.run("ifconfig -a | sed 's/[ \t].*//;/^$/d'")
         interfaces=output.stdout.decode('utf8').replace(":", '').split('\n')
         return list(filter(None, interfaces)) # Remove empty strings
 
@@ -412,9 +332,8 @@ class Node:
     # Params:
     # Return:
     #   Return true if it is active or false otherwise
-    def __isActive(self) -> bool:
-        if subprocess.run(f"docker ps | grep {self.getNodeName()}'", shell=True, capture_output=True).stdout.decode('utf8') != '': return True
-        return False
+    def isActive(self) -> bool:
+        return self.containerAdapter.isActive()
 
     def setMtuSize(self, interfaceName: str, mtu: int) -> None:
         self.run(f"ifconfig {interfaceName} mtu {str(mtu)}")
@@ -426,7 +345,7 @@ class Node:
     #   Returns a ConfigParser instance with the config file read
     def readConfigFile(self, containerPath: str) -> None:
         randomTmpName = self.getHashFromString(containerPath) 
-        self.copyContainerToLocal(containerPath, f"/tmp/lft/{randomTmpName}")
+        self.containerAdapter.copyContainerToLocal(containerPath, f"/tmp/lft/{randomTmpName}")
         
         config = ConfigParser()
         config.read(f"/tmp/lft/{randomTmpName}")
@@ -436,7 +355,7 @@ class Node:
         randomTmpName = self.getHashFromString(containerPath)
         with open(f"/tmp/lft/{randomTmpName}", "w") as f:
             config.write(f)
-        self.copyLocalToContainer(f"/tmp/lft/{randomTmpName}", containerPath)
+        self.containerAdapter.copyLocalToContainer(f"/tmp/lft/{randomTmpName}", containerPath)
         
     def getHashFromString(self, anyStr: str) -> str:
         h = hashlib.md5()
