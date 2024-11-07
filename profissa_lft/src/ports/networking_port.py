@@ -14,9 +14,23 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from abc import ABCMeta, abstractmethod
 
-class NetworkingPort(metaclass=ABCMeta):
-    def __init__(self, nodeName: str):
-        self.__nodeName = nodeName
+class NetworkingPort(metaclass=ABCMeta):    
+    @abstractmethod
+    def createVethPair(self, vethPairName1: str, vethPairName2: str):
+        pass
 
-    def getNodeName(self) -> str:
-        return self.__nodeName
+    @abstractmethod
+    def setIp(self, ip: str, mask: int, interfaceName: str, namespace=''):
+        pass
+
+    @abstractmethod
+    def setLinkToNetns(self, linkName: str, namespace: str):
+        pass
+
+    @abstractmethod
+    def setLinkUp(self, linkName: str, namespace=''):
+        pass
+
+    @abstractmethod
+    def addRoute(self, ip: str, mask: int, linkName: str, gateway: str, namespace=''):
+        pass

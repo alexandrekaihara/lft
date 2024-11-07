@@ -12,6 +12,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from .container import ContainerPort 
+from .container_port import ContainerPort 
+from .networking_port import NetworkingPort
 
-__all__ = [ContainerPort]
+__all__ = [ContainerPort, NetworkingPort]

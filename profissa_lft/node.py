@@ -37,7 +37,10 @@ class Node:
     #   None
     def __init__(self, nodeName: str, factory=NodeFactory()) -> None:
         self.__createTmpFolder()
+
         self.containerAdapter = factory.createContainerAdapter()
+        self.containerAdapter.setNodeName(nodeName)
+
         self.networkingAdapter = factory.createNetworkingAdapter()
         self.__nodeName = nodeName
 
@@ -113,8 +116,8 @@ class Node:
         if self.__class__.__name__ == 'Switch':
             self._Switch__createPort(self.getNodeName(), interfaceName)
         
-        subprocess.run(f"ip link set {hostInterfaceName} up", shell=True)
-        subprocess.run(f"ip addr add {hostIP}/{hostMask} dev {hostInterfaceName}", shell=True)
+        self.networkingAdapter.setLinkUp(hostInterfaceName)
+        self.networkingAdapter.setIp(hostIP, hostMask, hostInterfaceName)
 
         # Enable forwading packets from host to interface
         hostGatewayInterfaceName = subprocess.run(f"route | grep \'^default\' | grep -o \'[^ ]*$\'", shell=True, capture_output=True).stdout.decode('utf8').replace("\n", '')
@@ -130,8 +133,8 @@ class Node:
         if self.__class__.__name__ == 'Switch':
             self._Switch__createPort(self.getNodeName(), interfaceName)
         
-        subprocess.run(f"ip link set {hostInterfaceName} up", shell=True)
-        subprocess.run(f"ip addr add {hostIP}/{hostMask} dev {hostInterfaceName}", shell=True)
+        self.networkingAdapter.setLinkUp(hostInterfaceName)
+        self.networkingAdapter.setIp(hostIP, hostMask, hostInterfaceName)
         subprocess.run(f"firewall-cmd --zone=trusted --add-interface={hostInterfaceName}", shell=True)
 
     def enableForwarding(self, interfaceName: str, otherInterfaceName: str) -> None:
@@ -173,7 +176,7 @@ class Node:
     #   None
     def addRouteOnHost(self, ip: str, mask: int, interfaceName: str, gateway="0.0.0.0") -> None:
         try:
-            subprocess.run(f"ip route add {ip}/{mask} via {gateway} dev {interfaceName}", shell=True)
+            self.networkingAdapter.addRoute(ip, mask, interfaceName, gateway)
         except Exception as ex:
             logging.error(f"Error adding route {ip}/{mask} via {interfaceName} in {self.getNodeName()}: {str(ex)}")
             raise Exception(f"Error adding route {ip}/{mask} via {interfaceName} in {self.getNodeName()}: {str(ex)}")
@@ -204,21 +207,10 @@ class Node:
     #   Returns variable that contains stdout and stderr (more information in subprocess documentation)
     def run(self, command: str) -> str:
         try:
-            command = command.replace('\"', 'DOUBLEQUOTESDELIMITER')
-            command = f"docker exec {self.getNodeName()} bash -c \"" + command + f"\""
-            command = command.replace('DOUBLEQUOTESDELIMITER','\\"')
-            return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, text=True)
+            return self.containerAdapter.run(command)
         except Exception as ex:
             logging.error(f"Error executing command {command} in {self.getNodeName()}: {str(ex)}")
-            raise Exception(f"Error executing command {command} in {self.getNodeName()}: {str(ex)}")
-
-    # Brief: Runs multiple commands inside the container
-    # Params:
-    #   List<String> commands: Runs multiple comands inside the container
-    # Return:
-    #   Returns a list with the variable that contains stdout and stderr (more information in subprocess documentation)
-    def runs(self, commands: list) -> list:
-        return [self.run(command) for command in commands]     
+            raise Exception(f"Error executing command {command} in {self.getNodeName()}: {str(ex)}") 
 
     # Brief: Copy local file into container
     # Params:
@@ -267,7 +259,7 @@ class Node:
     #   None
     def __setIp(self, ip: str, mask: int, interfaceName: str) -> None:
         try:
-            subprocess.run(f"ip -n {self.getNodeName()} addr add {ip}/{mask} dev {interfaceName}", shell=True)
+            self.networkingAdapter.setIp(ip, mask, interfaceName, self.getNodeName())
         except Exception as ex:
             logging.error(f"Error while setting IP {ip}/{mask} to virtual interface {interfaceName}: {str(ex)}")
             raise Exception(f"Error while setting IP {ip}/{mask} to virtual interface {interfaceName}: {str(ex)}")
@@ -288,7 +280,7 @@ class Node:
     #   None
     def __create(self, peer1Name: str, peer2Name: str) -> None:
         try:
-            subprocess.run(f"ip link add {peer1Name} type veth peer name {peer2Name}", shell=True)
+            self.networkingAdapter.createVethPair(peer1Name, peer2Name)
         except Exception as ex:
             logging.error(f"Error while creating virtual interfaces {peer1Name} and {peer2Name}: {str(ex)}")
             raise Exception(f"Error while creating virtual interfaces {peer1Name} and {peer2Name}: {str(ex)}")
@@ -301,8 +293,8 @@ class Node:
     #   None
     def __setInterface(self, nodeName: str, peerName: str) -> None:
         try:
-            subprocess.run(f"ip link set {peerName} netns {nodeName}", shell=True)
-            subprocess.run(f"ip -n {nodeName} link set {peerName} up", shell=True)
+            self.networkingAdapter.setLinkToNetns(peerName, nodeName)
+            self.networkingAdapter.setLinkUp(peerName, nodeName)
         except Exception as ex:
             logging.error(f"Error while setting virtual interfaces {peerName} to {nodeName}: {str(ex)}")
             raise Exception(f"Error while setting virtual interfaces {peerName} to {nodeName}: {str(ex)}")
@@ -311,10 +303,10 @@ class Node:
     # Params:
     # Return:
     #   None
-    def enableNamespace(self, nodeName) -> None:
+    def enableNamespace(self) -> None:
         try:    
-            containerPid = str(self.containerAdapter.getContainerProcessId(self.getNodeName()))
-            subprocess.run(f"pid={containerPid}; mkdir -p /var/run/netns/; ln -sfT /proc/$pid/ns/net /var/run/netns/{nodeName}", shell=True)
+            containerPid = str(self.containerAdapter.getContainerProcessId())
+            subprocess.run(f"pid={containerPid}; mkdir -p /var/run/netns/; ln -sfT /proc/$pid/ns/net /var/run/netns/{self.getNodeName()}", shell=True)
         except Exception as ex:
             logging.error(f"Error while enabling network namespace for host {self.getNodeName()}: {str(ex)}")
             raise Exception(f"Error while enabling network namespace for {self.getNodeName()}: {str(ex)}")

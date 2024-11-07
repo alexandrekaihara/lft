@@ -20,11 +20,14 @@ from subprocess import CompletedProcess
 
 
 class ContainerPort(metaclass=ABCMeta):
-    def __init__(self, nodeName: str):
-        self.__nodeName = nodeName
+    def __init__(self):
+        self.__nodeName = ''
 
     def getNodeName(self) -> str:
         return self.__nodeName
+    
+    def setNodeName(self, nodeName: str) -> str:
+        self.__nodeName = nodeName
 
     @abstractmethod
     def instantiate(self, dockerImage: str, dockerCommand: str, dns: str, memory: str, cpus: str, runCommand: str) -> None:

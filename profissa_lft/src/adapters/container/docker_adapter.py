@@ -22,7 +22,7 @@ from ...ports.container_port import ContainerPort
 
 class DockerAdapter(ContainerPort):
     def __init__(self):
-        super(self)
+        super()
         self.DOCKER = "docker"
         self.EXEC = "exec"
         self.INSPECT = "inspect"

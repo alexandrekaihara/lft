@@ -23,3 +23,4 @@ class NodeFactory(BaseLftAbstractFactory):
     
     def createNetworkingAdapter(self):
         return IpRouteAdapter()
+    
