@@ -16,13 +16,10 @@ profissa_lft/TransportSecurity
 profissa_lft/User/
 profissa_lft/languagepacks.json
 profissa_lft/logs/
+**/__pycache__/
 profissa_lft/machineid
-demonstration/__pycache__
-experiment/__pycache__
-profissa_lft/__pycache__
 experiment/results/*
 results/data/*
-results/__pycache__
 containernet/
 
 build
