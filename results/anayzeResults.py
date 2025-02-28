@@ -190,6 +190,53 @@ def boxPlot(data, title, x_labels, y_axis_title, x_axis_title):
 
 def deviation(first, second):
     return (abs(first - second)/mean([first, second]))*100
+
+
+def plotBarsSubplots(data1, data2, experimentNames, medium, unitOfMeasures, titles):
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    
+    for i, data in enumerate([data1, data2]):
+        emuEmu, ciEmuEmu, emuPhy, ciEmuPhy, phyPhy, ciPhyPhy = data
+        
+        emulated_mean = mean(emuEmu)
+        hybrid_mean = mean(emuPhy)
+        physical_mean = mean(phyPhy)
+        
+        means = [emulated_mean, hybrid_mean, physical_mean]
+        errs = [ciEmuEmu[1] - emulated_mean, ciEmuPhy[1] - hybrid_mean, ciPhyPhy[1] - physical_mean]
+        
+        higher = max([max(emuEmu), max(emuPhy), max(phyPhy)])
+        
+        columns = ["Emulated Only", "Hybrid", "Physical Only"]
+        colors = [EMU_EMU_PLOT_COLOR, EMU_PHY_PLOT_COLOR, PHY_PHY_PLOT_COLOR]
+        
+        axes[i].bar(range(len(columns)), means, yerr=errs, align='center', alpha=0.5, color=colors, edgecolor='black', capsize=7)
+        axes[i].set_ylim(0, higher * 1.1)
+        #axes[i].set_yticks(fontsize=12)
+        #axes[i].set_xticks(range(len(columns)))
+        axes[i].set_xticklabels(columns, fontsize=12)
+        axes[i].set_ylabel(f"{experimentNames[i]} ({unitOfMeasures[i]})", fontsize=14)
+        axes[i].set_title(titles[i], fontsize=16)
+    
+    fig.suptitle(f'{medium} Experiments', fontsize=18)
+    plt.tight_layout()
+    plt.show()
+
+def boxPlotSubplots(data1, data2, titles, x_labels, y_axis_titles, x_axis_titles):
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    
+    for i, data in enumerate([data1, data2]):
+        axes[i].boxplot(data)
+        axes[i].set_title(titles[i], fontsize=18)
+        axes[i].set_ylabel(y_axis_titles[i], fontsize=16)
+        axes[i].set_xlabel(x_axis_titles[i], fontsize=16)
+        axes[i].set_xticks(ticks=range(1, len(x_labels) + 1))
+        axes[i].set_xticklabels(x_labels, fontsize=14)
+        axes[i].tick_params(axis='y', labelsize=14)
+    
+    plt.tight_layout()
+    plt.show()
+
         
 ####################### Load Data #######################
 # Wired
@@ -198,15 +245,30 @@ wiredEmuEmuThroughputData = loadData(RESULTS_PATH + EMU_EMU_WIRED_PREFIX + THROU
 wiredEmuPhyThroughputData = loadData(RESULTS_PATH + EMU_PHY_WIRED_PREFIX + THROUGHPUT_JSON_FORMAT_WILDCARD, THROUGHPUT)
 wiredPhyPhyThroughputData = loadData(RESULTS_PATH + PHY_PHY_WIRED_PREFIX + THROUGHPUT_JSON_FORMAT_WILDCARD, THROUGHPUT)
 
+minimunLength = minLen([wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wiredPhyPhyThroughputData])
+wiredEmuEmuThroughputData = wiredEmuEmuThroughputData[:minimunLength]
+wiredEmuPhyThroughputData = wiredEmuPhyThroughputData[:minimunLength]
+wiredPhyPhyThroughputData = wiredPhyPhyThroughputData[:minimunLength]
+
 ## RTT
 wiredEmuEmuRttData = loadData(RESULTS_PATH + EMU_EMU_WIRED_PREFIX + RTT_JSON_FORMAT_WILDCARD, RTT)
 wiredEmuPhyRttData = loadData(RESULTS_PATH + EMU_PHY_WIRED_PREFIX + RTT_JSON_FORMAT_WILDCARD, RTT)
 wiredPhyPhyRttData = loadData(RESULTS_PATH + PHY_PHY_WIRED_PREFIX + RTT_JSON_FORMAT_WILDCARD, RTT)
 
+minimunLength = minLen([wiredEmuEmuRttData, wiredEmuPhyRttData, wiredPhyPhyRttData])
+wiredEmuEmuRttData = wiredEmuEmuRttData[:minimunLength]
+wiredEmuPhyRttData = wiredEmuPhyRttData[:minimunLength]
+wiredPhyPhyRttData = wiredPhyPhyRttData[:minimunLength]
+
 ## Latency
 wiredEmuEmuLatencyData = loadData(RESULTS_PATH + EMU_EMU_WIRED_PREFIX + LATENCY_JSON_FORMAT_WILDCARD, LATENCY)
 wiredEmuPhyLatencyData = loadData(RESULTS_PATH + EMU_PHY_WIRED_PREFIX + LATENCY_JSON_FORMAT_WILDCARD, LATENCY)
 wiredPhyPhyLatencyData = loadData(RESULTS_PATH + PHY_PHY_WIRED_PREFIX + LATENCY_JSON_FORMAT_WILDCARD, LATENCY)
+
+minimunLength = minLen([wiredEmuEmuLatencyData, wiredEmuPhyLatencyData, wiredPhyPhyLatencyData])
+wiredEmuEmuLatencyData = wiredEmuEmuLatencyData[:minimunLength]
+wiredEmuPhyLatencyData = wiredEmuPhyLatencyData[:minimunLength]
+wiredPhyPhyLatencyData = wiredPhyPhyLatencyData[:minimunLength]
 
 # Wireless
 ## Throughput
@@ -214,15 +276,30 @@ wirelessEmuEmuThroughputData = loadData(RESULTS_PATH + EMU_EMU_WIRELESS_PREFIX +
 wirelessEmuPhyThroughputData = loadCustomThroughputJson(RESULTS_PATH + "wireless_emu_phy_throughput_manual*.json") # loadData(RESULTS_PATH + EMU_PHY_WIRELESS_PREFIX + THROUGHPUT_JSON_FORMAT_WILDCARD, THROUGHPUT)
 wirelessPhyPhyThroughputData = loadData(RESULTS_PATH + PHY_PHY_WIRELESS_PREFIX + THROUGHPUT_JSON_FORMAT_WILDCARD, THROUGHPUT)
 
+minimunLength = minLen([wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData])
+wirelessEmuEmuThroughputData = wirelessEmuEmuThroughputData[:minimunLength]
+wirelessEmuPhyThroughputData = wirelessEmuPhyThroughputData[:minimunLength]
+wirelessPhyPhyThroughputData = wirelessPhyPhyThroughputData[:minimunLength]
+
 ## RTT
 wirelessEmuEmuRttData = loadData(RESULTS_PATH + EMU_EMU_WIRELESS_PREFIX + RTT_JSON_FORMAT_WILDCARD, RTT)
 wirelessEmuPhyRttData = loadData(RESULTS_PATH + EMU_PHY_WIRELESS_PREFIX + RTT_JSON_FORMAT_WILDCARD, RTT)
 wirelessPhyPhyRttData = loadData(RESULTS_PATH + PHY_PHY_WIRELESS_PREFIX + RTT_JSON_FORMAT_WILDCARD, RTT)
 
+minimunLength = minLen([wirelessEmuEmuRttData, wirelessEmuPhyRttData, wirelessPhyPhyRttData])
+wirelessEmuEmuRttData = wirelessEmuEmuRttData[:minimunLength]
+wirelessEmuPhyRttData = wirelessEmuPhyRttData[:minimunLength]
+wirelessPhyPhyRttData = wirelessPhyPhyRttData[:minimunLength]
+
 ## Latency
 wirelessEmuEmuLatencyData = loadData(RESULTS_PATH + EMU_EMU_WIRELESS_PREFIX + LATENCY_JSON_FORMAT_WILDCARD, LATENCY)
 wirelessEmuPhyLatencyData = loadData(RESULTS_PATH + EMU_PHY_WIRELESS_PREFIX + LATENCY_JSON_FORMAT_WILDCARD, LATENCY)
 wirelessPhyPhyLatencyData = loadData(RESULTS_PATH + PHY_PHY_WIRELESS_PREFIX + LATENCY_JSON_FORMAT_WILDCARD, LATENCY)
+
+minimunLength = minLen([wirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData])
+wirelessEmuEmuLatencyData = wirelessEmuEmuLatencyData[:minimunLength]
+wirelessEmuPhyLatencyData = wirelessEmuPhyLatencyData[:minimunLength]
+wirelessPhyPhyLatencyData = wirelessPhyPhyLatencyData[:minimunLength]
 
 # Comparison
 ## Deployment Time
@@ -378,7 +455,6 @@ errMnDeployMem = [errMnDeployMem1, errMnDeployMem4, errMnDeployMem16, errMnDeplo
 ####################### Plots #######################
 # Wired
 ## Throughput
-minimunLength = minLen([wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wiredPhyPhyThroughputData])
 simplePlot(wiredEmuEmuThroughputData[:minimunLength], wiredEmuPhyThroughputData[:minimunLength], wiredPhyPhyThroughputData[:minimunLength], THROUGHPUT_EXPERIMENT_NAME, WIRED, THROUGHPUT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWiredEmuEmuThroughputData, ciWiredEmuPhyThroughputData, ciWiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED)
 plotBars(wiredEmuEmuThroughputData, ciWiredEmuEmuThroughputData, wiredEmuPhyThroughputData, ciWiredEmuPhyThroughputData, wiredPhyPhyThroughputData, ciWiredPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRED, THROUGHPUT_UNIT_OF_MEASURE)
@@ -403,34 +479,48 @@ boxPlot([wiredEmuEmuLatencyData, wiredEmuPhyLatencyData, wiredPhyPhyLatencyData]
 print(f"Wired Latency Deviation Emulated to Physical: {deviation(median(wiredEmuEmuLatencyData), median(wiredPhyPhyLatencyData))}")
 print(f"Wired Latency Deviation Emulated to Physical: {deviation(median(wiredEmuPhyLatencyData), median(wiredPhyPhyLatencyData))}")
 
+## Plot subplots
+throughputData = [wiredEmuEmuThroughputData, ciWiredEmuEmuThroughputData, wiredEmuPhyThroughputData, ciWiredEmuPhyThroughputData, wiredPhyPhyThroughputData, ciWiredPhyPhyThroughputData]
+rttData = [wiredEmuEmuRttData, ciWiredEmuEmuRttData, wiredEmuPhyRttData, ciWiredEmuPhyRttData, wiredPhyPhyRttData, ciWiredPhyPhyRttData]
+plotBarsSubplots(throughputData, rttData, THROUGHPUT_EXPERIMENT_NAME, WIRED, [THROUGHPUT_UNIT_OF_MEASURE, RTT_UNIT_OF_MEASURE], ["Test1", "Test2"])
+
+throughputData = [wiredEmuEmuThroughputData, wiredEmuPhyThroughputData, wiredPhyPhyThroughputData]
+rttData = [wiredEmuEmuRttData, wiredEmuPhyRttData, wiredPhyPhyRttData]
+boxPlotSubplots(throughputData, rttData, [THROUGHPUT_EXPERIMENT_NAME, RTT_EXPERIMENT_NAME], [EMULATED, HYBRID, PHYSICAL], [f"{THROUGHPUT_EXPERIMENT_NAME} ({THROUGHPUT_UNIT_OF_MEASURE})", f"{RTT_EXPERIMENT_NAME} ({RTT_UNIT_OF_MEASURE})"], ["Peer Types", "Peer Types"])
+
+
 # Wireless
 ## Throughput
-simplePlot(wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS, THROUGHPUT_UNIT_OF_MEASURE)
+minimunLength = minLen([wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData])
+simplePlot(wirelessEmuEmuThroughputData[:minimunLength], wirelessEmuPhyThroughputData[:minimunLength], wirelessPhyPhyThroughputData[:minimunLength], THROUGHPUT_EXPERIMENT_NAME, WIRELESS, THROUGHPUT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWirelessEmuEmuThroughputData, ciWirelessEmuPhyThroughputData, ciWirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS)
 plotBars(wirelessEmuEmuThroughputData, ciWirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, ciWirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData, ciWirelessPhyPhyThroughputData, THROUGHPUT_EXPERIMENT_NAME, WIRELESS, THROUGHPUT_UNIT_OF_MEASURE)
 boxPlot([wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData], f"{WIRELESS} {THROUGHPUT_EXPERIMENT_NAME}", [EMULATED, HYBRID, PHYSICAL], f"{THROUGHPUT_EXPERIMENT_NAME} ({THROUGHPUT_UNIT_OF_MEASURE})", "Peer Types")
-deviation({EMULATED: median(wirelessEmuEmuThroughputData), HYBRID: median(wirelessEmuPhyThroughputData), PHYSICAL: median(wirelessPhyPhyThroughputData)})
 print(f"Wireless Throughput Deviation Emulated to Physical: {deviation(median(wirelessEmuEmuThroughputData), median(wirelessPhyPhyThroughputData))}")
 print(f"Wireless Throughput Deviation Emulated to Physical: {deviation(median(wirelessEmuPhyThroughputData), median(wirelessPhyPhyThroughputData))}")
 
 ## RTT
-minimunLength = minLen([wirelessEmuEmuRttData, wirelessPhyPhyRttData])
+minimunLength = minLen([wirelessEmuEmuRttData, wirelessEmuPhyRttData, wirelessPhyPhyRttData])
 simplePlot(wirelessEmuEmuRttData[:minimunLength], wirelessEmuPhyRttData[:minimunLength], wirelessPhyPhyRttData[:minimunLength], RTT_EXPERIMENT_NAME, WIRELESS, RTT_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWirelessEmuEmuRttData, ciWirelessEmuPhyRttData, ciWirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS)
 plotBars(wirelessEmuEmuRttData, ciWirelessEmuEmuRttData, wirelessEmuPhyRttData, ciWirelessEmuPhyRttData, wirelessPhyPhyRttData, ciWirelessPhyPhyRttData, RTT_EXPERIMENT_NAME, WIRELESS, RTT_UNIT_OF_MEASURE)
 boxPlot([wirelessEmuEmuRttData, wirelessEmuPhyRttData, wirelessPhyPhyRttData], f"{WIRELESS} {RTT_EXPERIMENT_NAME}", [EMULATED, HYBRID, PHYSICAL], f"{RTT_EXPERIMENT_NAME} ({RTT_UNIT_OF_MEASURE})", "Peer Types")
-deviation({EMULATED: median(wirelessEmuEmuRttData), HYBRID: median(wirelessEmuPhyRttData), PHYSICAL: median(wirelessPhyPhyRttData)})
 print(f"Wireless Rtt Deviation Emulated to Physical: {deviation(median(wirelessEmuEmuRttData), median(wirelessPhyPhyRttData))}")
 print(f"Wireless Rtt Deviation Emulated to Physical: {deviation(median(wirelessEmuPhyRttData), median(wirelessPhyPhyRttData))}")
 
 ## Latency
-minimunLength = minLen([wirelessEmuEmuLatencyData, wirelessPhyPhyLatencyData])
+minimunLength = minLen([wirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData])
 simplePlot(wirelessEmuEmuLatencyData[:minimunLength], wirelessEmuPhyLatencyData[:minimunLength], wirelessPhyPhyLatencyData[:minimunLength], LATENCY_EXPERIMENT_NAME, WIRELESS, LATENCY_UNIT_OF_MEASURE)
 #plotConfidenceInterval(ciWirelessEmuEmuLatencyData, ciWirelessEmuPhyLatencyData, ciWirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS)
 plotBars(wirelessEmuEmuLatencyData, ciWirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, ciWirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData, ciWirelessPhyPhyLatencyData, LATENCY_EXPERIMENT_NAME, WIRELESS, LATENCY_UNIT_OF_MEASURE)
 boxPlot([wirelessEmuEmuLatencyData, wirelessEmuPhyLatencyData, wirelessPhyPhyLatencyData], f"{WIRELESS} {LATENCY_EXPERIMENT_NAME}", [EMULATED, HYBRID, PHYSICAL], f"{LATENCY_EXPERIMENT_NAME} ({LATENCY_UNIT_OF_MEASURE})", "Peer Types")
 print(f"Wireless Latency Deviation Emulated to Physical: {deviation(median(wirelessEmuEmuLatencyData), median(wirelessPhyPhyLatencyData))}")
 print(f"Latency Deviation Emulated to Physical: {deviation(median(wirelessEmuPhyLatencyData), median(wirelessPhyPhyLatencyData))}")
+
+## Plot Subplots
+throughputData = [wirelessEmuEmuThroughputData, wirelessEmuPhyThroughputData, wirelessPhyPhyThroughputData]
+rttData = [wirelessEmuEmuRttData, wirelessEmuPhyRttData, wirelessPhyPhyRttData]
+boxPlotSubplots(throughputData, rttData, [THROUGHPUT_EXPERIMENT_NAME, RTT_EXPERIMENT_NAME], [EMULATED, HYBRID, PHYSICAL], [f"{THROUGHPUT_EXPERIMENT_NAME} ({THROUGHPUT_UNIT_OF_MEASURE})", f"{RTT_EXPERIMENT_NAME} ({RTT_UNIT_OF_MEASURE})"], ["Peer Types", "Peer Types"])
 
 
 # LFT vs Mininet Time
