@@ -184,9 +184,9 @@ class Node:
         self.__setInterface(node.getNodeName(), peerInterfaceName)
 
         if self.__class__.__name__ == 'Switch':
-            self._Switch__createPort(self.getNodeName(), self.__getThisInterfaceName(node))
+            self._Switch__createPort(self.getNodeName(), interfaceName)
         if node.__class__.__name__ == 'Switch':
-            node._Switch__createPort(node.getNodeName(), node.__getThisInterfaceName(self))
+            node._Switch__createPort(node.getNodeName(), peerInterfaceName)
     
     def connectToInternet(self, hostIP: str, hostMask: int, interfaceName: str, hostInterfaceName: str) -> None:
         self.__create(interfaceName, hostInterfaceName)
