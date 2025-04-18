@@ -73,12 +73,12 @@ class Switch(Node):
     #   String peerName: Name of the interface to connect to the switch
     # Return:
     #   None
-    def __createPort(self, nodeName, peerName) -> None:
+    def __createPort(self, nodeName, peerInterfaceName) -> None:
         try:
-            subprocess.run(f"docker exec {nodeName} ovs-vsctl add-port {nodeName} {peerName}", shell=True)
+            subprocess.run(f"docker exec {nodeName} ovs-vsctl add-port {nodeName} {peerInterfaceName}", shell=True)
         except Exception as ex:
-            logging.error(f"Error while creating port {peerName} in switch {nodeName}: {str(ex)}")
-            raise Exception(f"Error while creating port {peerName} in switch {nodeName}: {str(ex)}")
+            logging.error(f"Error while creating port {peerInterfaceName} in switch {nodeName}: {str(ex)}")
+            raise Exception(f"Error while creating port {peerInterfaceName} in switch {nodeName}: {str(ex)}")
 
     # Brief: Set Ip to an interface (the ip must be set only after connecting it to a container)
     # Params:
