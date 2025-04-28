@@ -40,7 +40,9 @@ h1.run("apt update")
 h2.run("ping 10.0.0.1")
 sleep(20)
 
-returnedExecution = subprocess.run("pkill -INT -f nfdump && nfdump -r netflow/nfcapd.* -s ip/bytes -n 10", shell=True)
+subprocess.run("pkill -INT -f nfdump", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+sleep(5)
+returnedExecution = subprocess.run("nfdump -r netflow/nfcapd.* -s ip/bytes -n 10", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 h1.delete()
 h2.delete()
