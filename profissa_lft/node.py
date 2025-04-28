@@ -183,15 +183,15 @@ class Node:
         self.__setInterface(self.getNodeName(), interfaceName)
         self.__setInterface(node.getNodeName(), peerInterfaceName)
 
-        if self.__class__.__name__ == 'Switch':
+        if hasattr(self, '_Switch__createPort'):
             self._Switch__createPort(self.getNodeName(), interfaceName)
-        if node.__class__.__name__ == 'Switch':
+        if hasattr(node, '_Switch__createPort'):
             node._Switch__createPort(node.getNodeName(), peerInterfaceName)
     
     def connectToInternet(self, hostIP: str, hostMask: int, interfaceName: str, hostInterfaceName: str) -> None:
         self.__create(interfaceName, hostInterfaceName)
         self.__setInterface(self.getNodeName(), interfaceName)
-        if self.__class__.__name__ == 'Switch':
+        if hasattr(self, '_Switch__createPort'):
             self._Switch__createPort(self.getNodeName(), interfaceName)
         
         subprocess.run(f"ip link set {hostInterfaceName} up", shell=True)
