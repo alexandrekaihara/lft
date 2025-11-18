@@ -428,7 +428,7 @@ class DashTopology:
 
 
     # Brief: Executes the full topology setup
-    def run(self, run_tests: bool = False, skip_discovery: bool = False):
+    def run(self, run_tests: bool = False, skip_discovery: bool = False, run_qos_diagnostics: bool = False):
         print_banner()
         
         self.setup_controller()
@@ -448,6 +448,11 @@ class DashTopology:
             self.run_tests()
         else:
             print("[INFO] Tests skipped. To run them, set 'run_tests=True' or use the interaction.")
+
+        if run_qos_diagnostics:
+            self.run_qos_diagnostics()
+        else:
+            print("[INFO] QoS diagnostics skipped.")
 
 
 if __name__ == "__main__":
@@ -479,10 +484,6 @@ if __name__ == "__main__":
 
         topology.run(run_tests=run_tests, skip_discovery=skip_discovery)
 
-        ans_qos = input("Run QoS diagnostics (tc + ping)? [y/N] ").strip().lower()
-        if ans_qos == "y":
-            topology.run_qos_diagnostics()
-        
     except KeyboardInterrupt:
         print("\n[INFO] Execution interrupted by user. Stopping.")
         sys.exit(0)

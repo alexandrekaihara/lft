@@ -9,7 +9,7 @@ class DashClient(Host):
 
     def instantiate(self, dockerImage="neubot/dash-client:latest", networkMode="none") -> None:
         try:
-            dockerCommand = f"docker run -d --name={self.getNodeName()} --network={networkMode} --entrypoint sleep {dockerImage} infinity"
+            dockerCommand = f"docker run -d --name={self.getNodeName()} --network={networkMode} --cap-add=NET_ADMIN --entrypoint sleep {dockerImage} infinity"
             return super().instantiate(dockerImage, dockerCommand)
         except Exception as ex:
             logging.error(f"Error instantiating DASH client {self.getNodeName()}: {str(ex)}")
