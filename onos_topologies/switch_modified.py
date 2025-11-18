@@ -48,7 +48,7 @@ class Switch(Node):
         try:
             # Create bridge and set it up
             subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl add-br {self.getNodeName()}", shell=True)
-            subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl set bridge {self.getNodeName()} protocols={protocols} datapath_type=netdev", shell=True)
+            subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl set bridge {self.getNodeName()} protocols={protocols}", shell=True)
             subprocess.run(f"docker exec {self.getNodeName()} ip link set {self.getNodeName()} up", shell=True)
         except Exception as ex:
             logging.error(f"Error while creating the switch {self.getNodeName()}: {str(ex)}")
@@ -94,7 +94,6 @@ class Switch(Node):
             interfaceName = self.getNodeName()
         self._Node__setIp(ip, mask, interfaceName)
     
-
     def enableNetflow(self, destIp: str, destPort: int, activeTimeout=60)  -> None:
         try:
             subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl -- set Bridge {self.getNodeName()} netflow=@nf --  --id=@nf create  NetFlow  targets=\\\"{destIp}:{destPort}\\\"  active-timeout={activeTimeout}", shell=True)
