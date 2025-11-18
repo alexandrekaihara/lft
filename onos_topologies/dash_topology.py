@@ -1,6 +1,7 @@
 import subprocess
 import time
 import sys
+import random
 from dash_server import DashServer
 from dash_client import DashClient
 from switch_modified import Switch
@@ -53,10 +54,58 @@ DEFAULT_CONFIG = {
     "server_pop": "PoP-RS",      # Default PoP where the DASH server is attached
     "server_ip": "192.168.0.1",  # Default IP address for the DASH server
     "client_ip_start": 2,        # Starting octet for client IPs (192.168.0.X)
+    "randomize_link_properties": False, # Whether link properties should be randomized or not            
+    "THROUGHPUT": "10mbit",             # TC Throughput (mbits) for each if
+    "DELAY": "20ms",                    # TC Delay (ms) for each if 
+    "JITTER": "5ms"                     # TC Jitter (ms) for each if
 }
 
+# Range of values for simulating realistic links if randomize_link_properties is true
+RANDOM_RANGES = {
+    "THROUGHPUT": list(range(5, 31)),
+    "DELAY": list(range(50, 201)),
+    "JITTER": list(range(5, 21))
+}
 
 # ========================= (Utility Functions) ======================== #
+
+# Brief: Collects custom configuration values from the user, allowing to change the default topology and link properties (QoS)
+def get_custom_config(default_config: dict) -> dict:
+    custom_config = default_config.copy()
+    print("\n--- Interactive Topology Configuration ---")
+
+    try:
+        # Get the desired number of hosts per Point of Presence (PoP)
+        hosts = input(f"Hosts per PoP (Default: {default_config['hosts_per_pop']}): ").strip()
+        if hosts:
+            custom_config['hosts_per_pop'] = int(hosts)
+    except ValueError:
+        print("[WARNING] Invalid value for hosts. Using default.")
+
+    # Ask whether link QoS properties should be randomized
+    ans_random = input(f"Randomize QoS properties? (Default: {'Y' if default_config['randomize_link_properties'] else 'N'}) [y/N]: ").strip().lower()
+    custom_config['randomize_link_properties'] = ans_random == 'y'
+
+    # If randomization is NOT enabled, prompt for fixed QoS values.
+    if not custom_config['randomize_link_properties']:
+        print("\n--- Fixed QoS Values ---")
+        
+        # Rate Capacity (Throughput limit using TC)
+        rate = input(f"Fixed Rate Capacity (e.g., 10mbit) (Default: {default_config['THROUGHPUT']}): ").strip()
+        if rate:
+            custom_config['THROUGHPUT'] = rate.lower()
+
+        # Delay
+        delay = input(f"Fixed Delay (e.g., 20ms) (Default: {default_config['DELAY']}): ").strip()
+        if delay:
+            custom_config['DELAY'] = delay.lower()
+            
+        # Jitter
+        jitter = input(f"Fixed Jitter Variance (e.g., 5ms) (Default: {default_config['JITTER']}): ").strip()
+        if jitter:
+            custom_config['JITTER'] = jitter.lower()
+            
+    return custom_config
 
 # Brief: Retrieves the IP address of a Docker container by its name
 def get_container_ip(name: str) -> str:
@@ -127,6 +176,10 @@ class DashTopology:
         self.switches = {}  # Map: {pop_name: Switch_obj}
         self.clients = {}   # Map: {client_name: DashClient_obj}
         self.server = None
+
+        # Map: {client_name: interface_name}
+        self.client_ifnames = {}
+
         # Map: {pop_name: switch_name}
         self.pop_to_switch_name = {pop: f"s{i}" for i, pop in enumerate(POPS)}
 
@@ -135,6 +188,7 @@ class DashTopology:
             raise ValueError(f"[ERROR] Server PoP '{self.server_pop_name}' does not exist in the POPS list.")
         if self.client_start_octet + (len(POPS) * self.n_hosts_per_pop) > 254:
             raise ValueError(f"[ERROR] Combination of hosts per PoP ({self.n_hosts_per_pop}) and starting IP ({self.client_start_octet}) exceeds the IP limit (254).")
+
 
     # Brief: Creates the ONOS controller, starts it and activates necessary apps
     def setup_controller(self):
@@ -148,6 +202,7 @@ class DashTopology:
         print("[CTRL] Activating OpenFlow + Host Provider + Reactive Forwarding")
         c1.activateONOSApps(self.onos_ip)
         print("[OK] ONOS is ready!\n")
+
 
     # Brief: Creates all OVS switches and connects them to the ONOS controller
     def setup_switches(self):
@@ -163,6 +218,7 @@ class DashTopology:
         for pop in POPS:
             self.switches[pop].setController(self.onos_ip, 6653)
         print("[OK] Controllers configured!\n")
+
 
     # Brief: Creates inter-PoP links based on the ADJACENCY_MATRIX
     def connect_switches(self):
@@ -181,6 +237,7 @@ class DashTopology:
                     time.sleep(0.4)
         print(f"[OK] {len(connections_made)} inter-PoP links created!\n")
     
+
     # Brief: Creates all client hosts and the DASH server and connects them to their respective PoP switches
     def setup_hosts(self):
         print(f"[Experiment] ... Creating {self.n_hosts_per_pop} client(s) per PoP")
@@ -203,10 +260,15 @@ class DashTopology:
         print(f"  [IP] Server ds1: {self.server_ip}")
         print("[OK] Host links created and IPs configured!\n")
 
+
     # Brief: Internal method to create and configure all DashClient containers
     def _create_clients(self):
         cli_index = 0
         ip_octet = self.client_start_octet
+        
+        # Link properties decision (QoS)
+        randomize = self.config["randomize_link_properties"] # True or False
+        print(f"[QoS] Randomization is {'ON' if randomize else 'OFF'}.")
 
         for POP, switch in self.switches.items():
             for i in range(self.n_hosts_per_pop):
@@ -219,12 +281,30 @@ class DashTopology:
                 
                 client_ip = f"192.168.0.{ip_octet}"
                 cl.setIp(client_ip, 24, cl_if)
-                
+
+                if randomize: 
+                    throughput = f"{random.choice(RANDOM_RANGES['THROUGHPUT'])}mbit"
+                    delay = f"{random.choice(RANDOM_RANGES['DELAY'])}ms"
+                    jitter = f"{random.choice(RANDOM_RANGES['JITTER'])}ms"
+                else:
+                    throughput = self.config["THROUGHPUT"]
+                    delay = self.config["DELAY"]
+                    jitter = self.config["JITTER"]
+
+                cl.setInterfaceProperties(
+                    interfaceName=cl_if,
+                    throughput=throughput,
+                    delay=delay,
+                    jitter=jitter
+                )
+
                 self.clients[cname] = cl
-                print(f"  ... Host {cname} ({client_ip}) created and linked to {POP}")
+                self.client_ifnames[cname] = cl_if
+                print(f"  ... Host {cname} ({client_ip}) created and linked to {POP} with (QoS): Throughput={throughput}, Delay={delay}, Jitter={jitter}")
                 
                 ip_octet += 1
                 cli_index += 1
+
 
     # Brief: Forces all hosts to send an ARP packet to be discovered by ONOS
     def run_discovery(self):
@@ -245,36 +325,108 @@ class DashTopology:
         sleep_countdown(3)
         print("[OK] Hosts should be visible in ONOS.\n")
 
+
     # Brief: Executes basic connectivity tests (ping/curl) from the first client to the server
     def run_tests(self):
         test_cli_name = next(iter(self.clients.keys()))
         tcli = self.clients[test_cli_name]
-        
         print(f"\n[TEST] Running quick tests using client {test_cli_name}...")
-
-        print("[TEST] Flushing client ARP cache")
-        subprocess.run(f'docker exec {test_cli_name} ip neigh flush all', shell=True)
-
+        # Ping from client to DASH server
         print(f"[TEST] Ping: {test_cli_name} -> Server ({self.server_ip})")
-        print(tcli.run(f'bash -lc "ping -c3 {self.server_ip}"').stdout.read())
-
+        print(
+            tcli.run(
+                f'bash -lc "ping -c3 {self.server_ip}"'
+            ).stdout.read()
+        )
+        # HTTP curl to /negotiate/dash
         print(f"[TEST] Curl (HTTP): {test_cli_name} -> Server ({self.server_ip})")
-        print(tcli.run(f'bash -lc "curl -v --max-time 5 http://{self.server_ip}/negotiate/dash"').stdout.read())
-
+        print(
+            tcli.run(
+                f'bash -lc "curl -v --max-time 5 http://{self.server_ip}/negotiate/dash"'
+            ).stdout.read()
+        )
+        # HTTPS curl to /negotiate/dash
+        print(f"[TEST] Curl (HTTPS): {test_cli_name} -> Server ({self.server_ip})")
+        print(
+            tcli.run(
+                f'bash -lc "curl -v --max-time 5 https://{self.server_ip}/negotiate/dash"'
+            ).stdout.read()
+        )
+        # Dump flow entries on the server's switch
         s_server = self.pop_to_switch_name[self.server_pop_name]
         print(f"[TEST] Checking flow counters on server switch ({s_server})")
-        subprocess.run(f"docker exec {s_server} ovs-ofctl -O OpenFlow13 dump-flows {s_server}", shell=True)
-        
-        print(f"[TEST] Running Full DASH Experiment: {test_cli_name} -> Server ({self.server_ip})")
-        
-        dash_process = tcli.run_dash_test(server_ip=self.server_ip)
-        print(dash_process.stdout.read())
-
-        s_server = self.pop_to_switch_name[self.server_pop_name]
-        print(f"[TEST] Checking flow counters on server switch ({s_server})")
-        subprocess.run(f"docker exec {s_server} ovs-ofctl -O OpenFlow13 dump-flows {s_server}", shell=True)
+        subprocess.run(
+            f"docker exec {s_server} ovs-ofctl -O OpenFlow13 dump-flows {s_server}",
+            shell=True,
+            check=False
+        )
+        # Run full DASH experiment over HTTP
+        print(f"[TEST] Running Full DASH Experiment (HTTP): {test_cli_name} -> Server ({self.server_ip})")
+        dash_http = tcli.run(
+            f'bash -lc "dash-client -y -hostname {self.server_ip} -scheme http"'
+        )
+        print(dash_http.stdout.read())
+        # Dump flows after HTTP DASH experiment
+        print(f"[TEST] Checking flow counters on server switch ({s_server}) after HTTP DASH")
+        subprocess.run(
+            f"docker exec {s_server} ovs-ofctl -O OpenFlow13 dump-flows {s_server}",
+            shell=True,
+            check=False
+        )
+        # Run full DASH experiment over HTTPS
+        print(f"[TEST] Running Full DASH Experiment (HTTPS): {test_cli_name} -> Server ({self.server_ip})")
+        dash_https = tcli.run(
+            f'bash -lc "dash-client -y -hostname {self.server_ip} -scheme https"'
+        )
+        print(dash_https.stdout.read())
+        # Dump flows after HTTPS DASH experiment
+        print(f"[TEST] Checking flow counters on server switch ({s_server}) after HTTPS DASH")
+        subprocess.run(
+            f"docker exec {s_server} ovs-ofctl -O OpenFlow13 dump-flows {s_server}",
+            shell=True,
+            check=False
+        )
         print("[OK] All tests concluded.\n")
-    
+
+
+    # Brief: Inspect QoS settings for a few clients    
+    # It checks:
+    #   - tc qdisc configuration and statistics
+    #   - ICMP RTT
+    def run_qos_diagnostics(self, max_clients: int = 3):
+        if not self.clients:
+            print("[QOS] No clients available to run QoS diagnostics.")
+            return
+
+        print("\n[QOS] Running QoS diagnostics...")
+
+        # Limit how many clients are inspected
+        selected_clients = list(self.clients.keys())[:max_clients]
+
+        for cname in selected_clients:
+            client = self.clients[cname]
+            cl_if = self.client_ifnames.get(cname)
+
+            print(f"\n[QOS] Client: {cname}")
+            print(f"      Interface: {cl_if}")
+
+            # Show tc qdisc configuration and counters
+            print("[QOS] tc qdisc stats on client interface:")
+            tc_output = client.run(
+                f'bash -lc "tc -s qdisc show dev {cl_if}"'
+            ).stdout.read()
+            print(tc_output)
+
+            # Measure ICMP RTT statistics (approx delay/jitter)
+            print("[QOS] Measuring ICMP RTT (ping) to server:")
+            ping_output = client.run(
+                f'bash -lc "ping -c 20 -i 0.2 {self.server_ip}"'
+            ).stdout.read()
+            print(ping_output)
+
+        print("\n[QOS] QoS diagnostics finished.\n")
+
+
     # Brief: Executes the full topology setup
     def run(self, run_tests: bool = False, skip_discovery: bool = False):
         print_banner()
@@ -305,8 +457,14 @@ if __name__ == "__main__":
     SKIP_DISCOVERY_DEFAULT = False 
 
     try:
-        # Custom configuration can be loaded here instead of DEFAULT_CONFIG
-        topology = DashTopology(config=DEFAULT_CONFIG)
+        ans_custom = input("Do you want to configure the topology interactively (Hosts, QoS, etc.)? [y/N] ").strip().lower()        
+        if ans_custom == 'y':
+            # Collect input and create a custom configuration dictionary
+            final_config = get_custom_config(DEFAULT_CONFIG)
+        else:
+            final_config = DEFAULT_CONFIG
+
+        topology = DashTopology(config=final_config)
         
         # Interactive mode for discovery and tests
         run_tests = RUN_TESTS_DEFAULT
@@ -320,6 +478,10 @@ if __name__ == "__main__":
         run_tests = ans_test == "y"
 
         topology.run(run_tests=run_tests, skip_discovery=skip_discovery)
+
+        ans_qos = input("Run QoS diagnostics (tc + ping)? [y/N] ").strip().lower()
+        if ans_qos == "y":
+            topology.run_qos_diagnostics()
         
     except KeyboardInterrupt:
         print("\n[INFO] Execution interrupted by user. Stopping.")
