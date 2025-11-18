@@ -1,162 +1,144 @@
-# Lightweight Fog Testbed (LFT)
-## Description
-LFT is a framework designed to facilitate the creation of lightweight network topologies with ease. Using Docker containers, it is possible to add any container to the network to provide network services or even emulate network devices, such as switches, controllers (in Software Defined Networking). This project has integration with OpenvSwitch to emulate the network forwarding devices and srsRAN 4G to emulate wireless links for Fog and Edge application scenarios.
+# Lightweight Fog Testbed (LFT) – Intent-CDN branch
 
-## 1. Requirement
-This framework was developed and tested on Ubuntu Desktop 24.04 LTS. We recommend this Linux version.
+## Description
+
+This branch extends the Lightweight Fog Testbed (LFT) to run a **DASH experiment** using:
+
+- **ONOS** as SDN controller  
+- **Open vSwitch (OVS)** as data plane  
+- **Neubot DASH server and clients** (`neubot/dash`, `neubot/dash-client`)  
+
+---
+
+## 1. Requirements
+
+You need:
+
+- Docker (with permission to run `sudo docker …`)
+- Python 3 and `pip3`
+- Git
+
+---
 
 ## 2. Installation
-To install the project you need to run:
 
-```
-pip3 install profissa_lft
-```
+You can use the Python package or work directly from this fork.
 
-In case of any missing dependency you can manually clone the repository and run the dependencies script:
+### Option A – Install package (generic LFT)
 
-```
-git clone https://github.com/alexandrekaihara/lft
-cd lft
-chmod +X dependencies.sh
-./dependencies.sh
-```
+    pip3 install profissa_lft
 
-### Python package
-The Paramiko package is used for running ONOS cli commands via ssh. It can be installed with pip.
-> pip install paramiko
+### Option B – Clone this fork (recommended for this branch)
 
-## Execution
-We provide a script to create a small organization topology made by servers and clients (which is possible to define its behavior). To set up the experiment, execute these commands:
+    git clone https://github.com/artdelpi/lft-intent-cdn.git
+    cd lft-intent-cdn
+    chmod +x dependencies.sh
+    ./dependencies.sh
 
-> cd lft/examples
+---
 
-> sudo python3 simpleSDNTopology.py
+## 3. Docker image build (DASH server and client)
 
-If you want to finish the experiment, press CTRL + C once. If it is the first time you are executing the experiment, it will take longer to instantiate the containers because the images need to be pulled from the Docker Hub.
+This branch provides Dockerfiles for the DASH server and client under `docker/`.
 
-At the end of execution, there will be generated a report of the execution by [CICFlowMeter](https://www.unb.ca/cic/research/applications.html) that will be located in "lft/demonstration/flows/final_report.csv"
+### 3.1 Build DASH server image
 
-### Define Client's Behavior
-All the clients will receive a copy of the folder "lst2.0/demonstration/automation", which contiains all the scripts to simulate a worker during the working hour. Basically, the Client is able to execute 6 tasks inside the network, that is: Browsing the internet; Copying files from the File Server; Access the Email from  the Email Server; Make requests to the Printer; Open SSH sessions with the local Servers; And make Attacks inside the Network.
+From the repo root:
 
-To change the Client's behavior it is necessary to change create a new client EDIT
+    cd docker/dash_server
+    sudo docker build -t neubot/dash:latest -f Dockerfile .
 
-## Docker image build
-If it is necessary to make any changes to the docker images, check the "docker" folder located in the root directory of this repository. To build any docker image, access the folder containing its "Dockerfile" file and execute:
+### 3.2 Build DASH client image
 
-> docker build --network=host --tag=NEWNAME .
+    cd docker/dash_client
+    sudo docker build -t neubot/dash-client:latest -f Dockerfile .
 
-To use the newly built image in the experiment, access the "lft/src/demonstration.py" file and set "dockerImage" parameter of the "instantiate" method with NEWNAME.
+You can verify:
 
-## Creating Your Own Experiment
-As shown in the section above, the "cidds.py" is an example of how to create a topology with LFT. The following subsections will explain how to execute the basic configurations to instantiate a linear SDN topology with two nodes.
+    sudo docker images
 
-It is important to mention that all the configuration methods must be used after creating the container using the "instantiate" method.
+You should see something similar to:
 
-### Create a network node
-To create a network node it is necessary to create an instance of [Switch](https://github.com/alexandrekaihara/lst2.0/blob/main/src/switch.py), [Host](https://github.com/alexandrekaihara/lst2.0/blob/main/src/host.py) or [Controller](https://github.com/alexandrekaihara/lst2.0/blob/main/src/controller.py), passing the name of the node as a parameter.
+- `neubot/dash          latest`
+- `neubot/dash-client   latest`
 
-> cd lft/src
+---
 
-> python3
+## 4. TLS certs and datadir
 
-Then execute the following commands:
+The DASH server in this branch expects:
 
-```
-from host import Host
-from switch import Switch
-from controller import Controller
+- TLS certs in `onos_topologies/certs/`  
+  - `onos_topologies/certs/cert.pem`  
+  - `onos_topologies/certs/key.pem`
+- A writable data directory in `onos_topologies/datadir/` for storing DASH results (`-datadir`).
 
-h1 = Host('h1')
-h2 = Host('h2')
-s1 = Switch('s1')
-c1 = Controller('c1')
-```
+---
 
-PS: You are responsible for keeping the instance of each node class in order to delete them at the end
+## 5. Executing the DASH / ONOS / OVS topology
 
-Then is necessary to instantiate the controller using the instance of the class.
+From the repository root:
 
-```
-h1.instantiate()
-h2.instantiate()
-s1.instantiate()
-c1.instantiate()
-```
+    cd /path/to/lft-intent-cdn
+    sudo python3 onos_topologies/dash_topology.py
 
-### Connect nodes
-After instantiating nodes, you can connect them by using the "connect" method passing the instance of another node.
+This will:
 
-```
-h1.connect(s1, "h1s1")
-h2.connect(s1, "h2s2")
-s1.connect(c1, "s1c1")
-```
+- Instantiate the **ONOS** controller container  
+- Instantiate the **OVS** switches (e.g. `s0`, `s1`, `s22`, …)  
+- Instantiate **DASH server** host `ds1`  
+- Instantiate **DASH clients** `cl0`, `cl1`, …  
+- Connect them using a PoP-based topology and register switches to ONOS  
 
-### Setting IP into nodes
-To set the IP into the nodes you must pass the IP address, its network mask, and the reference to the node to that it is connected. The network mask is an integer that represents the network mask, for example, the network mask '255.255.255.0' corresponds to 24.
+You can check running containers:
 
-```
-h1.setIp('10.0.0.1', 24, s1)
-h2.setIp('10.0.0.2', 24, s1)
-s1.setIp('10.0.0.3', 24)
-c1.setIp('10.0.0.4', 24, s1)
-```
+    sudo docker ps
 
-### Set up the controller
-By default, the Controller instance creates a Docker container with the Ryu controller installer inside of it. To instantiate the controller and connect it to a switch you must execute:
+You should see, among others:
 
-```
-c1.initController('10.0.0.4', 9001)
-s1.setController('10.0.0.4', 9001)
-```
+- `c1` (ONOS controller)  
+- `sX` (switches)  
+- `ds1` (DASH server)  
+- `cl0`, `cl1`, … (DASH clients)
 
-Verify if the controller and the switch can communicate successfully with each other.
+---
 
-### Enable connection to Internet
-To enable connection to the Internet, the tool must create an interface from the container to the host. The IP parameter of "connectToInternet" can be any address that does not conflict with another already existing subnet on the host and this address will be the default gateway for all the other nodes.
+## 6. Quick tests
 
-```
-s1.connectToInternet('10.0.0.5', 24)
-```
+Below are minimal commands to verify that the experiment is working.
 
-### Set Default Gateway
-To enable all the other nodes to have access to the Internet, it must be defined the default gateway inside each container to the configured address in the previous section.
+### 6.1 Test the DASH negotiation endpoint
 
-```
-h1.setDefaultGateway('10.0.0.5', s1)
-h2.setDefaultGateway('10.0.0.5', s1)
-c1.setDefaultGateway('10.0.0.5', s1)
-```
+From the host, targeting client `cl0`:
 
-### Enable Network Monitoring
-To enable the Netflow, sFlow or IPFIX to monitor the network, you must use either "Switch.enableNetflow()", "Switch.enablesFlow()" or "Switch.enableIPFIX()". For example:
+    docker exec cl0 bash -lc "curl -v --max-time 5 http://192.168.0.1/negotiate/dash"
 
-```
-s1.enableNetflow('10.0.0.5', 9001)
-```
+You should receive an HTTP 200 response with a JSON body containing DASH parameters and authorization.
 
-Then Netflow packets will be sent to "10.0.0.5" on port 9001. To end the monitoring, it is necessary to clear the Netflow in the Open vSwitch, by using:
+### 6.2 Run the DASH client binary inside `cl0`
 
-```
-s1.clearNetflow()
-```
+    sudo docker exec cl0 bash -lc "/usr/local/bin/dash-client -y -hostname 192.168.0.1 -scheme http"
+
+The client will:
+
+- Contact `/negotiate/dash`
+- Download DASH chunks from the server
+- Print JSON with metrics per iteration (rate, elapsed, received, etc.)
+
+### 6.3 Sniff HTTP traffic on the switch (port 80 only)
+
+Assuming a Linux network namespace `s22` and veth interface `s22ds1` (switch ↔ `ds1`):
+
+    sudo ip netns exec s22 tcpdump -i s22ds1 -n -e 'port 80'
+
+In another terminal, you can re-run the negotiation or client commands above to observe packets.
+
+---
+
+## 7. Cleaning up the environment
+
+To stop and remove **all** containers on the host (including those from this experiment):
+
+    sudo docker rm -f $(sudo docker ps -aq) 2>/dev/null || true
 
 
-### Deleting Nodes
-To delete the nodes execute the following commands:
-
-```
-h1.delete()
-h2.delete()
-s1.delete()
-c1.delete()
-```
-
-## 4. Troubleshooting
-If you face any issue while running any LFT scrips:
-1. Check if all dependencies are installed
-2. Check if you are using the correct version of Ubuntu Desktop
-3. Check if the containers are already instantiated on docker ```docker ps -a```. If so, then remove them by using ```docker system prune``` or forcefully stop them ```docker rm -f containerName```
-4. Verify if the docker image that you are trying to instantiate with LFT exists on your local machine ```docker images``` or exists on [Docker Hub|https://hub.docker.com/].
-5. Check if the image was built correctly. See docker folder for more information.
