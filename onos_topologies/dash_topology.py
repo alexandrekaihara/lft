@@ -481,8 +481,11 @@ if __name__ == "__main__":
         
         ans_test = input("Run quick tests (ping/curl)? [y/N] ").strip().lower()
         run_tests = ans_test == "y"
+        
+        run_qos_diagnostics = input("Run QoS diagnostics (tc qdisc + ping RTT)? [y/N] ").strip().lower()
+        run_qos_diagnostics = run_qos_diagnostics == "y"
 
-        topology.run(run_tests=run_tests, skip_discovery=skip_discovery)
+        topology.run(run_tests=run_tests, skip_discovery=skip_discovery, run_qos_diagnostics=run_qos_diagnostics)
 
     except KeyboardInterrupt:
         print("\n[INFO] Execution interrupted by user. Stopping.")
