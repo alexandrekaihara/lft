@@ -1,6 +1,7 @@
 import subprocess
 import time
 import random
+from pathlib import Path
 from . import utils
 from .dash_server import DashServer
 from .dash_client import DashClient
@@ -281,6 +282,57 @@ class DashTopology:
             print(ping_output)
 
         print("\n[QOS] QoS diagnostics finished.\n")
+
+
+    # Brief: Runs dash-client on ALL clients once and stores results under iter_dir.
+    # iter_dir: it's the path on the HOST where results will be stored
+    def run_diagnostics_round(self, iter_dir: str, scheme: str = "http"):
+        iter_path = Path(iter_dir)
+        clients_path = iter_path / "clients"
+        clients_path.mkdir(parents=True, exist_ok=True)
+
+        print(f"\n[DIAG] Running DASH diagnostics round -> {iter_path}")
+
+        # acha o datadir raiz no host usando o próprio iter_dir
+        parts = iter_path.parts
+        if "datadir" in parts:
+            idx = parts.index("datadir")
+            host_datadir_root = Path(*parts[:idx+1])  # .../datadir
+        else:
+            host_datadir_root = iter_path.parent      # fallback
+
+        # diretório padrão onde o server salva hoje (UTC)
+        daydir = time.strftime("%Y/%m/%d", time.gmtime())
+        default_dir = host_datadir_root / "dash" / daydir
+        default_dir.mkdir(parents=True, exist_ok=True)
+
+        for cname in self.clients.keys():
+            out_host = clients_path / f"{cname}.json.gz"
+
+            # limpa só o padrão do dia no HOST
+            for f in default_dir.glob("*.json.gz"):
+                f.unlink(missing_ok=True)
+
+            # roda o dash-client no container do cliente
+            run_cmd = (
+                f"sudo docker exec {cname} bash -lc "
+                f"\"/usr/local/bin/dash-client -y -hostname {self.server_ip} -scheme {scheme}\""
+            )
+            print(f"[DIAG] {cname}: dash-client -> {out_host}")
+            subprocess.run(run_cmd, shell=True, check=False)
+
+            # pega o arquivo mais novo criado pelo SERVER e move pro lugar certo
+            newest = None
+            files = list(default_dir.glob("*.json.gz"))
+            if files:
+                newest = max(files, key=lambda p: p.stat().st_mtime)
+
+            if newest:
+                newest.rename(out_host)
+            else:
+                print(f"[WARNING] No output found for {cname} in {default_dir}")
+
+        print("[DIAG] Round finished.\n")
 
 
     # Brief: Executes the full topology setup

@@ -71,7 +71,6 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("\n[INFO] Execution interrupted by user. Stopping.")
-        utils.cleanup()
         sys.exit(0)
     except Exception as e:
         print(f"\n[FATAL ERROR] An unexpected error occurred: {e}", file=sys.stderr)
