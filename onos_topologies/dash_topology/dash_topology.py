@@ -293,15 +293,15 @@ class DashTopology:
 
         print(f"\n[DIAG] Running DASH diagnostics round -> {iter_path}")
 
-        # acha o datadir raiz no host usando o próprio iter_dir
+        # find the host datadir root from iter_dir
         parts = iter_path.parts
         if "datadir" in parts:
             idx = parts.index("datadir")
             host_datadir_root = Path(*parts[:idx+1])  # .../datadir
         else:
-            host_datadir_root = iter_path.parent      # fallback
+            host_datadir_root = iter_path.parent      
 
-        # diretório padrão onde o server salva hoje (UTC)
+        # default directory where the server saves today (UTC)
         daydir = time.strftime("%Y/%m/%d", time.gmtime())
         default_dir = host_datadir_root / "dash" / daydir
         default_dir.mkdir(parents=True, exist_ok=True)
@@ -309,11 +309,11 @@ class DashTopology:
         for cname in self.clients.keys():
             out_host = clients_path / f"{cname}.json.gz"
 
-            # limpa só o padrão do dia no HOST
+            # clean only todayss default output on the HOST
             for f in default_dir.glob("*.json.gz"):
                 f.unlink(missing_ok=True)
 
-            # roda o dash-client no container do cliente
+            # run dash-client inside the client container
             run_cmd = (
                 f"sudo docker exec {cname} bash -lc "
                 f"\"/usr/local/bin/dash-client -y -hostname {self.server_ip} -scheme {scheme}\""
@@ -321,7 +321,7 @@ class DashTopology:
             print(f"[DIAG] {cname}: dash-client -> {out_host}")
             subprocess.run(run_cmd, shell=True, check=False)
 
-            # pega o arquivo mais novo criado pelo SERVER e move pro lugar certo
+            # grab and move the newest file created by the server
             newest = None
             files = list(default_dir.glob("*.json.gz"))
             if files:
