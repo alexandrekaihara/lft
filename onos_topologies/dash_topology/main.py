@@ -41,7 +41,7 @@ if __name__ == "__main__":
         
         ans_cont_dash = input("Run continuous DASH diagnostics every 10 minutes? [y/N] ").strip().lower()
         if ans_cont_dash == "y":
-            interval_s = 10 * 60
+            interval_s = 600
 
             # host datadir (local folder next to main.py)
             datadir_root = Path(__file__).resolve().parent / "datadir"
