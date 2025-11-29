@@ -1,0 +1,5 @@
+2025-11-29 20:29:02,652 [INFO] [RUN] run_2025-11-29_20-29-02_a77292b9 -> /home/arthur.barbabella/lft/results/dash/datadir/run_2025-11-29_20-29-02_a77292b9
+2025-11-29 20:29:02,652 [INFO] [RESET] utils.cleanup() (pre)
+2025-11-29 20:29:34,443 [INFO] Connected (version 2.0, client APACHE-SSHD-2.5.1)
+2025-11-29 20:29:35,133 [INFO] Authentication (password) successful!
+2025-11-29 20:32:31,820 [INFO] [CONTINUOUS] Snapshot period = 600s. Press Ctrl+C to stop.

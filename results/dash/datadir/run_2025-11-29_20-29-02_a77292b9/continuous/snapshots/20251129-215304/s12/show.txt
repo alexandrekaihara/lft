@@ -1,0 +1,9 @@
+OFPT_FEATURES_REPLY (OF1.3) (xid=0x2): dpid:00001a480ff8734f
+n_tables:254, n_buffers:0
+capabilities: FLOW_STATS TABLE_STATS PORT_STATS GROUP_STATS QUEUE_STATS
+OFPST_PORT_DESC reply (OF1.3) (xid=0x3):
+ LOCAL(s12): addr:1a:48:0f:f8:73:4f
+     config:     0
+     state:      LIVE
+     speed: 0 Mbps now, 0 Mbps max
+OFPT_GET_CONFIG_REPLY (OF1.3) (xid=0x5): frags=normal miss_send_len=0

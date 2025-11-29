@@ -44,9 +44,9 @@ DEFAULT_CONFIG = {
     "server_ip": "192.168.0.1",  # Default IP address for the DASH server
     "client_ip_start": 2,        # Starting octet for client IPs (192.168.0.X)
     "randomize_link_properties": False, # Whether link properties should be randomized or not            
-    "throughput": "10mbit",             # TC Throughput (mbits) for each if
-    "delay": "20ms",                    # TC Delay (ms) for each if 
-    "jitter": "5ms"                     # TC Jitter (ms) for each if
+    "throughput": "1000mbit",             # TC Throughput (mbits) for each if
+    "delay": "0ms",                     # TC Delay (ms) for each if 
+    "jitter": "0ms"                     # TC Jitter (ms) for each if
 }
 
 # Randomization ranges

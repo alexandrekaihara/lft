@@ -1,0 +1,2 @@
+switch,cookie,table,priority,duration_s,n_packets,n_bytes,match_raw,actions_raw,flow_raw
+s19,0x0,0,0,2.096,5,426,,NORMAL,"cookie=0x0, duration=2.096s, table=0, n_packets=5, n_bytes=426, priority=0 actions=NORMAL"

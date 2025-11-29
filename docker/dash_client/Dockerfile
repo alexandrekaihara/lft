@@ -14,6 +14,7 @@ RUN apt-get update && \
         ca-certificates \
         curl \
         iproute2 \
+        tcpdump \
         iputils-ping && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=builder /dash-client /usr/local/bin/dash-client

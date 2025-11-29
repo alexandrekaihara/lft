@@ -1,0 +1,5 @@
+OFPST_FLOW reply (OF1.3) (xid=0x2):
+ cookie=0x100001ae76520, duration=1308.666s, table=0, n_packets=2061, n_bytes=283587, send_flow_rem priority=40000,dl_type=0x8942 actions=CONTROLLER:65535,clear_actions
+ cookie=0x1000018b0becb, duration=1308.666s, table=0, n_packets=116, n_bytes=4872, send_flow_rem priority=40000,arp actions=CONTROLLER:65535,clear_actions
+ cookie=0x10000d9a2cec7, duration=1308.666s, table=0, n_packets=2061, n_bytes=283587, send_flow_rem priority=40000,dl_type=0x88cc actions=CONTROLLER:65535,clear_actions
+ cookie=0x100004fea8160, duration=1308.666s, table=0, n_packets=5, n_bytes=490, send_flow_rem priority=5,ip actions=CONTROLLER:65535,clear_actions

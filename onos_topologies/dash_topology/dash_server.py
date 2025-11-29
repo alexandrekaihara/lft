@@ -1,5 +1,5 @@
-
 import os
+from pathlib import Path
 import logging
 from profissa_lft.host import Host
 from profissa_lft.exceptions import NodeInstantiationFailed
@@ -10,13 +10,20 @@ class DashServer(Host):
 
     def instantiate(self, dockerImage="neubot/dash:latest", mapPorts=True) -> None:
         try:
+            curr_dir = Path(__file__).resolve().parent
+            certs_dir = (curr_dir / "certs").resolve()
+
+            # Host datadir root (single source of truth)
+            host_datadir_root = Path(os.environ.get("LFT_DATADIR", str(curr_dir))).resolve() / "datadir"
+            host_datadir_root.mkdir(parents=True, exist_ok=True)
+
             base_command = (
-                f"-v {os.getcwd()}/certs:/certs:ro "
-                f"-v {os.getcwd()}/datadir:/datadir "
+                f"-v {certs_dir}:/certs:ro "
+                f"-v {host_datadir_root}:/datadir "
                 f"{dockerImage} "
                 f"-datadir /datadir "
-                f"-http-listen-address :80 "  
-                f"-https-listen-address '' "  
+                f"-http-listen-address :80 "
+                f"-https-listen-address '' "
                 f"-prometheusx.listen-address :9999 "
                 f"-tls-cert /certs/cert.pem -tls-key /certs/key.pem"
             )

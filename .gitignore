@@ -27,6 +27,7 @@ results/__pycache__
 containernet/
 onos_topologies/__pycache__
 
+*.pcap
 build
 dist
 profissa_lft.egg-info

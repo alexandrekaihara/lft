@@ -1,0 +1,25 @@
+OFPST_PORT reply (OF1.3) (xid=0x2): 8 ports
+  port LOCAL: rx pkts=0, bytes=0, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=14, bytes=1076, drop=0, errs=0, coll=0
+           duration=1494.884s
+  port  5: rx pkts=940, bytes=128864, drop=4, errs=0, frame=0, over=0, crc=0
+           tx pkts=940, bytes=128864, drop=0, errs=0, coll=0
+           duration=1431.990s
+  port  1: rx pkts=944, bytes=128486, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=944, bytes=128486, drop=0, errs=0, coll=0
+           duration=1438.439s
+  port  4: rx pkts=940, bytes=128864, drop=4, errs=0, frame=0, over=0, crc=0
+           tx pkts=940, bytes=128864, drop=0, errs=0, coll=0
+           duration=1433.592s
+  port  6: rx pkts=938, bytes=128588, drop=4, errs=0, frame=0, over=0, crc=0
+           tx pkts=938, bytes=128588, drop=0, errs=0, coll=0
+           duration=1428.015s
+  port  7: rx pkts=14, bytes=1076, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=916, bytes=126454, drop=0, errs=0, coll=0
+           duration=1393.482s
+  port  2: rx pkts=942, bytes=129140, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=944, bytes=129416, drop=0, errs=0, coll=0
+           duration=1437.655s
+  port  3: rx pkts=944, bytes=129416, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=944, bytes=129416, drop=0, errs=0, coll=0
+           duration=1436.874s

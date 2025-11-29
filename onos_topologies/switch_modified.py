@@ -27,6 +27,7 @@ class Switch(Node):
     #   None
     def __init__(self, name: str, hostPath='', containerPath=''):
         super().__init__(name)
+        self._tcpdump_pidfiles = {}  # (iface) -> pidfile path
         if hostPath == '' and containerPath == '':
             self.__mount = False
         elif hostPath != '' and containerPath != '':
@@ -44,7 +45,7 @@ class Switch(Node):
         mount = ''
         if self.__mount: mount = f'-v {self.__hostPath}:{self.__containerPath}'
         
-        super().instantiate(dockerCommand=f"docker run -d --privileged --network={networkMode} {mount} --name={self.getNodeName()} {image}")
+        super().instantiate(dockerCommand=f"docker run -d --privileged --cap-add=NET_ADMIN --network={networkMode} {mount} --name={self.getNodeName()} {image}")
         try:
             # Create bridge and set it up
             subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl add-br {self.getNodeName()}", shell=True)
@@ -143,7 +144,7 @@ class Switch(Node):
     # Return:
     def collectFlows(self, nodes=[], path='', rotateInterval=60, sniffAll=False) -> None:
         try:
-            interfaces = self._Node__getAllIntefaces()
+            interfaces = self._Node__getAllInterfaces()
             if sniffAll == False:
                 if len(nodes) > 0: 
                     interfaces = [self._Node__getThisInterfaceName(node) for node in nodes]
@@ -153,7 +154,12 @@ class Switch(Node):
             interfaces = list(set(interfaces) - set(['lo', 'ovs-system']))
             options = ['-i '+interface for interface in interfaces]
             options = ' '.join(options)
-            subprocess.run(f"docker exec {self.getNodeName()} tshark {options} -b duration:{rotateInterval} -w {path}/dump.pcap > /dev/null 2>&1 &", shell=True)
+            subprocess.run(
+                f"docker exec {self.getNodeName()} tshark {options} "
+                f"-b duration:{rotateInterval} -b files:40 "
+                f"-w {path}/dump.pcap > /dev/null 2>&1 &",
+                shell=True,
+            )
         except Exception as ex:
             logging.error(f"Error set the collector on {self.getNodeName()}: {str(ex)}")
             raise Exception(f"Error set the collector on {self.getNodeName()}: {str(ex)}")
