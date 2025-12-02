@@ -1,0 +1,53 @@
+2025-12-02 15:59:28,270 [INFO] [RESET] utils.cleanup() (pre)
+2025-12-02 16:00:00,184 [INFO] Connected (version 2.0, client APACHE-SSHD-2.5.1)
+2025-12-02 16:00:00,775 [INFO] Authentication (password) successful!
+2025-12-02 16:00:28,006 [INFO] [CONTINUOUS] Snapshot every 180s. Ctrl+C to stop.
+2025-12-02 16:00:28,156 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_1/pcaps/s0/s0cl0
+2025-12-02 16:00:28,230 [INFO] [tcpdump] s0:s0ds1 -> /results/dash/snapshots/snapshot_1/pcaps/s0/s0ds1
+2025-12-02 16:00:28,373 [INFO] [tcpdump] s1:s1cl1 -> /results/dash/snapshots/snapshot_1/pcaps/s1/s1cl1
+2025-12-02 16:00:28,515 [INFO] [tcpdump] s2:s2cl2 -> /results/dash/snapshots/snapshot_1/pcaps/s2/s2cl2
+2025-12-02 16:00:28,515 [INFO] [TRAFFIC] Running tests for all clients: n=3
+2025-12-02 16:00:28,515 [INFO] [TRAFFIC] DASH-CLIENT snap=1 cl0 -> 192.168.0.1
+2025-12-02 16:00:30,640 [INFO] [TRAFFIC] DASH-CLIENT snap=1 cl1 -> 192.168.0.1
+2025-12-02 16:00:32,614 [INFO] [TRAFFIC] DASH-CLIENT snap=1 cl2 -> 192.168.0.1
+2025-12-02 16:03:30,109 [INFO] [OK] snapshot_1 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-02_15-59-28/snapshots/snapshot_1
+2025-12-02 16:03:30,262 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_2/pcaps/s0/s0cl0
+2025-12-02 16:03:30,337 [INFO] [tcpdump] s0:s0ds1 -> /results/dash/snapshots/snapshot_2/pcaps/s0/s0ds1
+2025-12-02 16:03:30,475 [INFO] [tcpdump] s1:s1cl1 -> /results/dash/snapshots/snapshot_2/pcaps/s1/s1cl1
+2025-12-02 16:03:30,625 [INFO] [tcpdump] s2:s2cl2 -> /results/dash/snapshots/snapshot_2/pcaps/s2/s2cl2
+2025-12-02 16:03:30,625 [INFO] [TRAFFIC] Running tests for all clients: n=3
+2025-12-02 16:03:30,625 [INFO] [TRAFFIC] DASH-CLIENT snap=2 cl0 -> 192.168.0.1
+2025-12-02 16:03:32,598 [INFO] [TRAFFIC] DASH-CLIENT snap=2 cl1 -> 192.168.0.1
+2025-12-02 16:03:34,571 [INFO] [TRAFFIC] DASH-CLIENT snap=2 cl2 -> 192.168.0.1
+2025-12-02 16:06:32,151 [INFO] [OK] snapshot_2 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-02_15-59-28/snapshots/snapshot_2
+2025-12-02 16:06:32,301 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_3/pcaps/s0/s0cl0
+2025-12-02 16:06:32,375 [INFO] [tcpdump] s0:s0ds1 -> /results/dash/snapshots/snapshot_3/pcaps/s0/s0ds1
+2025-12-02 16:06:32,519 [INFO] [tcpdump] s1:s1cl1 -> /results/dash/snapshots/snapshot_3/pcaps/s1/s1cl1
+2025-12-02 16:06:32,658 [INFO] [tcpdump] s2:s2cl2 -> /results/dash/snapshots/snapshot_3/pcaps/s2/s2cl2
+2025-12-02 16:06:32,658 [INFO] [TRAFFIC] Running tests for all clients: n=3
+2025-12-02 16:06:32,658 [INFO] [TRAFFIC] DASH-CLIENT snap=3 cl0 -> 192.168.0.1
+2025-12-02 16:06:34,581 [INFO] [TRAFFIC] DASH-CLIENT snap=3 cl1 -> 192.168.0.1
+2025-12-02 16:06:36,504 [INFO] [TRAFFIC] DASH-CLIENT snap=3 cl2 -> 192.168.0.1
+2025-12-02 16:09:34,238 [INFO] [OK] snapshot_3 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-02_15-59-28/snapshots/snapshot_3
+2025-12-02 16:09:34,381 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_4/pcaps/s0/s0cl0
+2025-12-02 16:09:34,454 [INFO] [tcpdump] s0:s0ds1 -> /results/dash/snapshots/snapshot_4/pcaps/s0/s0ds1
+2025-12-02 16:09:34,594 [INFO] [tcpdump] s1:s1cl1 -> /results/dash/snapshots/snapshot_4/pcaps/s1/s1cl1
+2025-12-02 16:09:34,738 [INFO] [tcpdump] s2:s2cl2 -> /results/dash/snapshots/snapshot_4/pcaps/s2/s2cl2
+2025-12-02 16:09:34,738 [INFO] [TRAFFIC] Running tests for all clients: n=3
+2025-12-02 16:09:34,738 [INFO] [TRAFFIC] DASH-CLIENT snap=4 cl0 -> 192.168.0.1
+2025-12-02 16:09:36,711 [INFO] [TRAFFIC] DASH-CLIENT snap=4 cl1 -> 192.168.0.1
+2025-12-02 16:09:38,785 [INFO] [TRAFFIC] DASH-CLIENT snap=4 cl2 -> 192.168.0.1
+2025-12-02 16:12:36,314 [INFO] [OK] snapshot_4 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-02_15-59-28/snapshots/snapshot_4
+2025-12-02 16:12:36,458 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_5/pcaps/s0/s0cl0
+2025-12-02 16:12:36,533 [INFO] [tcpdump] s0:s0ds1 -> /results/dash/snapshots/snapshot_5/pcaps/s0/s0ds1
+2025-12-02 16:12:36,669 [INFO] [tcpdump] s1:s1cl1 -> /results/dash/snapshots/snapshot_5/pcaps/s1/s1cl1
+2025-12-02 16:12:36,809 [INFO] [tcpdump] s2:s2cl2 -> /results/dash/snapshots/snapshot_5/pcaps/s2/s2cl2
+2025-12-02 16:12:36,810 [INFO] [TRAFFIC] Running tests for all clients: n=3
+2025-12-02 16:12:36,810 [INFO] [TRAFFIC] DASH-CLIENT snap=5 cl0 -> 192.168.0.1
+2025-12-02 16:12:38,833 [INFO] [TRAFFIC] DASH-CLIENT snap=5 cl1 -> 192.168.0.1
+2025-12-02 16:12:40,856 [INFO] [TRAFFIC] DASH-CLIENT snap=5 cl2 -> 192.168.0.1
+2025-12-02 16:15:31,112 [INFO] [CONTINUOUS] Stop requested.
+2025-12-02 16:15:31,113 [INFO] [PARSE] Converting all snapshot PCAPs to CSV (in-place)...
+2025-12-02 16:16:33,587 [INFO] [PARSE] Done. csv_created=20
+2025-12-02 16:16:34,143 [INFO] [CLEAN] pcaps_deleted=20
+2025-12-02 16:16:34,143 [INFO] [RESET] utils.cleanup() (post)

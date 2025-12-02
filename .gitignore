@@ -17,6 +17,7 @@ profissa_lft/User/
 profissa_lft/languagepacks.json
 profissa_lft/logs/
 profissa_lft/machineid
+onos_topologies/dash_topology/__pycache__
 demonstration/__pycache__
 experiment/__pycache__
 profissa_lft/__pycache__
@@ -24,7 +25,9 @@ experiment/results/*
 results/data/*
 results/__pycache__
 containernet/
+onos_topologies/__pycache__
 
+*.pcap
 build
 dist
 profissa_lft.egg-info

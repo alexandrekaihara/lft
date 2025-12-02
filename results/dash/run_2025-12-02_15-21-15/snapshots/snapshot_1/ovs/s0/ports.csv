@@ -1,0 +1,5 @@
+switch,port_no,rx_pkts,rx_bytes,rx_drop,rx_errs,tx_pkts,tx_bytes,tx_drop,tx_errs
+s0,4,5,196,0,0,8,656,0,0
+s0,1,39,4078,0,0,38,3848,0,0
+s0,2,34,3624,0,0,36,3764,0,0
+s0,3,20,1720,0,0,36,3588,0,0
