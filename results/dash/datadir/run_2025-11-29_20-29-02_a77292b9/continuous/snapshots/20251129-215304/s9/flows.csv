@@ -1,2 +1,0 @@
-switch,cookie,table,priority,duration_s,n_packets,n_bytes,match_raw,actions_raw,flow_raw
-s9,0x0,0,0,26.006,8,656,,NORMAL,"cookie=0x0, duration=26.006s, table=0, n_packets=8, n_bytes=656, priority=0 actions=NORMAL"

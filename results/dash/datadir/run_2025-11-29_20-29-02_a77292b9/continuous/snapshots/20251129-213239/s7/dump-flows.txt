@@ -1,2 +1,0 @@
-
-Error response from daemon: container f30a2a926a140c9a523dd497ba2c636e3661b1302dfdddd067bd7f3314805838 is not running

@@ -1,2 +1,0 @@
-
-ovs-ofctl: s20 is not a bridge or a socket
