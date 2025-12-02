@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
+import time
 import logging
 import subprocess
 from profissa_lft.node import Node
@@ -142,27 +142,76 @@ class Switch(Node):
     #   List<Node> nodes: References of the nodes connected to this switch to sniff packets
     #   boolean sniffAll: If sniff all is set  
     # Return:
-    def collectFlows(self, nodes=[], path='', rotateInterval=60, sniffAll=False) -> None:
+    def collectFlows(self, nodes=[], path="", rotateInterval=60, sniffAll=False) -> None:
         try:
             interfaces = self._Node__getAllInterfaces()
-            if sniffAll == False:
-                if len(nodes) > 0: 
+            if sniffAll is False:
+                if len(nodes) > 0:
                     interfaces = [self._Node__getThisInterfaceName(node) for node in nodes]
                     interfaces.append(self.getNodeName())
                 else:
                     raise Exception(f"Expected at least one node reference to sniff packets on {self.getNodeName()} switch")
-            interfaces = list(set(interfaces) - set(['lo', 'ovs-system']))
-            options = ['-i '+interface for interface in interfaces]
-            options = ' '.join(options)
-            subprocess.run(
-                f"docker exec {self.getNodeName()} tshark {options} "
-                f"-b duration:{rotateInterval} -b files:40 "
-                f"-w {path}/dump.pcap > /dev/null 2>&1 &",
-                shell=True,
+            interfaces = sorted(set(interfaces) - {"lo", "ovs-system"})
+            if not interfaces:
+                raise Exception(f"No interfaces found to capture on {self.getNodeName()}")
+            opts = " ".join([f"-i {iface}" for iface in interfaces])
+            pidfile = f"{path}/tshark.pid"
+            errfile = f"{path}/tshark.err"
+            cmd = (
+                f"docker exec {self.getNodeName()} sh -lc "
+                f"\"mkdir -p '{path}' && "
+                f"nohup tshark -n {opts} "
+                f"-b duration:{int(rotateInterval)} -b files:10 "
+                f"-w '{path}/dump.pcapng' "
+                f">/dev/null 2>'{errfile}' & echo $! > '{pidfile}'\""
             )
+            subprocess.run(cmd, shell=True, check=False)
         except Exception as ex:
             logging.error(f"Error set the collector on {self.getNodeName()}: {str(ex)}")
-            raise Exception(f"Error set the collector on {self.getNodeName()}: {str(ex)}")
+            raise
+
+    def collectFlowsTcpdump(
+        self,
+        nodes=[],
+        path="",
+        rotateInterval=600,
+        sniffAll=False,
+        bpf_filter="(tcp port 80 or tcp port 443 or icmp)",
+        snapshot_idx: int | None = None,
+    ) -> None:
+        swname = self.getNodeName()
+
+        interfaces = self._Node__getAllInterfaces()
+        if not sniffAll:
+            if not nodes:
+                raise Exception(f"Expected at least one node reference to sniff packets on {swname}")
+            interfaces = [self._Node__getThisInterfaceName(n) for n in nodes]
+
+        interfaces = sorted(set(interfaces) - {"lo", "ovs-system"})
+        if not interfaces:
+            raise Exception(f"No interfaces found to capture on {swname}")
+
+        for iface in interfaces:
+            outdir = f"{path}/{iface}"
+            errfile = f"{outdir}/tcpdump.err"
+
+            # Snapshot window mode: 1 pcap per snapshot_idx
+            pidfile = f"{outdir}/tcpdump_snapshot_{snapshot_idx}.pid"
+            pcapfile = f"{outdir}/{iface}_snapshot_{snapshot_idx}.pcap"
+            cmd = (
+                f"docker exec {swname} sh -lc "
+                f"\"mkdir -p '{outdir}' && chmod 777 '{outdir}'; "
+                f"nohup timeout -s INT {int(rotateInterval)} "
+                f"tcpdump -Z root -i '{iface}' -nn -U -s 0 "
+                f"-w '{pcapfile}' "
+                f"'{bpf_filter}' "
+                f">/dev/null 2>'{errfile}' & "
+                f"echo $! > '{pidfile}'\""
+            )
+
+            subprocess.run(cmd, shell=True, check=False)
+            logging.info(f"[tcpdump] {swname}:{iface} -> {outdir}")
+
 
     # Brief: Set default route to forward all incoming packets to s1 bridge and let the bridge handle the forwarding
     # Params:

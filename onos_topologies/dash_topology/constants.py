@@ -1,4 +1,13 @@
-# Topology settings
+# Topology settings (Debug)
+DEBUG_POPS = ("PoP-RS", "PoP-AC", "PoP-PE")
+DEBUG_ADJACENCY_MATRIX = (
+    # s1 s2 s3 
+    ( 0, 1, 1),  # s1
+    ( 1, 0, 1),  # s2
+    ( 1, 1, 0)   # s3
+)
+
+# Topology settings 
 POPS = (
     "PoP-AC", "PoP-AL", "PoP-AM", "PoP-AP", 
     "PoP-BA", "PoP-CE", "PoP-DF", "PoP-ES",
@@ -43,10 +52,12 @@ DEFAULT_CONFIG = {
     "server_pop": "PoP-RS",      # Default PoP where the DASH server is attached
     "server_ip": "192.168.0.1",  # Default IP address for the DASH server
     "client_ip_start": 2,        # Starting octet for client IPs (192.168.0.X)
-    "randomize_link_properties": False, # Whether link properties should be randomized or not            
-    "throughput": "1000mbit",             # TC Throughput (mbits) for each if
-    "delay": "0ms",                     # TC Delay (ms) for each if 
-    "jitter": "0ms"                     # TC Jitter (ms) for each if
+    "randomize_link_properties": False,     # Whether link properties should be randomized or not            
+    "throughput": "1000mbit",               # TC Throughput (mbits) for each if
+    "delay": "0ms",                         # TC Delay (ms) for each if 
+    "jitter": "0ms",                        # TC Jitter (ms) for each if
+    "adjacency_matrix": ADJACENCY_MATRIX,
+    "pops": POPS
 }
 
 # Randomization ranges

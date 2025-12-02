@@ -3,10 +3,9 @@ import random
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional, Union
 
 from . import utils
-from .constants import ADJACENCY_MATRIX, DEFAULT_CONFIG, POPS, RANDOM_RANGES
+from .constants import DEFAULT_CONFIG, RANDOM_RANGES
 from .dash_client import DashClient
 from .dash_server import DashServer
 from ..onos import ONOS
@@ -18,7 +17,7 @@ class DashTopology:
     Encapsulates all logic to build, configure, and test the topology.
     """
 
-    def __init__(self, config: dict = DEFAULT_CONFIG, results_dir: Optional[Union[str, Path]] = None):
+    def __init__(self, config: dict = DEFAULT_CONFIG, results_dir: Path = None):
         # Store user configuration
         self.config = config
 
@@ -34,7 +33,7 @@ class DashTopology:
         self.client_start_octet = self.config["client_ip_start"]
 
         # PoP list of client Node (used by collectFlows to select host-facing ports)
-        self.clients_by_pop = {pop: [] for pop in POPS}
+        self.clients_by_pop = {pop: [] for pop in self.config['pops']}
 
         self.onos_ip = ""
         self.switches = {}  # Map: {pop_name: Switch_obj}
@@ -45,15 +44,15 @@ class DashTopology:
         self.client_ifnames = {}
 
         # Host-side directory that will be bind-mounted into each switch at /results/dash
-        self.host_results = Path(results_dir) if results_dir is not None else None
+        self.host_results = Path(results_dir)
 
         # Map: {pop_name: switch_name}
-        self.pop_to_switch_name = {pop: f"s{i}" for i, pop in enumerate(POPS)}
+        self.pop_to_switch_name = {pop: f"s{i}" for i, pop in enumerate(self.config['pops'])}
 
         # Argument validation
-        if self.server_pop_name not in POPS:
+        if self.server_pop_name not in self.config['pops']:
             raise ValueError(f"[ERROR] Server PoP '{self.server_pop_name}' does not exist in the POPS list.")
-        if self.client_start_octet + (len(POPS) * self.n_hosts_per_pop) > 254:
+        if self.client_start_octet + (len(self.config['pops']) * self.n_hosts_per_pop) > 254:
             raise ValueError(
                 f"[ERROR] Combination of hosts per PoP ({self.n_hosts_per_pop}) and starting IP "
                 f"({self.client_start_octet}) exceeds the IP limit (254)."
@@ -75,33 +74,32 @@ class DashTopology:
     # Brief: Create all OVS switches and connect them to the ONOS controller
     def _setup_switches(self):
         if self.host_results is None:
-            # Fallback if you run DashTopology outside main.py 
-            self.host_results = Path(os.getenv("LFT_DATADIR", "/lft/results/dash")) / "switch"
+            self.host_results = Path(os.getenv("LFT_RESULTS", "/lft/results/dash")).resolve()
             self.host_results.mkdir(parents=True, exist_ok=True)
 
-        print(f"[Experiment] ... Creating {len(POPS)} OVS switches")
+        print(f"[Experiment] ... Creating {len(self.config['pops'])} OVS switches")
         for pop, sname in self.pop_to_switch_name.items():
             sw = Switch(sname, hostPath=str(self.host_results), containerPath="/results/dash")
-            sw.instantiate(networkMode="bridge")
+            sw.instantiate(image='alexandremitsurukaihara/lst2.0:openvswitch', networkMode="bridge")
             self.switches[pop] = sw
             print(f"  ... Switch {pop} as {sname} was created!")
             time.sleep(0.4)
 
         print(f"[CTRL] Pointing all switches to ONOS ({self.onos_ip}:6653)")
-        for pop in POPS:
+        for pop in self.config['pops']:
             self.switches[pop].setController(self.onos_ip, 6653)
         print("[OK] Controllers configured!\n")
 
-    # Brief: Create PoP links based on ADJACENCY_MATRIX
+    # Brief: Create PoP links based on self.config['adjacency_matrix']
     def _connect_switches(self):
         print("[Experiment] ... Connecting PoP-to-PoP switches")
         connections_made = set()
 
-        for i, pop_i in enumerate(POPS):
-            for j, pop_j in enumerate(POPS):
+        for i, pop_i in enumerate(self.config['pops']):
+            for j, pop_j in enumerate(self.config['pops']):
                 if i == j:
                     continue
-                if ADJACENCY_MATRIX[i][j] != 1:
+                if self.config['adjacency_matrix'][i][j] != 1:
                     continue
 
                 edge = tuple(sorted((pop_i, pop_j)))
@@ -141,8 +139,6 @@ class DashTopology:
         print(f"  [IP] Server ds1: {self.server_ip}")
         print("[OK] Host links created and IPs configured!\n")
 
-        # Start packet capture on switches
-        self._start_switch_collectors()
 
     # Brief: Create and configure all DashClient containers
     def _create_clients(self):
@@ -191,33 +187,6 @@ class DashTopology:
                 ip_octet += 1
                 cli_index += 1
 
-    # Brief: Start tshark capture inside each switch
-    # Captures only host-facing ports by passing the Node list
-    # Output goes to /results/dash/pcaps/<switch>/ inside the container, which is bind-mounted to host_results
-    def _start_switch_collectors(self, rotate_interval: int = 600):
-        if self.host_results is None:
-            raise RuntimeError("host_results is not set. Pass results_dir from main.py or configure LFT_DATADIR fallback.")
-
-        for pop, sw in self.switches.items():
-            swname = sw.getNodeName()
-
-            # Ensure host-side directories exist 
-            (self.host_results / "pcaps" / swname).mkdir(parents=True, exist_ok=True)
-
-            nodes = []
-            nodes.extend(self.clients_by_pop.get(pop, []))
-
-            if pop == self.server_pop_name and self.server is not None:
-                nodes.append(self.server)
-
-            sw.collectFlows(
-                nodes=nodes,
-                path=f"/results/dash/pcaps/{swname}",
-                rotateInterval=rotate_interval,
-                sniffAll=False,
-            )
-
-        print("[SNIFFER] collectFlows enabled on all switches (host-facing ports).")
 
     # Brief: Force host discovery in ONOS by sending ARP/ICMP traffic
     def _run_discovery(self):
@@ -244,7 +213,7 @@ class DashTopology:
 
         print(f"\n[DIAG] Running DASH diagnostics round -> {iter_path}")
 
-        host_datadir_root = Path(os.environ["LFT_DATADIR"]).resolve() / "datadir"
+        host_datadir_root = Path(os.environ["LFT_RESULTS"]).resolve()
         daydir = time.strftime("%Y/%m/%d", time.gmtime())
         default_dir = host_datadir_root / "dash" / daydir
         default_dir.mkdir(parents=True, exist_ok=True)

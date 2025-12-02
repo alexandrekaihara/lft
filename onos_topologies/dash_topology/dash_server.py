@@ -13,8 +13,8 @@ class DashServer(Host):
             curr_dir = Path(__file__).resolve().parent
             certs_dir = (curr_dir / "certs").resolve()
 
-            # Host datadir root (single source of truth)
-            host_datadir_root = Path(os.environ.get("LFT_DATADIR", str(curr_dir))).resolve() / "datadir"
+            # Host datadir root
+            host_datadir_root = Path(os.environ.get("LFT_RESULTS", str(curr_dir))).resolve() / "datadir"
             host_datadir_root.mkdir(parents=True, exist_ok=True)
 
             base_command = (

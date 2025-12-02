@@ -1,13 +1,11 @@
 import subprocess
 import time
-import os
-import json
 import time
 import csv
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Brief: Retrieves the IP address of a Docker container by its name
@@ -54,97 +52,17 @@ def print_banner() -> None:
     print(art)
 
 
-# Brief: Allows for custom topology configuration
-def get_custom_config(default_config: dict) -> dict:
-    custom_config = default_config.copy()
-    print("\n--- Interactive Topology Configuration ---")
-
-    try:
-        # Get the desired number of hosts per Point of Presence (PoP)
-        hosts = input(f"Hosts per PoP (Default: {default_config['hosts_per_pop']}): ").strip()
-        if hosts:
-            custom_config['hosts_per_pop'] = int(hosts)
-    except ValueError:
-        print("[WARNING] Invalid value for hosts. Using default.")
-
-    # Ask whether link QoS properties should be randomized
-    ans_random = input(f"Randomize QoS properties? (Default: {'Y' if default_config['randomize_link_properties'] else 'N'}) [y/N]: ").strip().lower()
-    custom_config['randomize_link_properties'] = ans_random == 'y'
-
-    # If randomization is NOT enabled, prompt for fixed QoS values
-    if not custom_config['randomize_link_properties']:
-        print("\n--- Fixed QoS Values ---")
-        # Rate Capacity (Throughput limit using TC)
-        rate = input(f"Fixed Rate Capacity (e.g., 10mbit) (Default: {default_config['throughput']}): ").strip()
-        if rate:
-            custom_config['throughput'] = rate.lower()
-        # Delay
-        delay = input(f"Fixed Delay (e.g., 20ms) (Default: {default_config['delay']}): ").strip()
-        if delay:
-            custom_config['delay'] = delay.lower()
-        # Jitter
-        jitter = input(f"Fixed Jitter Variance (e.g., 5ms) (Default: {default_config['jitter']}): ").strip()
-        if jitter:
-            custom_config['jitter'] = jitter.lower()
-    return custom_config
-
-
-# Brief: Serializes a dictionary to a JSON file, creating parent directories
-def write_json(p: Path, obj: dict):
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(obj, indent=2, ensure_ascii=False), encoding="utf-8")
-
-
-# Brief: Validates repetition outputs by checking if all clients generated data files
-# Marks as invalid if any client output is missing
-# Expects `topology.clients` to be a dict with client container names
-def validate_rep_outputs(rep_dir: Path, topology: Any):
-    iter_dir = rep_dir / "iter_0000" / "clients"
-    missing = []
-    for cname in topology.clients.keys():
-        fp = iter_dir / f"{cname}.json.gz"
-        if not fp.exists() or fp.stat().st_size == 0:
-            missing.append(cname)
-    return missing
-
-
-# Brief: Copies current DashLinkSniffer ring buffer PCAPs to the repetition directory for versioning
-# Copies files from $LFT_DATADIR/pcaps to rep_dir to snapshot 'before'/'after' states
-# and avoids depending on container existence after cleanup.
-def snapshot_sniffer_ring(rep_dir: Path, tag: str):
-    lft_datadir = os.environ.get("LFT_DATADIR")
-    if not lft_datadir:
-        raise RuntimeError("LFT_DATADIR is not defined in the environment.")
-
-    src = Path(lft_datadir) / "pcaps"
-    dst = rep_dir / f"pcaps_{tag}"
-    dst.mkdir(parents=True, exist_ok=True)
-
-    if not src.exists():
-        (dst / "EMPTY").write_text("no $LFT_DATADIR/pcaps found", encoding="utf-8")
-        return
-
-    files = sorted(src.glob("*"), key=lambda p: p.stat().st_mtime if p.exists() else 0)
-
-    copied = 0
-    for p in files:
-        if p.is_file():
-            shutil.copy2(p, dst / p.name)
-            copied += 1
-
-    (dst / "SNAPSHOT.txt").write_text(
-        f"snapshot_tag={tag}\n"
-        f"when_utc={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}\n"
-        f"files={copied}\n",
-        encoding="utf-8",
-    )
-
-
+# Brief: Simply runs a command using the subprocess module and saves the stdout and stderr content
 def _run(cmd: List[str]) -> Tuple[int, str, str]:
     p = subprocess.run(cmd, capture_output=True, text=True)
     return p.returncode, p.stdout or "", p.stderr or ""
 
 
+# Brief: Snapshot OVS/OpenFlow state from all switches and write raw + parsed outputs
+# Files written per switch:
+#   - dump-flows.txt (+ flows.csv if parse_csv=True)
+#   - dump-ports.txt (+ ports.csv if parse_csv=True)
+#   - show.txt
 def snapshot_ovs_state(
     switch_names: List[str],
     outdir: Path,
@@ -152,17 +70,6 @@ def snapshot_ovs_state(
     parse_csv: bool = True,
     max_workers: int = 8,
 ) -> None:
-    """
-    Snapshot OVS/OpenFlow state from all switches and write raw + parsed outputs.
-
-    Files written per switch:
-      - dump-flows.txt (+ flows.csv if parse_csv=True)
-      - dump-ports.txt (+ ports.csv if parse_csv=True)
-      - show.txt
-
-    Note: This is not truly atomic, but it is executed as close as possible in time by
-    running switch snapshots concurrently (one worker per switch).
-    """
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
@@ -350,7 +257,97 @@ def _write_ports_csv(dump_ports_text: str, out_csv: Path, switch_name: str) -> N
         w.writeheader()
         w.writerows(rows)
 
-
+# Brief: Extracts the first capture group from a regex search
 def _rx(text: str, pattern: str) -> str:
     m = re.search(pattern, text)
     return m.group(1) if m else ""
+
+
+# Brief: Appends a line to events.log under the given directory
+def append_event(rep_dir: Path, line: str) -> None:
+    rep_dir.mkdir(parents=True, exist_ok=True)
+    with (rep_dir / "events.log").open("a", encoding="utf-8") as f:
+        f.write(line.rstrip() + "\n")
+
+
+# Brief: convert a PCAP to a CSV using tshark (host-side)
+def pcap_to_csv(pcap_path: Path, csv_path: Path, display_filter: Optional[str] = None) -> None:
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+    cmd = ["tshark", "-r", str(pcap_path)]
+
+    # Only add -Y if a filter is provided
+    if display_filter:
+        cmd += ["-Y", display_filter]
+
+    cmd += [
+        "-T", "fields",
+        "-E", "header=y",
+        "-E", "separator=,",
+        "-E", "quote=d",
+        "-E", "occurrence=f",
+        "-e", "frame.time_epoch",
+        "-e", "frame.len",
+        "-e", "ip.src",
+        "-e", "ip.dst",
+        "-e", "ipv6.src",
+        "-e", "ipv6.dst",
+        "-e", "_ws.col.Protocol",
+        "-e", "tcp.srcport",
+        "-e", "tcp.dstport",
+        "-e", "tcp.flags",
+        "-e", "tcp.stream",
+        "-e", "icmp.type",
+        "-e", "icmp.code",
+        "-e", "icmpv6.type",
+        "-e", "icmpv6.code",
+    ]
+
+    with open(csv_path, "w", encoding="utf-8") as f:
+        subprocess.run(cmd, stdout=f, stderr=subprocess.DEVNULL, check=False)
+
+
+def move_closed_pcaps(live_root: Path, pcaps_dir: Path, clean_live: bool = True) -> int:
+    moved = 0
+
+    for sw_dir in live_root.glob("*"):
+        if not sw_dir.is_dir():
+            continue
+        swname = sw_dir.name
+
+        for iface_dir in sw_dir.glob("*"):
+            if not iface_dir.is_dir():
+                continue
+            ifname = iface_dir.name
+
+            pcaps = sorted(iface_dir.glob("dump_*.pcap*"), key=lambda p: p.stat().st_mtime)
+            if len(pcaps) < 2:
+                continue
+
+            for p in pcaps[:-1]:  # skip newest
+                dst = pcaps_dir / swname / ifname / p.name
+                dst.parent.mkdir(parents=True, exist_ok=True)
+
+                if dst.exists():
+                    if clean_live:
+                        try:
+                            p.unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                    continue
+
+                if clean_live:
+                    try:
+                        shutil.move(str(p), str(dst))
+                    except Exception:
+                        dst.write_bytes(p.read_bytes())
+                        try:
+                            p.unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                else:
+                    dst.write_bytes(p.read_bytes())
+
+                moved += 1
+
+    return moved
