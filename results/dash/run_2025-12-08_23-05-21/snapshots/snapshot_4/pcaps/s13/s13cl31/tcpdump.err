@@ -1,0 +1,4 @@
+tcpdump: listening on s13cl31, link-type EN10MB (Ethernet), capture size 262144 bytes
+2529 packets captured
+2953 packets received by filter
+424 packets dropped by kernel

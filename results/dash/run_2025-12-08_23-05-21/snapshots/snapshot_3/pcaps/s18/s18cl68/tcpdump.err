@@ -1,0 +1,4 @@
+tcpdump: listening on s18cl68, link-type EN10MB (Ethernet), capture size 262144 bytes
+1478 packets captured
+2344 packets received by filter
+866 packets dropped by kernel

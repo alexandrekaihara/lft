@@ -1,0 +1,37 @@
+OFPST_PORT reply (OF1.3) (xid=0x2): 12 ports
+  port 11: rx pkts=12, bytes=936, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=271, bytes=31697, drop=0, errs=0, coll=0
+           duration=307.534s
+  port 10: rx pkts=12, bytes=936, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=271, bytes=31697, drop=0, errs=0, coll=0
+           duration=309.214s
+  port  8: rx pkts=12, bytes=936, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=274, bytes=31975, drop=0, errs=0, coll=0
+           duration=312.849s
+  port LOCAL: rx pkts=59, bytes=2335, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=12, bytes=936, drop=0, errs=0, coll=0
+           duration=428.291s
+  port  9: rx pkts=12, bytes=936, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=273, bytes=31771, drop=0, errs=0, coll=0
+           duration=310.988s
+  port  5: rx pkts=309, bytes=36545, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=250, bytes=33162, drop=0, errs=0, coll=0
+           duration=361.753s
+  port  1: rx pkts=312, bytes=36234, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=319, bytes=36697, drop=0, errs=0, coll=0
+           duration=364.982s
+  port  4: rx pkts=309, bytes=36545, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=307, bytes=36429, drop=0, errs=0, coll=0
+           duration=362.568s
+  port  6: rx pkts=302, bytes=35568, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=315, bytes=37169, drop=0, errs=0, coll=0
+           duration=360.943s
+  port  7: rx pkts=12, bytes=936, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=275, bytes=32045, drop=0, errs=0, coll=0
+           duration=314.797s
+  port  2: rx pkts=315, bytes=36529, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=308, bytes=36235, drop=0, errs=0, coll=0
+           duration=364.191s
+  port  3: rx pkts=303, bytes=35642, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=307, bytes=36429, drop=0, errs=0, coll=0
+           duration=363.387s

@@ -1,0 +1,4 @@
+tcpdump: listening on s16cl48, link-type EN10MB (Ethernet), capture size 262144 bytes
+2290 packets captured
+2683 packets received by filter
+393 packets dropped by kernel

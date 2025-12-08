@@ -184,12 +184,15 @@ class Switch(Node):
         interfaces = self._Node__getAllInterfaces()
         if not sniffAll:
             if not nodes:
-                raise Exception(f"Expected at least one node reference to sniff packets on {swname}")
+                logging.info(f"[tcpdump] {swname}: skipping (no nodes passed and sniffAll=False)")
+                return
             interfaces = [self._Node__getThisInterfaceName(n) for n in nodes]
 
+        # interfaces dos nodes param. Tipicamente só clients, então interfaces host<->switch
         interfaces = sorted(set(interfaces) - {"lo", "ovs-system"})
         if not interfaces:
-            raise Exception(f"No interfaces found to capture on {swname}")
+            logging.info(f"[tcpdump] {swname}: skipping (no capture interfaces after filtering)")
+            return
 
         for iface in interfaces:
             outdir = f"{path}/{iface}"

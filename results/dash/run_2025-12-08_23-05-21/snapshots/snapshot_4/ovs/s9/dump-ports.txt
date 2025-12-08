@@ -1,0 +1,28 @@
+OFPST_PORT reply (OF1.3) (xid=0x2): 9 ports
+  port  8: rx pkts=1122, bytes=92015, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=5275, bytes=204477320, drop=0, errs=0, coll=0
+           duration=695.910s
+  port LOCAL: rx pkts=622, bytes=18291, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=13, bytes=1006, drop=0, errs=0, coll=0
+           duration=818.460s
+  port  5: rx pkts=66203, bytes=3239779615, drop=4, errs=0, frame=0, over=0, crc=0
+           tx pkts=27942, bytes=824477036, drop=0, errs=0, coll=0
+           duration=746.494s
+  port  1: rx pkts=606, bytes=71912, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=17748, bytes=838447726, drop=0, errs=0, coll=0
+           duration=754.653s
+  port  4: rx pkts=666, bytes=74792, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=958, bytes=87741, drop=0, errs=0, coll=0
+           duration=752.252s
+  port  6: rx pkts=564, bytes=70034, drop=4, errs=0, frame=0, over=0, crc=0
+           tx pkts=1065, bytes=91697, drop=0, errs=0, coll=0
+           duration=743.298s
+  port  7: rx pkts=1697, bytes=139583, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=7406, bytes=317780183, drop=0, errs=0, coll=0
+           duration=697.633s
+  port  2: rx pkts=531, bytes=68730, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=1098, bytes=93227, drop=0, errs=0, coll=0
+           duration=753.863s
+  port  3: rx pkts=27434, bytes=929417245, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=41961, bytes=1984544634, drop=0, errs=0, coll=0
+           duration=753.061s

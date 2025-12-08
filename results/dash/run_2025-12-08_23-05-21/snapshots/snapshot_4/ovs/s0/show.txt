@@ -1,0 +1,2 @@
+
+ovs-ofctl: s0 is not a bridge or a socket

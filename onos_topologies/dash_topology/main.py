@@ -21,7 +21,7 @@ if __name__ == "__main__":
     results_root = project_root / "results" / "dash"
     results_root.mkdir(parents=True, exist_ok=True)
 
-    skip_discovery = (input("Controller host discovery? [y/N] ").strip().lower() != "y")
+    run_discovery = (input("Controller host discovery? [y/N] ").strip().lower() == "y")
 
     run_root = results_root / f"run_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
     run_root.mkdir(parents=True, exist_ok=True)
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     meta = {
         "run_id": run_root.name,
         "start_ts": int(time.time()),
-        "skip_discovery": skip_discovery,
+        "run_discovery": run_discovery,
         "run_root": str(run_root),
         "rotate_s": f"{ROTATE_S}s",
         "bpf_filter": BPF_FILTER,
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         utils.cleanup() 
 
         topo = DashTopology(config=DEFAULT_CONFIG, results_dir=run_root)
-        topo.run(skip_discovery=skip_discovery)
+        topo.run(run_discovery=run_discovery)
 
         utils.append_event(run_root, f"CONTINUOUS_START {int(time.time())}")
 
@@ -80,9 +80,7 @@ if __name__ == "__main__":
                 swname = sw.getNodeName()
                 capture_path = f"/results/dash/snapshots/snapshot_{snap_idx}/pcaps/{swname}"
 
-                nodes = list(topo.clients_by_pop.get(pop, []))
-                if pop == topo.server_pop_name and topo.server is not None:
-                    nodes.append(topo.server)
+                nodes = list(topo.hosts_by_pop.get(pop, []))
 
                 # Start a new tcpdump every snapshot (per interface). It auto-stops after ROTATE_S via the timeout flag, so it doesn't accumulate
                 sw.collectFlowsTcpdump(

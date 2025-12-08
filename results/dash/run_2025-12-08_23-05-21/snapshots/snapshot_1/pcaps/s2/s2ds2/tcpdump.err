@@ -1,0 +1,4 @@
+tcpdump: listening on s2ds2, link-type EN10MB (Ethernet), capture size 262144 bytes
+12979 packets captured
+18667 packets received by filter
+5688 packets dropped by kernel

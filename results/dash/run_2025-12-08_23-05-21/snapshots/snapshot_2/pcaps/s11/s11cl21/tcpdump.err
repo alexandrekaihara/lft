@@ -1,0 +1,4 @@
+tcpdump: listening on s11cl21, link-type EN10MB (Ethernet), capture size 262144 bytes
+1668 packets captured
+2211 packets received by filter
+543 packets dropped by kernel

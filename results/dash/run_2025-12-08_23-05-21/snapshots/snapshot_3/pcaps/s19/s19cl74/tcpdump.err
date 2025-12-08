@@ -1,0 +1,4 @@
+tcpdump: listening on s19cl74, link-type EN10MB (Ethernet), capture size 262144 bytes
+1995 packets captured
+2616 packets received by filter
+621 packets dropped by kernel

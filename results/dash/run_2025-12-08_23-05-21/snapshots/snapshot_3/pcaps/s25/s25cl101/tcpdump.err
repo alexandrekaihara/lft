@@ -1,0 +1,4 @@
+tcpdump: listening on s25cl101, link-type EN10MB (Ethernet), capture size 262144 bytes
+2156 packets captured
+2671 packets received by filter
+515 packets dropped by kernel

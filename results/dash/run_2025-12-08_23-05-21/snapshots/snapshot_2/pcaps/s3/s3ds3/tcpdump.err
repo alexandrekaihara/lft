@@ -1,0 +1,4 @@
+tcpdump: listening on s3ds3, link-type EN10MB (Ethernet), capture size 262144 bytes
+26968 packets captured
+45415 packets received by filter
+18447 packets dropped by kernel

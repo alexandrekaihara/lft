@@ -1,0 +1,4 @@
+tcpdump: listening on s15cl45, link-type EN10MB (Ethernet), capture size 262144 bytes
+1683 packets captured
+2510 packets received by filter
+827 packets dropped by kernel
