@@ -3,10 +3,30 @@ import time
 import time
 import csv
 import re
+import io
 import shutil
+import gzip
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+PCAP_FIELDS: List[str] = [
+    "frame.time_epoch",
+    "frame.len",
+    "ip.src",
+    "ip.dst",
+    "ipv6.src",
+    "ipv6.dst",
+    "_ws.col.Protocol",
+    "tcp.srcport",
+    "tcp.dstport",
+    "tcp.flags",
+    "tcp.stream",
+    "icmp.type",
+    "icmp.code",
+    "icmpv6.type",
+    "icmpv6.code",
+]
 
 # Brief: Retrieves the IP address of a Docker container by its name
 def get_container_ip(name: str) -> str:
@@ -122,7 +142,6 @@ def _write_flows_csv(dump_flows_text: str, out_csv: Path, switch_name: str) -> N
         n_bytes = _rx(left, r"n_bytes=([0-9]+)")
         priority = _rx(left, r"priority=([0-9]+)")
 
-        # Match is everything after priority=... up to actions= (kept raw, comma-separated)
         match_raw = ""
         if "priority=" in left:
             m = re.search(r"priority=[0-9]+,(.*)$", left)
@@ -257,6 +276,7 @@ def _write_ports_csv(dump_ports_text: str, out_csv: Path, switch_name: str) -> N
         w.writeheader()
         w.writerows(rows)
 
+
 # Brief: Extracts the first capture group from a regex search
 def _rx(text: str, pattern: str) -> str:
     m = re.search(pattern, text)
@@ -270,13 +290,24 @@ def append_event(rep_dir: Path, line: str) -> None:
         f.write(line.rstrip() + "\n")
 
 
-# Brief: convert a PCAP to a CSV using tshark (host-side)
-def pcap_to_csv(pcap_path: Path, csv_path: Path, display_filter: Optional[str] = None) -> None:
-    csv_path.parent.mkdir(parents=True, exist_ok=True)
+def _parse_snapshot_iface_from_name(pcap_path: Path) -> Tuple[Optional[int], str]:
+    """
+    Expected parsing:
+      - "3%eth0"          -> snapshot_idx=3, interface="eth0"
+      - "snapshot_3%eth0" -> snapshot_idx=3, interface="eth0"
+    """
+    stem = pcap_path.stem  # no ".pcap"
+    if "%" not in stem:
+        return None, ""
 
+    left, iface = stem.split("%", 1)
+    m = re.search(r"(\d+)", left)
+    snap = int(m.group(1)) if m else None
+    return snap, iface
+
+
+def _tshark_cmd(pcap_path: Path, display_filter: Optional[str]) -> List[str]:
     cmd = ["tshark", "-r", str(pcap_path)]
-
-    # Only add -Y if a filter is provided
     if display_filter:
         cmd += ["-Y", display_filter]
 
@@ -286,68 +317,138 @@ def pcap_to_csv(pcap_path: Path, csv_path: Path, display_filter: Optional[str] =
         "-E", "separator=,",
         "-E", "quote=d",
         "-E", "occurrence=f",
-        "-e", "frame.time_epoch",
-        "-e", "frame.len",
-        "-e", "ip.src",
-        "-e", "ip.dst",
-        "-e", "ipv6.src",
-        "-e", "ipv6.dst",
-        "-e", "_ws.col.Protocol",
-        "-e", "tcp.srcport",
-        "-e", "tcp.dstport",
-        "-e", "tcp.flags",
-        "-e", "tcp.stream",
-        "-e", "icmp.type",
-        "-e", "icmp.code",
-        "-e", "icmpv6.type",
-        "-e", "icmpv6.code",
     ]
+    for f in PCAP_FIELDS:
+        cmd += ["-e", f]
+    return cmd
 
-    with open(csv_path, "w", encoding="utf-8") as f:
-        subprocess.run(cmd, stdout=f, stderr=subprocess.DEVNULL, check=False)
 
+# Brief: Convert ALL *.pcap in `tcpdump_dir` into ONE CSV at `out_csv`.
+#  Adds columns: snapshot_idx, interface (parsed from filename split by '%').
+#  Returns stats dict: {"pcaps": X, "rows": Y}
+def snapshot_pcaps_to_single_csv(
+    tcpdump_dir: Path,
+    out_csv: Path,
+    display_filter: Optional[str] = None,
+    delete_pcaps: bool = False,
+) -> Dict[str, int]:
+    tcpdump_dir = Path(tcpdump_dir)
+    out_csv = Path(out_csv)
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
 
-def move_closed_pcaps(live_root: Path, pcaps_dir: Path, clean_live: bool = True) -> int:
-    moved = 0
+    pcaps = sorted(tcpdump_dir.glob("*.pcap"))
+    total_rows = 0
 
-    for sw_dir in live_root.glob("*"):
-        if not sw_dir.is_dir():
-            continue
-        swname = sw_dir.name
+    out_fields = ["snapshot_idx", "interface"] + PCAP_FIELDS
 
-        for iface_dir in sw_dir.glob("*"):
-            if not iface_dir.is_dir():
-                continue
-            ifname = iface_dir.name
+    with out_csv.open("w", newline="", encoding="utf-8") as f_out:
+        w = csv.DictWriter(f_out, fieldnames=out_fields)
+        w.writeheader()
 
-            pcaps = sorted(iface_dir.glob("dump_*.pcap*"), key=lambda p: p.stat().st_mtime)
-            if len(pcaps) < 2:
-                continue
+        for pcap in pcaps:
+            snap_idx, iface = _parse_snapshot_iface_from_name(pcap)
 
-            for p in pcaps[:-1]:  # skip newest
-                dst = pcaps_dir / swname / ifname / p.name
-                dst.parent.mkdir(parents=True, exist_ok=True)
+            # If parsing failed, still keep something
+            snap_val = snap_idx if snap_idx is not None else ""
 
-                if dst.exists():
-                    if clean_live:
-                        try:
-                            p.unlink(missing_ok=True)
-                        except Exception:
-                            pass
-                    continue
+            cmd = _tshark_cmd(pcap, display_filter)
+            proc = subprocess.run(cmd, capture_output=True, text=True)
 
-                if clean_live:
+            # only rely on stdout
+            if not proc.stdout.strip():
+                if delete_pcaps:
                     try:
-                        shutil.move(str(p), str(dst))
+                        pcap.unlink(missing_ok=True)
                     except Exception:
-                        dst.write_bytes(p.read_bytes())
-                        try:
-                            p.unlink(missing_ok=True)
-                        except Exception:
-                            pass
-                else:
-                    dst.write_bytes(p.read_bytes())
+                        pass
+                continue
 
-                moved += 1
+            reader = csv.DictReader(io.StringIO(proc.stdout))
+            for row in reader:
+                out_row: Dict[str, str] = {
+                    "snapshot_idx": str(snap_val),
+                    "interface": iface,
+                }
+                for k in PCAP_FIELDS:
+                    out_row[k] = row.get(k, "") if row else ""
+                w.writerow(out_row)
+                total_rows += 1
 
-    return moved
+            if delete_pcaps:
+                try:
+                    pcap.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+    return {"pcaps": len(pcaps), "rows": total_rows}
+
+
+def _extract_snapshot_number_from_path(p: Path) -> int:
+    # Expected: .../snapshots/snapshot_12/tcpdump/packet_flow.csv
+    m = re.search(r"snapshot_(\d+)", str(p))
+    return int(m.group(1)) if m else 10**9
+
+
+# Brief: Merge all per-snapshot packet_flow.csv into a single CSV at run_root/out_csv_name.
+#  Returns stats dict:
+#   - files: number of input CSVs found
+#   - rows: total rows written (excluding header)
+def merge_all_snapshot_csvs(
+    run_root: Path,
+    out_csv_name: str = "packet_flow_all.csv",
+    glob_pattern: str = "snapshots/snapshot_*/tcpdump/packet_flow.csv",
+    delete_inputs: bool = False,
+) -> Dict[str, int]:
+    run_root = Path(run_root)
+    out_csv = run_root / out_csv_name
+
+    inputs: List[Path] = sorted(
+        run_root.glob(glob_pattern),
+        key=_extract_snapshot_number_from_path,
+    )
+
+    if not inputs:
+        return {"files": 0, "rows": 0}
+
+    total_rows = 0
+    expected_fields: Optional[List[str]] = None
+
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    with out_csv.open("w", newline="", encoding="utf-8") as f_out:
+        writer: Optional[csv.DictWriter] = None
+
+        for in_path in inputs:
+            with in_path.open("r", newline="", encoding="utf-8") as f_in:
+                reader = csv.DictReader(f_in)
+                if reader.fieldnames is None:
+                    continue  # empty file
+
+                # initialize schema from the first file
+                if expected_fields is None:
+                    expected_fields = list(reader.fieldnames)
+                    writer = csv.DictWriter(f_out, fieldnames=expected_fields)
+                    writer.writeheader()
+
+                # if schema differs, fail fast
+                if list(reader.fieldnames) != expected_fields:
+                    raise ValueError(
+                        f"Schema mismatch in {in_path}. "
+                        f"Expected {expected_fields}, got {reader.fieldnames}"
+                    )
+
+                # append rows
+                assert writer is not None
+                for row in reader:
+                    # skip completely empty rows if any
+                    if not row or all((v is None or str(v).strip() == "") for v in row.values()):
+                        continue
+                    writer.writerow(row)
+                    total_rows += 1
+
+            if delete_inputs:
+                try:
+                    in_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+    return {"files": len(inputs), "rows": total_rows}

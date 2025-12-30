@@ -32,13 +32,17 @@ def run_dash_clients_batch(client_batch: list[str], server_ips: list[str], schem
 
 
 if __name__ == "__main__":
-    ROTATE_S = 120  # 2 minutes per snapshot
+    # Snapshot window (seconds)
+    ROTATE_S = 300
+
+    # tshark display filter (None = keep everything)
     DISPLAY_FILTER = None
+
     BPF_FILTER = "(tcp port 80 or tcp port 443 or icmp)"
 
-    # Cumulative load plan: 25, 50, 75, 100
+    # Cumulative load plan: 25, 50, 75, 100 (max 100 clients)
     BATCH_SIZES = [25, 50, 75, 100]
-    MAX_CLIENTS = 100  # Use exactly 100 clients as requested
+    MAX_CLIENTS = 100
 
     results_root = project_root / "results" / "dash"
     results_root.mkdir(parents=True, exist_ok=True)
@@ -64,8 +68,9 @@ if __name__ == "__main__":
         "start_ts": int(time.time()),
         "run_discovery": run_discovery,
         "run_root": str(run_root),
-        "rotate_s": f"{ROTATE_S}s",
+        "rotate_s": ROTATE_S,
         "bpf_filter": BPF_FILTER,
+        "display_filter": DISPLAY_FILTER,
         "experiment": "4 snapshots, cumulative clients 25/50/75/100, random server among ALL servers",
         "max_clients": MAX_CLIENTS,
     }
@@ -78,13 +83,13 @@ if __name__ == "__main__":
         topo = DashTopology(config=DEFAULT_CONFIG, results_dir=run_root)
         topo.run(run_discovery=run_discovery)
 
-        server_ips = list(topo.server_ip_range)
+        server_ips = [str(ip) for ip in topo.server_ip_range]
         if not server_ips:
             raise RuntimeError("No server IPs found in topo.server_ip_range")
 
         utils.append_event(run_root, f"EXPERIMENT_START {int(time.time())}")
-        client_names = sorted(topo.clients.keys())
 
+        client_names = sorted(topo.clients.keys())
         client_pool = client_names[:MAX_CLIENTS]
         log.info(f"[EXPERIMENT] ROTATE_S={ROTATE_S}s, servers={server_ips}, total_clients_pool={len(client_pool)}")
 
@@ -92,16 +97,17 @@ if __name__ == "__main__":
             ts = time.strftime("%Y%m%d-%H%M%S")
             snap_dir = snaps_root / f"snapshot_{snap_idx}"
             ovs_dir = snap_dir / "ovs"
-            pcaps_dir = snap_dir / "pcaps"
+            tcpdump_dir = snap_dir / "tcpdump"
             ovs_dir.mkdir(parents=True, exist_ok=True)
-            pcaps_dir.mkdir(parents=True, exist_ok=True)
+            tcpdump_dir.mkdir(parents=True, exist_ok=True)
 
             utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_START {ts}")
 
-            # Start tcpdump on each switch host-facing interface set.
+            # Start tcpdump on each switch, writing into THIS snapshot tcpdump dir
+            # (same path for all switches, filenames differentiate by "%iface")
             for pop, sw in topo.switches.items():
                 swname = sw.getNodeName()
-                capture_path = f"/results/dash/snapshots/snapshot_{snap_idx}/pcaps/{swname}"
+                capture_path = f"/results/dash/snapshots/snapshot_{snap_idx}/tcpdump"
 
                 nodes = list(topo.hosts_by_pop.get(pop, []))
                 if not nodes:
@@ -117,12 +123,12 @@ if __name__ == "__main__":
                     snapshot_idx=snap_idx,
                 )
 
-            # Cumulative batch: first k clients (includes previous ones).
+            # Cumulative batch: first k clients (includes previous ones)
             k_eff = min(k, len(client_pool))
             batch = client_pool[:k_eff]
             log.info(f"[EXPERIMENT] snapshot_{snap_idx}: running cumulative dash-client k={k_eff}")
 
-            # Keep the snapshot window roughly equal to ROTATE_S.
+            # Keep snapshot window ~ ROTATE_S seconds
             t0 = time.time()
             if batch:
                 run_dash_clients_batch(batch, server_ips, scheme="http")
@@ -131,6 +137,7 @@ if __name__ == "__main__":
             time.sleep(remaining)
             time.sleep(2)
 
+            # Optional: snapshot OVS/OpenFlow state into snapshot_X/ovs/
             utils.snapshot_ovs_state(
                 switch_names=[sw.getNodeName() for sw in topo.switches.values()],
                 outdir=ovs_dir,
@@ -138,8 +145,20 @@ if __name__ == "__main__":
                 parse_csv=True,
             )
 
-            log.info(f"[OK] snapshot_{snap_idx} -> {snap_dir}")
+            # Build ONE merged CSV for this snapshot
+            packet_flow_csv = tcpdump_dir / "packet_flow.csv"
+            stats = utils.snapshot_pcaps_to_single_csv(
+                tcpdump_dir=tcpdump_dir,
+                out_csv=packet_flow_csv,
+                display_filter=DISPLAY_FILTER,
+                delete_pcaps=True, 
+            )
+            log.info(
+                f"[PCAP->CSV] snapshot_{snap_idx}: pcaps={stats['pcaps']} rows={stats['rows']} -> {packet_flow_csv}"
+            )
+
             utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_END {time.strftime('%Y%m%d-%H%M%S')}")
+            log.info(f"[OK] snapshot_{snap_idx} -> {snap_dir}")
 
     except KeyboardInterrupt:
         log.info("[EXPERIMENT] Stop requested.")
@@ -147,28 +166,16 @@ if __name__ == "__main__":
     finally:
         utils.append_event(run_root, f"EXPERIMENT_STOP {int(time.time())}")
 
-        log.info("[PARSE] Converting all snapshot PCAPs to CSV (in-place)...")
-        parsed = 0
-        pcaps = list(snaps_root.rglob("*.pcap"))
-
-        for pcap in pcaps:
-            out_csv = pcap.with_suffix(".csv")
-            if out_csv.exists():
-                continue
-            try:
-                utils.pcap_to_csv(pcap, out_csv, display_filter=DISPLAY_FILTER)
-                parsed += 1
-            except Exception as e:
-                log.exception(f"[PARSE] Failed for {pcap}: {e}")
-        log.info(f"[PARSE] Done. csv_created={parsed}")
-
-        deleted = 0
-        for pcap in pcaps:
-            try:
-                pcap.unlink(missing_ok=True)
-                deleted += 1
-            except Exception:
-                log.exception(f"[CLEAN] Failed to delete {pcap}")
+        # Merge ALL snapshot_X/tcpdump/packet_flow.csv into one run_root/packet_flow_all.csv
+        final_stats = utils.merge_all_snapshot_csvs(
+            run_root=Path(run_root),
+            out_csv_name="packet_flow_all.csv",
+            delete_inputs=False,
+        )
+        log.info(
+            f"[CSV-MERGE] files={final_stats['files']} rows={final_stats['rows']} -> "
+            f"{Path(run_root) / 'packet_flow_all.csv'}"
+        )
 
         log.info("[RESET] utils.cleanup() (post)")
         try:

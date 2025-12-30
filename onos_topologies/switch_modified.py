@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import time
+import shlex
 import logging
 import subprocess
 from profissa_lft.node import Node
@@ -188,32 +188,38 @@ class Switch(Node):
                 return
             interfaces = [self._Node__getThisInterfaceName(n) for n in nodes]
 
-        # interfaces dos nodes param. Tipicamente só clients, então interfaces host<->switch
         interfaces = sorted(set(interfaces) - {"lo", "ovs-system"})
         if not interfaces:
             logging.info(f"[tcpdump] {swname}: skipping (no capture interfaces after filtering)")
             return
 
-        for iface in interfaces:
-            outdir = f"{path}/{iface}"
-            errfile = f"{outdir}/tcpdump.err"
+        outdir = f"{path}"
 
-            # Snapshot window mode: 1 pcap per snapshot_idx
-            pidfile = f"{outdir}/tcpdump_snapshot_{snapshot_idx}.pid"
-            pcapfile = f"{outdir}/{iface}_snapshot_{snapshot_idx}.pcap"
-            cmd = (
-                f"docker exec {swname} sh -lc "
-                f"\"mkdir -p '{outdir}' && chmod 777 '{outdir}'; "
+        # Use filter only if not empty/None
+        filter_part = f" {shlex.quote(bpf_filter)}" if bpf_filter else ""
+
+        for iface in interfaces:
+            pcapfile = f"{outdir}/{snapshot_idx}%{iface}.pcap"
+
+            inner = (
+                f"mkdir -p {shlex.quote(outdir)} && chmod 777 {shlex.quote(outdir)}; "
                 f"nohup timeout -s INT {int(rotateInterval)} "
-                f"tcpdump -Z root -i '{iface}' -nn -U -s 0 "
-                f"-w '{pcapfile}' "
-                f"'{bpf_filter}' "
-                f">/dev/null 2>'{errfile}' & "
-                f"echo $! > '{pidfile}'\""
+                f"tcpdump -Z root -i {shlex.quote(iface)} -nn -U -s 0 "
+                f"-w {shlex.quote(pcapfile)}"
+                f"{filter_part} "
+                f">/dev/null 2>&1 &"
             )
 
-            subprocess.run(cmd, shell=True, check=False)
-            logging.info(f"[tcpdump] {swname}:{iface} -> {outdir}")
+            cmd = ["docker", "exec", swname, "sh", "-lc", inner]
+            res = subprocess.run(cmd, capture_output=True, text=True)
+
+            if res.returncode != 0:
+                logging.warning(
+                    f"[tcpdump] FAIL {swname}:{iface} rc={res.returncode} "
+                    f"stderr={res.stderr.strip()} stdout={res.stdout.strip()}"
+                )
+            else:
+                logging.info(f"[tcpdump] {swname}:{iface} -> {outdir}")
 
 
     # Brief: Set default route to forward all incoming packets to s1 bridge and let the bridge handle the forwarding

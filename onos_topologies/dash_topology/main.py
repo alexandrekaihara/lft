@@ -10,13 +10,14 @@ sys.path.insert(0, str(project_root))
 
 from onos_topologies.dash_topology.dash_topology import DashTopology
 from onos_topologies.dash_topology import utils
-from onos_topologies.dash_topology.constants import DEFAULT_CONFIG
+from onos_topologies.dash_topology.constants import DEBUG_CONFIG
 
 
 if __name__ == "__main__":
-    ROTATE_S = 600  # 10 minutes per snapshot
+    ROTATE_S = 120 # 2 minutes per snapshot
     DISPLAY_FILTER = None
-    BPF_FILTER = "(tcp port 80 or tcp port 443 or icmp)"
+    BPF_FILTER = ""
+    #BPF_FILTER = "(tcp port 80 or tcp port 443 or icmp)"
 
     results_root = project_root / "results" / "dash"
     results_root.mkdir(parents=True, exist_ok=True)
@@ -51,7 +52,7 @@ if __name__ == "__main__":
         log.info("[RESET] utils.cleanup() (pre)")
         utils.cleanup() 
 
-        topo = DashTopology(config=DEFAULT_CONFIG, results_dir=run_root)
+        topo = DashTopology(config=DEBUG_CONFIG, results_dir=run_root)
         topo.run(run_discovery=run_discovery)
 
         utils.append_event(run_root, f"CONTINUOUS_START {int(time.time())}")
@@ -69,7 +70,7 @@ if __name__ == "__main__":
             ts = time.strftime("%Y%m%d-%H%M%S")
             snap_dir = snaps_root / f"snapshot_{snap_idx}"
             ovs_dir = snap_dir / "ovs"
-            pcaps_dir = snap_dir / "pcaps"
+            pcaps_dir = snap_dir / "tcpdump"
             ovs_dir.mkdir(parents=True, exist_ok=True)
             pcaps_dir.mkdir(parents=True, exist_ok=True)
 
@@ -78,7 +79,7 @@ if __name__ == "__main__":
             # Start tcpdump on each switch interface, writing straight into this snapshot/
             for pop, sw in topo.switches.items():
                 swname = sw.getNodeName()
-                capture_path = f"/results/dash/snapshots/snapshot_{snap_idx}/pcaps/{swname}"
+                capture_path = f"/results/dash/snapshots/snapshot_{snap_idx}/tcpdump"
 
                 nodes = list(topo.hosts_by_pop.get(pop, []))
 
@@ -96,7 +97,7 @@ if __name__ == "__main__":
             time.sleep(ROTATE_S)
             time.sleep(2)
 
-            # OVS snapshot for every switch
+            # OVS snapshot for every switch (end of snapshot window)
             utils.snapshot_ovs_state(
                 switch_names=[sw.getNodeName() for sw in topo.switches.values()],
                 outdir=ovs_dir,
@@ -104,7 +105,15 @@ if __name__ == "__main__":
                 parse_csv=True,
             )
 
-            log.info(f"[OK] snapshot_{snap_idx} -> {snap_dir}")
+            # Build ONE merged CSV for this snapshot
+            packet_flow_csv = pcaps_dir / "packet_flow.csv"
+            stats = utils.snapshot_pcaps_to_single_csv(
+                tcpdump_dir=pcaps_dir,
+                out_csv=packet_flow_csv,
+                display_filter=DISPLAY_FILTER,
+                delete_pcaps=True,  # set False if you want to keep pcaps for debugging
+            )
+            log.info(f"[PCAP->CSV] snapshot_{snap_idx}: pcaps={stats['pcaps']} rows={stats['rows']} -> {packet_flow_csv}")
             utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_END {time.strftime('%Y%m%d-%H%M%S')}")
             snap_idx += 1
 
@@ -114,32 +123,17 @@ if __name__ == "__main__":
     finally:
         utils.append_event(run_root, f"CONTINUOUS_STOP {int(time.time())}")
 
-        # Parse EVERYTHING at the end, saving CSV next to each PCAP
-        log.info("[PARSE] Converting all snapshot PCAPs to CSV (in-place)...")
-        parsed = 0
-        pcaps = list(snaps_root.rglob("*.pcap"))
+        final_stats = utils.merge_all_snapshot_csvs(
+            run_root=Path(run_root),             
+            out_csv_name="packet_flow_all.csv",
+            delete_inputs=False,                  
+        )
 
-        for pcap in pcaps:
-            out_csv = pcap.with_suffix(".csv")
-            if out_csv.exists():
-                continue
-            try:
-                utils.pcap_to_csv(pcap, out_csv, display_filter=DISPLAY_FILTER)
-                parsed += 1
-            except Exception as e:
-                log.exception(f"[PARSE] Failed for {pcap}: {e}")
-        log.info(f"[PARSE] Done. csv_created={parsed}")
+        log.info(
+            f"[CSV-MERGE] files={final_stats['files']} rows={final_stats['rows']} -> "
+            f"{Path(run_root) / 'packet_flow_all.csv'}"
+        )
 
-        # Delete all pcaps
-        deleted = 0
-        for pcap in pcaps:
-            try:
-                pcap.unlink(missing_ok=True)
-                deleted += 1
-            except Exception:
-                log.exception(f"[CLEAN] Failed to delete {pcap}")
-
-        log.info("[RESET] utils.cleanup() (post)")
         try:
             utils.cleanup()
         except Exception:

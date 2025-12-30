@@ -9,6 +9,10 @@ POPS = (
     ("PoP-SE", 8, 0), ("PoP-SP", 3, 0), ("PoP-TO", 0, 0)
 )
 
+POPS_DEBUG = (
+    ("PoP-AC", 3, 1), ("PoP-AL", 5, 0), ("PoP-AM", 3, 0)
+)
+
 ADJACENCY_MATRIX = (
     # AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO
     ( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 ),  # PoP-AC
@@ -40,9 +44,26 @@ ADJACENCY_MATRIX = (
     ( 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 )   # PoP-TO
 )
 
+ADJACENCY_MATRIX_DEBUG = (
+    # AC AL AM 
+    ( 0, 1, 1 ),  # PoP-AC
+    ( 1, 0, 1 ),  # PoP-AL
+    ( 1, 1, 0 )   # PoP-AM
+)
+
 DEFAULT_CONFIG = {
     "adjacency_matrix": ADJACENCY_MATRIX,
     "pops": POPS,
+    "apply_link_properties": False,         
+    "randomize_link_properties": False,      
+    "throughput": "300mbit",              
+    "delay": "10ms",                         
+    "jitter": "5ms"          
+}
+
+DEBUG_CONFIG = {
+    "adjacency_matrix": ADJACENCY_MATRIX_DEBUG,
+    "pops": POPS_DEBUG,
     "apply_link_properties": False,         
     "randomize_link_properties": False,      
     "throughput": "300mbit",              
