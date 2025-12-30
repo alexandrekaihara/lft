@@ -1,0 +1,109 @@
+2025-12-30 17:43:35,986 [INFO] [RESET] utils.cleanup() (pre)
+2025-12-30 17:44:08,019 [INFO] Connected (version 2.0, client APACHE-SSHD-2.5.1)
+2025-12-30 17:44:08,675 [INFO] Authentication (password) successful!
+2025-12-30 17:44:56,811 [INFO] [CONTINUOUS] Snapshot every 120 minutes. Ctrl+C to stop.
+2025-12-30 17:44:56,963 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,040 [INFO] [tcpdump] s0:s0cl1 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,119 [INFO] [tcpdump] s0:s0cl2 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,197 [INFO] [tcpdump] s0:s0ds0 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,346 [INFO] [tcpdump] s1:s1cl3 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,420 [INFO] [tcpdump] s1:s1cl4 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,499 [INFO] [tcpdump] s1:s1cl5 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,573 [INFO] [tcpdump] s1:s1cl6 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,648 [INFO] [tcpdump] s1:s1cl7 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,793 [INFO] [tcpdump] s2:s2cl10 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,867 [INFO] [tcpdump] s2:s2cl8 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:44:57,945 [INFO] [tcpdump] s2:s2cl9 -> /results/dash/snapshots/snapshot_1/tcpdump
+2025-12-30 17:47:04,721 [INFO] [PCAP->CSV] snapshot_1: pcaps=12 rows=1050 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-30_17-43-35/snapshots/snapshot_1/tcpdump/packet_flow.csv
+2025-12-30 17:47:04,865 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:04,942 [INFO] [tcpdump] s0:s0cl1 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,019 [INFO] [tcpdump] s0:s0cl2 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,094 [INFO] [tcpdump] s0:s0ds0 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,245 [INFO] [tcpdump] s1:s1cl3 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,320 [INFO] [tcpdump] s1:s1cl4 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,395 [INFO] [tcpdump] s1:s1cl5 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,472 [INFO] [tcpdump] s1:s1cl6 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,550 [INFO] [tcpdump] s1:s1cl7 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,703 [INFO] [tcpdump] s2:s2cl10 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,781 [INFO] [tcpdump] s2:s2cl8 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:47:05,859 [INFO] [tcpdump] s2:s2cl9 -> /results/dash/snapshots/snapshot_2/tcpdump
+2025-12-30 17:49:12,563 [INFO] [PCAP->CSV] snapshot_2: pcaps=12 rows=937 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-30_17-43-35/snapshots/snapshot_2/tcpdump/packet_flow.csv
+2025-12-30 17:49:12,714 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:12,789 [INFO] [tcpdump] s0:s0cl1 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:12,862 [INFO] [tcpdump] s0:s0cl2 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:12,936 [INFO] [tcpdump] s0:s0ds0 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:13,083 [INFO] [tcpdump] s1:s1cl3 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:13,158 [INFO] [tcpdump] s1:s1cl4 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:13,231 [INFO] [tcpdump] s1:s1cl5 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:13,307 [INFO] [tcpdump] s1:s1cl6 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:13,382 [INFO] [tcpdump] s1:s1cl7 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:13,534 [INFO] [tcpdump] s2:s2cl10 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:13,609 [INFO] [tcpdump] s2:s2cl8 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:49:13,682 [INFO] [tcpdump] s2:s2cl9 -> /results/dash/snapshots/snapshot_3/tcpdump
+2025-12-30 17:51:20,461 [INFO] [PCAP->CSV] snapshot_3: pcaps=12 rows=922 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-30_17-43-35/snapshots/snapshot_3/tcpdump/packet_flow.csv
+2025-12-30 17:51:20,609 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:20,684 [INFO] [tcpdump] s0:s0cl1 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:20,765 [INFO] [tcpdump] s0:s0cl2 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:20,839 [INFO] [tcpdump] s0:s0ds0 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:20,984 [INFO] [tcpdump] s1:s1cl3 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:21,059 [INFO] [tcpdump] s1:s1cl4 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:21,135 [INFO] [tcpdump] s1:s1cl5 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:21,210 [INFO] [tcpdump] s1:s1cl6 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:21,284 [INFO] [tcpdump] s1:s1cl7 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:21,432 [INFO] [tcpdump] s2:s2cl10 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:21,508 [INFO] [tcpdump] s2:s2cl8 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:51:21,583 [INFO] [tcpdump] s2:s2cl9 -> /results/dash/snapshots/snapshot_4/tcpdump
+2025-12-30 17:53:28,442 [INFO] [PCAP->CSV] snapshot_4: pcaps=12 rows=940 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-30_17-43-35/snapshots/snapshot_4/tcpdump/packet_flow.csv
+2025-12-30 17:53:28,597 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:28,671 [INFO] [tcpdump] s0:s0cl1 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:28,747 [INFO] [tcpdump] s0:s0cl2 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:28,822 [INFO] [tcpdump] s0:s0ds0 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:28,978 [INFO] [tcpdump] s1:s1cl3 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:29,052 [INFO] [tcpdump] s1:s1cl4 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:29,129 [INFO] [tcpdump] s1:s1cl5 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:29,208 [INFO] [tcpdump] s1:s1cl6 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:29,284 [INFO] [tcpdump] s1:s1cl7 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:29,425 [INFO] [tcpdump] s2:s2cl10 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:29,500 [INFO] [tcpdump] s2:s2cl8 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:53:29,579 [INFO] [tcpdump] s2:s2cl9 -> /results/dash/snapshots/snapshot_5/tcpdump
+2025-12-30 17:55:36,427 [INFO] [PCAP->CSV] snapshot_5: pcaps=12 rows=952 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-30_17-43-35/snapshots/snapshot_5/tcpdump/packet_flow.csv
+2025-12-30 17:55:36,577 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:36,651 [INFO] [tcpdump] s0:s0cl1 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:36,724 [INFO] [tcpdump] s0:s0cl2 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:36,799 [INFO] [tcpdump] s0:s0ds0 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:36,943 [INFO] [tcpdump] s1:s1cl3 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:37,016 [INFO] [tcpdump] s1:s1cl4 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:37,092 [INFO] [tcpdump] s1:s1cl5 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:37,199 [INFO] [tcpdump] s1:s1cl6 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:37,274 [INFO] [tcpdump] s1:s1cl7 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:37,418 [INFO] [tcpdump] s2:s2cl10 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:37,501 [INFO] [tcpdump] s2:s2cl8 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:55:37,578 [INFO] [tcpdump] s2:s2cl9 -> /results/dash/snapshots/snapshot_6/tcpdump
+2025-12-30 17:57:44,349 [INFO] [PCAP->CSV] snapshot_6: pcaps=12 rows=920 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-30_17-43-35/snapshots/snapshot_6/tcpdump/packet_flow.csv
+2025-12-30 17:57:44,496 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:44,570 [INFO] [tcpdump] s0:s0cl1 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:44,648 [INFO] [tcpdump] s0:s0cl2 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:44,723 [INFO] [tcpdump] s0:s0ds0 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:44,867 [INFO] [tcpdump] s1:s1cl3 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:44,939 [INFO] [tcpdump] s1:s1cl4 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:45,016 [INFO] [tcpdump] s1:s1cl5 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:45,091 [INFO] [tcpdump] s1:s1cl6 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:45,167 [INFO] [tcpdump] s1:s1cl7 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:45,315 [INFO] [tcpdump] s2:s2cl10 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:45,391 [INFO] [tcpdump] s2:s2cl8 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:57:45,468 [INFO] [tcpdump] s2:s2cl9 -> /results/dash/snapshots/snapshot_7/tcpdump
+2025-12-30 17:59:52,182 [INFO] [PCAP->CSV] snapshot_7: pcaps=12 rows=923 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-30_17-43-35/snapshots/snapshot_7/tcpdump/packet_flow.csv
+2025-12-30 17:59:52,333 [INFO] [tcpdump] s0:s0cl0 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:52,413 [INFO] [tcpdump] s0:s0cl1 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:52,490 [INFO] [tcpdump] s0:s0cl2 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:52,563 [INFO] [tcpdump] s0:s0ds0 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:52,714 [INFO] [tcpdump] s1:s1cl3 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:52,786 [INFO] [tcpdump] s1:s1cl4 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:52,859 [INFO] [tcpdump] s1:s1cl5 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:52,933 [INFO] [tcpdump] s1:s1cl6 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:53,006 [INFO] [tcpdump] s1:s1cl7 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:53,148 [INFO] [tcpdump] s2:s2cl10 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:53,222 [INFO] [tcpdump] s2:s2cl8 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 17:59:53,297 [INFO] [tcpdump] s2:s2cl9 -> /results/dash/snapshots/snapshot_8/tcpdump
+2025-12-30 18:00:45,949 [INFO] [CONTINUOUS] Stop requested.
+2025-12-30 18:00:46,058 [INFO] [CSV-MERGE] files=7 rows=6644 -> /home/arthur.barbabella/lft/results/dash/run_2025-12-30_17-43-35/packet_flow_all.csv

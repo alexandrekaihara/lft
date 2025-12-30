@@ -1,8 +1,0 @@
-{
-  "run_id": "run_2025-12-02_15-21-15",
-  "start_ts": 1764688875,
-  "skip_discovery": true,
-  "run_root": "/home/arthur.barbabella/lft/results/dash/run_2025-12-02_15-21-15",
-  "rotate_s": "180s",
-  "bpf_filter": "(tcp port 80 or tcp port 443 or icmp)"
-}

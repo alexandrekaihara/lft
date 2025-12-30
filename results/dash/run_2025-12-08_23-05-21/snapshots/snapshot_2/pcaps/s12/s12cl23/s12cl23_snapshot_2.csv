@@ -1,2 +1,0 @@
-frame.time_epoch,frame.len,ip.src,ip.dst,ipv6.src,ipv6.dst,_ws.col.Protocol,tcp.srcport,tcp.dstport,tcp.flags,tcp.stream,icmp.type,icmp.code,icmpv6.type,icmpv6.code
-"1765235662.843076000","74","192.168.0.4","192.168.0.51",,,"TCP","80","59020","0x0012","0",,,,

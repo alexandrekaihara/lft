@@ -1,0 +1,11 @@
+{
+  "run_id": "run_2025-12-30_18-06-18",
+  "start_ts": 1767117978,
+  "run_discovery": true,
+  "run_root": "/home/arthur.barbabella/lft/results/dash/run_2025-12-30_18-06-18",
+  "rotate_s": 300,
+  "bpf_filter": "(tcp port 80 or tcp port 443 or icmp)",
+  "display_filter": null,
+  "experiment": "4 snapshots, cumulative clients 25/50/75/100, random server among ALL servers",
+  "max_clients": 100
+}

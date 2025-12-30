@@ -1,4 +1,0 @@
-switch,port_no,rx_pkts,rx_bytes,rx_drop,rx_errs,tx_pkts,tx_bytes,tx_drop,tx_errs
-s1,1,3668,211758235,0,0,1365,117579,0,0
-s1,2,144,18860,0,0,145,18902,0,0
-s1,3,1232,99585,0,0,3667,211758135,0,0
