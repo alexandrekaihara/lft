@@ -1,5 +1,0 @@
-switch,cookie,table,priority,duration_s,n_packets,n_bytes,match_raw,actions_raw,flow_raw
-s23,0x10000b61d67c8,0,40000,977.251,1526,209971,dl_type=0x8942,"CONTROLLER:65535,clear_actions","cookie=0x10000b61d67c8, duration=977.251s, table=0, n_packets=1526, n_bytes=209971, send_flow_rem priority=40000,dl_type=0x8942 actions=CONTROLLER:65535,clear_actions"
-s23,0x100001067d0ff,0,5,977.251,64,5144,ip,"CONTROLLER:65535,clear_actions","cookie=0x100001067d0ff, duration=977.251s, table=0, n_packets=64, n_bytes=5144, send_flow_rem priority=5,ip actions=CONTROLLER:65535,clear_actions"
-s23,0x100001bf42536,0,40000,977.251,628,26376,arp,"CONTROLLER:65535,clear_actions","cookie=0x100001bf42536, duration=977.251s, table=0, n_packets=628, n_bytes=26376, send_flow_rem priority=40000,arp actions=CONTROLLER:65535,clear_actions"
-s23,0x1000013c42c7c,0,40000,977.251,1526,209971,dl_type=0x88cc,"CONTROLLER:65535,clear_actions","cookie=0x1000013c42c7c, duration=977.251s, table=0, n_packets=1526, n_bytes=209971, send_flow_rem priority=40000,dl_type=0x88cc actions=CONTROLLER:65535,clear_actions"

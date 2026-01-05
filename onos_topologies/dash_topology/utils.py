@@ -4,10 +4,9 @@ import time
 import csv
 import re
 import io
-import shutil
-import gzip
+import threading
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional, Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 PCAP_FIELDS: List[str] = [
@@ -87,43 +86,157 @@ def snapshot_ovs_state(
     switch_names: List[str],
     outdir: Path,
     of_version: str = "OpenFlow13",
-    parse_csv: bool = True,
     max_workers: int = 8,
+    snapshot_idx: Optional[int] = None,
+    parse_csv: bool = True,  # keeps compatibility with your caller
 ) -> None:
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    def snap_one(sw: str) -> None:
-        sw_dir = outdir / sw
-        sw_dir.mkdir(parents=True, exist_ok=True)
+    flows_out = outdir / "ovs_flows.csv"
+    ports_out = outdir / "ovs_ports.csv"
 
-        # Raw outputs
-        rc, out, err = _run(["docker", "exec", sw, "ovs-ofctl", "-O", of_version, "dump-flows", sw])
-        (sw_dir / "dump-flows.txt").write_text(out + ("\n" + err if err else ""), encoding="utf-8")
+    flows_lock = threading.Lock()
+    ports_lock = threading.Lock()
 
-        rc, out, err = _run(["docker", "exec", sw, "ovs-ofctl", "-O", of_version, "dump-ports", sw])
-        (sw_dir / "dump-ports.txt").write_text(out + ("\n" + err if err else ""), encoding="utf-8")
+    snap_val = "" if snapshot_idx is None else str(snapshot_idx)
 
-        rc, out, err = _run(["docker", "exec", sw, "ovs-ofctl", "-O", of_version, "show", sw])
-        (sw_dir / "show.txt").write_text(out + ("\n" + err if err else ""), encoding="utf-8")
+    with flows_out.open("w", newline="", encoding="utf-8") as flows_f, ports_out.open("w", newline="", encoding="utf-8") as ports_f:
+        flows_writer = csv.DictWriter(flows_f, fieldnames=OVS_FLOWS_FIELDS, extrasaction="ignore")
+        ports_writer = csv.DictWriter(ports_f, fieldnames=OVS_PORTS_FIELDS, extrasaction="ignore")
 
-        # Parsed outputs (CSV)
         if parse_csv:
-            flows_txt = (sw_dir / "dump-flows.txt").read_text(encoding="utf-8", errors="ignore")
-            ports_txt = (sw_dir / "dump-ports.txt").read_text(encoding="utf-8", errors="ignore")
-            _write_flows_csv(flows_txt, sw_dir / "flows.csv", switch_name=sw)
-            _write_ports_csv(ports_txt, sw_dir / "ports.csv", switch_name=sw)
+            flows_writer.writeheader()
+            ports_writer.writeheader()
 
-    with ThreadPoolExecutor(max_workers=min(max_workers, max(1, len(switch_names)))) as ex:
-        futs = [ex.submit(snap_one, sw) for sw in switch_names]
-        for f in as_completed(futs):
-            f.result()
+        def snap_one(sw: str) -> None:
+            rc, flows_txt, err = _run(["docker", "exec", sw, "ovs-ofctl", "-O", of_version, "dump-flows", sw])
+            if err:
+                flows_txt += "\n" + err
+
+            rc, ports_txt, err = _run(["docker", "exec", sw, "ovs-ofctl", "-O", of_version, "dump-ports", sw])
+            if err:
+                ports_txt += "\n" + err
+
+            if not parse_csv:
+                return
+
+            # Write flows
+            with flows_lock:
+                for row in _iter_flows_rows(flows_txt):
+                    out_row = {"snapshot": snap_val, "switch": sw, **row}
+                    flows_writer.writerow(out_row)
+
+            # Write ports
+            with ports_lock:
+                for row in _iter_ports_rows(ports_txt):
+                    out_row = {"snapshot": snap_val, "switch": sw, **row}
+                    ports_writer.writerow(out_row)
+
+        with ThreadPoolExecutor(max_workers=min(max_workers, max(1, len(switch_names)))) as ex:
+            futs = [ex.submit(snap_one, sw) for sw in switch_names]
+            for f in as_completed(futs):
+                f.result()
 
 
-# Brief: Parse ovs-ofctl dump-flows output into a CSV suitable for Pandas
-def _write_flows_csv(dump_flows_text: str, out_csv: Path, switch_name: str) -> None:
-    rows: List[Dict[str, str]] = []
+def merge_all_snapshot_ovs_csvs(
+    run_root: Path,
+    delete_inputs: bool = False,
+) -> Dict[str, Any]:
+    run_root = Path(run_root)
+    snaps_root = run_root / "snapshots"
 
+    out_flows = run_root / "ovs_flows_all.csv"
+    out_ports = run_root / "ovs_ports_all.csv"
+
+    stats_flows = _merge_many_csvs(
+        in_paths=sorted(snaps_root.glob("snapshot_*/ovs/ovs_flows.csv")),
+        out_csv=out_flows,
+        delete_inputs=delete_inputs,
+    )
+    stats_ports = _merge_many_csvs(
+        in_paths=sorted(snaps_root.glob("snapshot_*/ovs/ovs_ports.csv")),
+        out_csv=out_ports,
+        delete_inputs=delete_inputs,
+    )
+
+    return {
+        "flows": stats_flows,
+        "ports": stats_ports,
+    }
+
+
+def _merge_many_csvs(in_paths, out_csv: Path, delete_inputs: bool) -> Dict[str, Any]:
+    import csv
+
+    in_paths = [Path(p) for p in in_paths if Path(p).exists()]
+    if not in_paths:
+        return {"files": 0, "rows": 0, "out": str(out_csv)}
+
+    rows_written = 0
+    files_used = 0
+
+    with in_paths[0].open("r", newline="", encoding="utf-8") as f0:
+        r0 = csv.DictReader(f0)
+        fieldnames = list(r0.fieldnames or [])
+
+    with out_csv.open("w", newline="", encoding="utf-8") as fo:
+        w = csv.DictWriter(fo, fieldnames=fieldnames, extrasaction="ignore")
+        w.writeheader()
+
+        for p in in_paths:
+            files_used += 1
+            with p.open("r", newline="", encoding="utf-8") as fi:
+                reader = csv.DictReader(fi)
+                for row in reader:
+                    w.writerow(row)
+                    rows_written += 1
+            if delete_inputs:
+                try:
+                    p.unlink()
+                except FileNotFoundError:
+                    pass
+
+    return {"files": files_used, "rows": rows_written, "out": str(out_csv)}
+
+
+# Brief: Extracts the first capture group from a regex search
+def _rx(text: str, pattern: str) -> str:
+    m = re.search(pattern, text)
+    return m.group(1) if m else ""
+
+
+OVS_FLOWS_FIELDS: List[str] = [
+    "snapshot",
+    "switch",
+    "cookie",
+    "table",
+    "priority",
+    "duration_s",
+    "n_packets",
+    "n_bytes",
+    "match_raw",
+    "actions_raw",
+    "flow_raw",
+]
+
+OVS_PORTS_FIELDS: List[str] = [
+    "snapshot",
+    "switch",
+    "port_no",
+    "rx_pkts",
+    "rx_bytes",
+    "rx_drop",
+    "rx_errs",
+    "tx_pkts",
+    "tx_bytes",
+    "tx_drop",
+    "tx_errs",
+]
+
+
+# Brief: Parses ovs-ofctl dump-flows output and yields one dict per flow line.
+def _iter_flows_rows(dump_flows_text: str) -> Iterable[Dict[str, str]]:
     for line in dump_flows_text.splitlines():
         line = line.strip()
         if not line or line.startswith("OFPST_FLOW") or line.startswith("NXST_FLOW"):
@@ -142,72 +255,41 @@ def _write_flows_csv(dump_flows_text: str, out_csv: Path, switch_name: str) -> N
         n_bytes = _rx(left, r"n_bytes=([0-9]+)")
         priority = _rx(left, r"priority=([0-9]+)")
 
-        match_raw = ""
         if "priority=" in left:
             m = re.search(r"priority=[0-9]+,(.*)$", left)
-            if m:
-                match_raw = m.group(1).strip().rstrip(",")
+            match_raw = m.group(1).strip().rstrip(",") if m else ""
         else:
             match_raw = left.strip().rstrip(",")
 
-        rows.append(
-            {
-                "switch": switch_name,
-                "cookie": cookie,
-                "table": table,
-                "priority": priority,
-                "duration_s": duration_s,
-                "n_packets": n_packets,
-                "n_bytes": n_bytes,
-                "match_raw": match_raw,
-                "actions_raw": actions_raw,
-                "flow_raw": flow_raw,
-            }
-        )
-
-    out_csv.parent.mkdir(parents=True, exist_ok=True)
-    with out_csv.open("w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(
-            f,
-            fieldnames=[
-                "switch",
-                "cookie",
-                "table",
-                "priority",
-                "duration_s",
-                "n_packets",
-                "n_bytes",
-                "match_raw",
-                "actions_raw",
-                "flow_raw",
-            ],
-        )
-        w.writeheader()
-        w.writerows(rows)
+        yield {
+            "cookie": cookie,
+            "table": table,
+            "priority": priority,
+            "duration_s": duration_s,
+            "n_packets": n_packets,
+            "n_bytes": n_bytes,
+            "match_raw": match_raw,
+            "actions_raw": actions_raw,
+            "flow_raw": flow_raw,
+        }
 
 
-# Brief: Parse ovs-ofctl dump-ports output into CSV (rx/tx pkts/bytes/drop/errs)
-def _write_ports_csv(dump_ports_text: str, out_csv: Path, switch_name: str) -> None:
-    rows: List[Dict[str, str]] = []
-
-    # Typical format:
-    #  port 1: rx pkts=..., bytes=..., drop=..., errs=..., ...
-    #          tx pkts=..., bytes=..., drop=..., errs=..., ...
-    current = None
-
+# Brief: Parses ovs-ofctl dump-ports output and yields one dict per port
+def _iter_ports_rows(dump_ports_text: str) -> Iterable[Dict[str, str]]:
     port_re = re.compile(r"^\s*port\s+(\d+):\s*(.*)$")
     rx_re = re.compile(r"rx\s+pkts=(\d+),\s*bytes=(\d+),\s*drop=(\d+),\s*errs=(\d+)")
     tx_re = re.compile(r"tx\s+pkts=(\d+),\s*bytes=(\d+),\s*drop=(\d+),\s*errs=(\d+)")
 
+    current: Optional[Dict[str, str]] = None
+
     for line in dump_ports_text.splitlines():
         m = port_re.match(line)
         if m:
-            # Flush previous port
             if current:
-                rows.append(current)
+                yield current
+
             port_no = m.group(1)
             current = {
-                "switch": switch_name,
                 "port_no": port_no,
                 "rx_pkts": "",
                 "rx_bytes": "",
@@ -218,7 +300,8 @@ def _write_ports_csv(dump_ports_text: str, out_csv: Path, switch_name: str) -> N
                 "tx_drop": "",
                 "tx_errs": "",
             }
-            # Parse rx inline if present
+
+            # Parse rx inline
             mrx = rx_re.search(m.group(2))
             if mrx:
                 current.update(
@@ -242,6 +325,7 @@ def _write_ports_csv(dump_ports_text: str, out_csv: Path, switch_name: str) -> N
                         "rx_errs": mrx.group(4),
                     }
                 )
+
             mtx = tx_re.search(line)
             if mtx:
                 current.update(
@@ -254,33 +338,7 @@ def _write_ports_csv(dump_ports_text: str, out_csv: Path, switch_name: str) -> N
                 )
 
     if current:
-        rows.append(current)
-
-    out_csv.parent.mkdir(parents=True, exist_ok=True)
-    with out_csv.open("w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(
-            f,
-            fieldnames=[
-                "switch",
-                "port_no",
-                "rx_pkts",
-                "rx_bytes",
-                "rx_drop",
-                "rx_errs",
-                "tx_pkts",
-                "tx_bytes",
-                "tx_drop",
-                "tx_errs",
-            ],
-        )
-        w.writeheader()
-        w.writerows(rows)
-
-
-# Brief: Extracts the first capture group from a regex search
-def _rx(text: str, pattern: str) -> str:
-    m = re.search(pattern, text)
-    return m.group(1) if m else ""
+        yield current
 
 
 # Brief: Appends a line to events.log under the given directory
@@ -290,12 +348,10 @@ def append_event(rep_dir: Path, line: str) -> None:
         f.write(line.rstrip() + "\n")
 
 
+# Brief: Expected parsing:
+# - "3%eth0"          -> snapshot_idx=3, interface="eth0"
+# - "snapshot_3%eth0" -> snapshot_idx=3, interface="eth0"
 def _parse_snapshot_iface_from_name(pcap_path: Path) -> Tuple[Optional[int], str]:
-    """
-    Expected parsing:
-      - "3%eth0"          -> snapshot_idx=3, interface="eth0"
-      - "snapshot_3%eth0" -> snapshot_idx=3, interface="eth0"
-    """
     stem = pcap_path.stem  # no ".pcap"
     if "%" not in stem:
         return None, ""
@@ -452,3 +508,92 @@ def merge_all_snapshot_csvs(
                     pass
 
     return {"files": len(inputs), "rows": total_rows}
+
+
+HW_FIELDS = [
+    "snapshot_idx",
+    "ts_epoch",
+    "cpu_pct",
+    "ram_used_bytes",
+    "disk_read_bytes",
+    "disk_write_bytes",
+]
+
+_DISK_RE = re.compile(r"^(sd[a-z]+\d*|vd[a-z]+\d*|nvme\d+n\d+p?\d*)$")
+
+
+def _cpu_stat() -> Tuple[int, int]:
+    with open("/proc/stat", "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            if line.startswith("cpu "):
+                v = [int(x) for x in line.split()[1:]]
+                idle = (v[3] if len(v) > 3 else 0) + (v[4] if len(v) > 4 else 0)
+                total = sum(v[:8]) if len(v) >= 8 else sum(v)
+                return idle, total
+    return 0, 0
+
+
+def _ram_used_bytes() -> int:
+    mem_total = 0
+    mem_avail = 0
+    with open("/proc/meminfo", "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            if line.startswith("MemTotal:"):
+                mem_total = int(line.split()[1]) * 1024
+            elif line.startswith("MemAvailable:"):
+                mem_avail = int(line.split()[1]) * 1024
+    return max(0, mem_total - mem_avail)
+
+
+def _disk_rw_bytes() -> Tuple[int, int]:
+    r_sec = 0
+    w_sec = 0
+    with open("/proc/diskstats", "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            p = line.split()
+            if len(p) < 14:
+                continue
+            name = p[2]
+            if not _DISK_RE.match(name):
+                continue
+            r_sec += int(p[5])
+            w_sec += int(p[9])
+    return r_sec * 512, w_sec * 512
+
+
+def hw_state() -> Tuple[int, int, int, int]:
+    idle, total = _cpu_stat()
+    dr, dw = _disk_rw_bytes()
+    return idle, total, dr, dw
+
+
+def hw_sample(csv_path: Path, snapshot_idx: int, state: List[int]) -> None:
+    csv_path = Path(csv_path)
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+    idle0, total0, dr0, dw0 = state
+    idle1, total1 = _cpu_stat()
+    dr1, dw1 = _disk_rw_bytes()
+
+    idle_d = max(0, idle1 - idle0)
+    total_d = max(0, total1 - total0)
+    cpu_pct = (100.0 * (1.0 - (idle_d / total_d))) if total_d > 0 else 0.0
+
+    row = {
+        "snapshot_idx": str(snapshot_idx),
+        "ts_epoch": str(time.time()),
+        "cpu_pct": f"{cpu_pct:.3f}",
+        "ram_used_bytes": str(_ram_used_bytes()),
+        "disk_read_bytes": str(max(0, dr1 - dr0)),
+        "disk_write_bytes": str(max(0, dw1 - dw0)),
+    }
+
+    write_header = not csv_path.exists()
+    with csv_path.open("a", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=HW_FIELDS)
+        if write_header:
+            w.writeheader()
+        w.writerow(row)
+
+    # update state
+    state[0], state[1], state[2], state[3] = idle1, total1, dr1, dw1

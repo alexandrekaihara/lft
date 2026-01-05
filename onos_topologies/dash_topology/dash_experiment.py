@@ -15,32 +15,28 @@ from onos_topologies.dash_topology import utils
 from onos_topologies.dash_topology.constants import DEFAULT_CONFIG
 
 
-def run_dash_clients_batch(client_batch: list[str], server_ips: list[str], scheme: str = "http") -> None:
+def start_dash_clients_batch(client_batch: list[str], server_ips: list[str], scheme: str = "http") -> list[subprocess.Popen]:
     procs: list[subprocess.Popen] = []
 
     for cname in client_batch:
         srv = random.choice(server_ips)
-        cmd = (
-            f"sudo docker exec {cname} bash -lc "
-            f"\"/usr/local/bin/dash-client -y -hostname {srv} -scheme {scheme}\""
-        )
+        cmd = [
+            "sudo", "docker", "exec", cname, "bash", "-lc",
+            f"/usr/local/bin/dash-client -y -hostname {srv} -scheme {scheme}",
+        ]
         print(f"[DIAG] start {cname} -> server {srv}")
-        procs.append(subprocess.Popen(cmd, shell=True))
+        procs.append(subprocess.Popen(cmd))
 
-    for p in procs:
-        p.wait()
+    return procs
 
 
 if __name__ == "__main__":
-    # Snapshot window (seconds)
     ROTATE_S = 300
-
-    # tshark display filter (None = keep everything)
+    HW_POLL_S = 5
     DISPLAY_FILTER = None
-
     BPF_FILTER = "(tcp port 80 or tcp port 443 or icmp)"
 
-    # Cumulative load plan: 25, 50, 75, 100 (max 100 clients)
+    # Cumulative load plan: 25, 50, 75, 100
     BATCH_SIZES = [25, 50, 75, 100]
     MAX_CLIENTS = 100
 
@@ -69,6 +65,7 @@ if __name__ == "__main__":
         "run_discovery": run_discovery,
         "run_root": str(run_root),
         "rotate_s": ROTATE_S,
+        "hw_poll_s": HW_POLL_S,
         "bpf_filter": BPF_FILTER,
         "display_filter": DISPLAY_FILTER,
         "experiment": "4 snapshots, cumulative clients 25/50/75/100, random server among ALL servers",
@@ -91,7 +88,7 @@ if __name__ == "__main__":
 
         client_names = sorted(topo.clients.keys())
         client_pool = client_names[:MAX_CLIENTS]
-        log.info(f"[EXPERIMENT] ROTATE_S={ROTATE_S}s, servers={server_ips}, total_clients_pool={len(client_pool)}")
+        log.info(f"[EXPERIMENT] ROTATE_S={ROTATE_S}s, HW_POLL_S={HW_POLL_S}s, servers={server_ips}, total_clients_pool={len(client_pool)}")
 
         for snap_idx, k in enumerate(BATCH_SIZES, start=1):
             ts = time.strftime("%Y%m%d-%H%M%S")
@@ -103,8 +100,7 @@ if __name__ == "__main__":
 
             utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_START {ts}")
 
-            # Start tcpdump on each switch, writing into THIS snapshot tcpdump dir
-            # (same path for all switches, filenames differentiate by "%iface")
+            # Start tcpdump on each switch, writing into this snapshot tcpdump dir
             for pop, sw in topo.switches.items():
                 swname = sw.getNodeName()
                 capture_path = f"/results/dash/snapshots/snapshot_{snap_idx}/tcpdump"
@@ -128,30 +124,42 @@ if __name__ == "__main__":
             batch = client_pool[:k_eff]
             log.info(f"[EXPERIMENT] snapshot_{snap_idx}: running cumulative dash-client k={k_eff}")
 
-            # Keep snapshot window ~ ROTATE_S seconds
-            t0 = time.time()
+            # Start clients (async), then keep the window open for ROTATE_S while sampling HW
+            procs: list[subprocess.Popen] = []
             if batch:
-                run_dash_clients_batch(batch, server_ips, scheme="http")
-            elapsed = time.time() - t0
-            remaining = max(0.0, ROTATE_S - elapsed)
-            time.sleep(remaining)
+                procs = start_dash_clients_batch(batch, server_ips, scheme="http")
+
+            st = list(utils.hw_state()) # [idle_cpu, total_cpu, disk_read_total, disk_write_total]
+            samples = max(1, int(ROTATE_S // HW_POLL_S))
+            remainder = ROTATE_S - samples * HW_POLL_S
+
+            # Wait ROTATE_S seconds while sampling HW every HW_POLL_S seconds
+            for _ in range(samples):
+                time.sleep(HW_POLL_S)
+                utils.hw_sample(Path(run_root) / "hw.csv", snap_idx, st)
+
+            if remainder > 0:
+                time.sleep(remainder)
+                utils.hw_sample(Path(run_root) / "hw.csv", snap_idx, st)
+
             time.sleep(2)
 
-            # Optional: snapshot OVS/OpenFlow state into snapshot_X/ovs/
+            # Snapshot OVS/OpenFlow state into snapshot_X/ovs/
             utils.snapshot_ovs_state(
                 switch_names=[sw.getNodeName() for sw in topo.switches.values()],
                 outdir=ovs_dir,
                 of_version="OpenFlow13",
                 parse_csv=True,
+                snapshot_idx=snap_idx,
             )
 
-            # Build ONE merged CSV for this snapshot
+            # Build one merged CSV for this snapshot
             packet_flow_csv = tcpdump_dir / "packet_flow.csv"
             stats = utils.snapshot_pcaps_to_single_csv(
                 tcpdump_dir=tcpdump_dir,
                 out_csv=packet_flow_csv,
                 display_filter=DISPLAY_FILTER,
-                delete_pcaps=True, 
+                delete_pcaps=True,
             )
             log.info(
                 f"[PCAP->CSV] snapshot_{snap_idx}: pcaps={stats['pcaps']} rows={stats['rows']} -> {packet_flow_csv}"
@@ -166,7 +174,7 @@ if __name__ == "__main__":
     finally:
         utils.append_event(run_root, f"EXPERIMENT_STOP {int(time.time())}")
 
-        # Merge ALL snapshot_X/tcpdump/packet_flow.csv into one run_root/packet_flow_all.csv
+        # Merge all snapshot_X/tcpdump/packet_flow.csv into one run_root/packet_flow_all.csv
         final_stats = utils.merge_all_snapshot_csvs(
             run_root=Path(run_root),
             out_csv_name="packet_flow_all.csv",
@@ -176,6 +184,12 @@ if __name__ == "__main__":
             f"[CSV-MERGE] files={final_stats['files']} rows={final_stats['rows']} -> "
             f"{Path(run_root) / 'packet_flow_all.csv'}"
         )
+
+        ovs_stats = utils.merge_all_snapshot_ovs_csvs(
+            run_root=Path(run_root),
+            delete_inputs=False,
+        )
+        log.info(f"[OVS-MERGE] flows={ovs_stats['flows']} ports={ovs_stats['ports']}")
 
         log.info("[RESET] utils.cleanup() (post)")
         try:

@@ -15,6 +15,7 @@ from onos_topologies.dash_topology.constants import DEBUG_CONFIG
 
 if __name__ == "__main__":
     ROTATE_S = 120 # 2 minutes per snapshot
+    HW_POLL_S = 5 
     DISPLAY_FILTER = None
     BPF_FILTER = ""
     #BPF_FILTER = "(tcp port 80 or tcp port 443 or icmp)"
@@ -93,8 +94,14 @@ if __name__ == "__main__":
                     snapshot_idx=snap_idx,
                 )
 
-            # Wait the capture window to finish
-            time.sleep(ROTATE_S)
+            st = list(utils.hw_state()) # st = [idle_cpu, total_cpu, disk_read_bytes_total, disk_write_bytes_total]
+            samples = max(1, int(ROTATE_S // HW_POLL_S)) # ex: ROTATE_S = 600s and HW_POLL_S = 5s => 120 samples
+
+            # This loop lasts ROTATE_S seconds (same duration as the tcpdumps) while sampling HW every HW_POLL_S seconds
+            for _ in range(samples):
+                time.sleep(HW_POLL_S)
+                utils.hw_sample(Path(run_root) / "hw.csv", snap_idx, st)
+
             time.sleep(2)
 
             # OVS snapshot for every switch (end of snapshot window)
@@ -103,6 +110,7 @@ if __name__ == "__main__":
                 outdir=ovs_dir,
                 of_version="OpenFlow13",
                 parse_csv=True,
+                snapshot_idx=snap_idx,
             )
 
             # Build ONE merged CSV for this snapshot
@@ -111,8 +119,9 @@ if __name__ == "__main__":
                 tcpdump_dir=pcaps_dir,
                 out_csv=packet_flow_csv,
                 display_filter=DISPLAY_FILTER,
-                delete_pcaps=True,  # set False if you want to keep pcaps for debugging
+                delete_pcaps=True, 
             )
+
             log.info(f"[PCAP->CSV] snapshot_{snap_idx}: pcaps={stats['pcaps']} rows={stats['rows']} -> {packet_flow_csv}")
             utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_END {time.strftime('%Y%m%d-%H%M%S')}")
             snap_idx += 1
@@ -128,11 +137,16 @@ if __name__ == "__main__":
             out_csv_name="packet_flow_all.csv",
             delete_inputs=False,                  
         )
-
         log.info(
             f"[CSV-MERGE] files={final_stats['files']} rows={final_stats['rows']} -> "
             f"{Path(run_root) / 'packet_flow_all.csv'}"
         )
+
+        ovs_stats = utils.merge_all_snapshot_ovs_csvs(
+            run_root=Path(run_root),
+            delete_inputs=False,
+        )
+        log.info(f"[OVS-MERGE] flows={ovs_stats['flows']} ports={ovs_stats['ports']}")
 
         try:
             utils.cleanup()
