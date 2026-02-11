@@ -10,7 +10,7 @@ sys.path.insert(0, str(project_root))
 
 from onos_topologies.dash_topology.dash_topology import DashTopology
 from onos_topologies.dash_topology import utils
-from onos_topologies.dash_topology.constants import DEBUG_CONFIG
+from onos_topologies.dash_topology.constants import DEFAULT_CONFIG, DEBUG_CONFIG
 
 
 if __name__ == "__main__":
@@ -23,7 +23,10 @@ if __name__ == "__main__":
     results_root = project_root / "results" / "dash"
     results_root.mkdir(parents=True, exist_ok=True)
 
+    disable_fwd = (input("Disable ONOS Active Forwarding? [y/N] ").strip().lower() == "y")
     run_discovery = (input("Controller host discovery? [y/N] ").strip().lower() == "y")
+    run_capture = (input("Would you like to capture traffic and flow information from the network? [y/N] ").strip().lower() == "y")
+    run_default = (input("Would you like to run the default topology? (Debug, if NOT) [y/N] ").strip().lower() == "y")
 
     run_root = results_root / f"run_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
     run_root.mkdir(parents=True, exist_ok=True)
@@ -53,78 +56,89 @@ if __name__ == "__main__":
         log.info("[RESET] utils.cleanup() (pre)")
         utils.cleanup() 
 
-        topo = DashTopology(config=DEBUG_CONFIG, results_dir=run_root)
-        topo.run(run_discovery=run_discovery)
+        # Creates and run the topology
+        if (run_default):
+            topo = DashTopology(config=DEFAULT_CONFIG, results_dir=run_root)
+        else:
+            topo = DashTopology(config=DEBUG_CONFIG, results_dir=run_root)
+        topo.run(run_discovery=run_discovery, disable_fwd=disable_fwd)
 
+        # Prints the starting time of execution and saves the stdout string into events.log
         utils.append_event(run_root, f"CONTINUOUS_START {int(time.time())}")
 
-        log.info(f"[CONTINUOUS] Snapshot every {ROTATE_S} minutes. Ctrl+C to stop.")
-        snap_idx = 1
 
         # To run some tests
         client_names = sorted(topo.clients.keys()) # ["cl0","cl1","cl2",...]
         cl_idx = 0
         test_phase = 0 # 0=ICMP, 1=curl, 2=dash-client
 
-        # Each execution corresponds to a snapshot
-        while True:
-            ts = time.strftime("%Y%m%d-%H%M%S")
-            snap_dir = snaps_root / f"snapshot_{snap_idx}"
-            ovs_dir = snap_dir / "ovs"
-            pcaps_dir = snap_dir / "tcpdump"
-            ovs_dir.mkdir(parents=True, exist_ok=True)
-            pcaps_dir.mkdir(parents=True, exist_ok=True)
+        # ONLY inspects traffic if user said so
+        if (run_capture):
+            log.info(f"[CONTINUOUS] Snapshot every {ROTATE_S} minutes. Ctrl+C to stop.")
+            snap_idx = 1
+            # Each execution corresponds to a snapshot
+            while True:
+                ts = time.strftime("%Y%m%d-%H%M%S")
+                snap_dir = snaps_root / f"snapshot_{snap_idx}"
+                ovs_dir = snap_dir / "ovs"
+                pcaps_dir = snap_dir / "tcpdump"
+                ovs_dir.mkdir(parents=True, exist_ok=True)
+                pcaps_dir.mkdir(parents=True, exist_ok=True)
 
-            utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_START {ts}")
+                utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_START {ts}")
 
-            # Start tcpdump on each switch interface, writing straight into this snapshot/
-            for pop, sw in topo.switches.items():
-                swname = sw.getNodeName()
-                capture_path = f"/results/dash/snapshots/snapshot_{snap_idx}/tcpdump"
+                # Start tcpdump on each switch interface, writing straight into this snapshot/
+                for pop, sw in topo.switches.items():
+                    swname = sw.getNodeName()
+                    capture_path = f"/results/dash/snapshots/snapshot_{snap_idx}/tcpdump"
 
-                nodes = list(topo.hosts_by_pop.get(pop, []))
+                    nodes = list(topo.hosts_by_pop.get(pop, []))
 
-                # Start a new tcpdump every snapshot (per interface). It auto-stops after ROTATE_S via the timeout flag, so it doesn't accumulate
-                sw.collectFlowsTcpdump(
-                    nodes=nodes,
-                    path=capture_path,
-                    rotateInterval=ROTATE_S,
-                    sniffAll=False,
-                    bpf_filter=BPF_FILTER,
+                    # Start a new tcpdump every snapshot (per interface). It auto-stops after ROTATE_S via the timeout flag, so it doesn't accumulate!!
+                    sw.collectFlowsTcpdump(
+                        nodes=nodes,
+                        path=capture_path,
+                        rotateInterval=ROTATE_S,
+                        sniffAll=False,
+                        bpf_filter=BPF_FILTER,
+                        snapshot_idx=snap_idx,
+                    )
+
+                st = list(utils.hw_state()) # st = [idle_cpu, total_cpu, disk_read_bytes_total, disk_write_bytes_total]
+                samples = max(1, int(ROTATE_S // HW_POLL_S)) # ex: ROTATE_S = 600s and HW_POLL_S = 5s => 120 samples
+
+                # This loop lasts ROTATE_S seconds (same duration as the tcpdumps) while sampling HW every HW_POLL_S seconds
+                for _ in range(samples):
+                    time.sleep(HW_POLL_S)
+                    utils.hw_sample(Path(run_root) / "hw.csv", snap_idx, st)
+
+                time.sleep(2)
+
+                # OVS snapshot for every switch (end of snapshot window)
+                utils.snapshot_ovs_state(
+                    switch_names=[sw.getNodeName() for sw in topo.switches.values()],
+                    outdir=ovs_dir,
+                    of_version="OpenFlow13",
+                    parse_csv=True,
                     snapshot_idx=snap_idx,
                 )
 
-            st = list(utils.hw_state()) # st = [idle_cpu, total_cpu, disk_read_bytes_total, disk_write_bytes_total]
-            samples = max(1, int(ROTATE_S // HW_POLL_S)) # ex: ROTATE_S = 600s and HW_POLL_S = 5s => 120 samples
+                # Build ONE merged CSV for this snapshot from the .pcaps generated per tcpdump
+                packet_flow_csv = pcaps_dir / "packet_flow.csv"
+                stats = utils.snapshot_pcaps_to_single_csv(
+                    tcpdump_dir=pcaps_dir,
+                    out_csv=packet_flow_csv,
+                    display_filter=DISPLAY_FILTER,
+                    delete_pcaps=True, 
+                )
 
-            # This loop lasts ROTATE_S seconds (same duration as the tcpdumps) while sampling HW every HW_POLL_S seconds
-            for _ in range(samples):
-                time.sleep(HW_POLL_S)
-                utils.hw_sample(Path(run_root) / "hw.csv", snap_idx, st)
-
-            time.sleep(2)
-
-            # OVS snapshot for every switch (end of snapshot window)
-            utils.snapshot_ovs_state(
-                switch_names=[sw.getNodeName() for sw in topo.switches.values()],
-                outdir=ovs_dir,
-                of_version="OpenFlow13",
-                parse_csv=True,
-                snapshot_idx=snap_idx,
-            )
-
-            # Build ONE merged CSV for this snapshot
-            packet_flow_csv = pcaps_dir / "packet_flow.csv"
-            stats = utils.snapshot_pcaps_to_single_csv(
-                tcpdump_dir=pcaps_dir,
-                out_csv=packet_flow_csv,
-                display_filter=DISPLAY_FILTER,
-                delete_pcaps=True, 
-            )
-
-            log.info(f"[PCAP->CSV] snapshot_{snap_idx}: pcaps={stats['pcaps']} rows={stats['rows']} -> {packet_flow_csv}")
-            utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_END {time.strftime('%Y%m%d-%H%M%S')}")
-            snap_idx += 1
+                log.info(f"[PCAP->CSV] snapshot_{snap_idx}: pcaps={stats['pcaps']} rows={stats['rows']} -> {packet_flow_csv}")
+                utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_END {time.strftime('%Y%m%d-%H%M%S')}")
+                snap_idx += 1
+        else:
+            # Infinite loop without traffic capture. Runs forever, until user presses Ctrl + C
+            while True:
+                time.sleep(ROTATE_S)
 
     except KeyboardInterrupt:
         log.info("[CONTINUOUS] Stop requested.")

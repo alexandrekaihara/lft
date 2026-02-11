@@ -39,6 +39,9 @@ class DashTopology:
         # Map: {pop_name: switch_obj}
         self.switches = {}
 
+        # ONOS controller (object)
+        self.controller = ""
+
         # PoP list of client Node (used by collectFlows to select host-facing ports)
         self.hosts_by_pop = {pop[0]: [] for pop in self.config['pops']}
 
@@ -156,6 +159,7 @@ class DashTopology:
         print("[CTRL] Activating OpenFlow + Host Provider + Reactive Forwarding")
         c1.activateONOSApps(self.onos_ip)
         print("[OK] ONOS is ready!\n")
+        self.controller = c1 # stores c1 obj to access a few methods outside of this function
 
     # Brief: Create all OVS switches and connect them to the ONOS controller
     def __create_switches(self):
@@ -164,11 +168,24 @@ class DashTopology:
             self.host_results.mkdir(parents=True, exist_ok=True)
 
         print(f"[Experiment] ... Creating {len(self.config['pops'])} OVS switches")
+        dpid_counter = 1
         for pop, sname in self.pop_to_sname.items():
+            # If pop is "PoP-BA", uf becomes "BA"
+            uf = str(pop).split("-")[-1].upper()
+
+            datapath_id = f"{dpid_counter:016x}" # ex: "0000000000000001"
+            dpid_counter += 1
+
             sw = Switch(sname, hostPath=str(self.host_results), containerPath="/results/dash")
-            sw.instantiate(image='alexandremitsurukaihara/lst2.0:openvswitch', networkMode="bridge")
+            sw.instantiate(
+                image="alexandremitsurukaihara/lst2.0:openvswitch",
+                networkMode="bridge",
+                datapath_id=datapath_id,
+                sw_desc=uf,
+            )
+
             self.switches[pop] = sw
-            print(f"  ... Switch {pop} as {sname} was created!")
+            print(f"  ... Switch {pop} as {sname} was created! dpid={datapath_id} desc={uf}")
             time.sleep(0.4)
 
         print(f"[CTRL] Pointing all switches to ONOS ({self.onos_ip}:6653)")
@@ -224,6 +241,18 @@ class DashTopology:
         utils.sleep_countdown(3)
         print("[OK] Hosts should be visible in ONOS.\n")
 
+    def __discover_dash_servers(self) -> None:
+        probe_ip = "192.168.0.254"
+        print("\n[DISCOVERY] Priming servers (ARP via ping) ...")
+
+        for sname, server in self.servers.items():
+            print(f"  ... {sname}: ping {probe_ip}")
+            # usa sh (debian slim não garante bash)
+            server.run(f'sh -lc "ping -c 1 -W 1 {probe_ip} >/dev/null 2>&1 || true"')
+        print("  ... waiting 3s for ONOS /hosts update")
+        utils.sleep_countdown(3)
+        print("[OK] Servers should be visible in ONOS /hosts.\n")
+
     # Brief: Run dash-client once on all clients and store results under iter_dir (host path)
     def __run_dash_clients(self, scheme: str = "http"):
         print("\n[DIAG] Running dash-client for all clients (random server each)")
@@ -244,7 +273,7 @@ class DashTopology:
         print("[DIAG] Done.\n")
 
     # Brief: Run full topology
-    def run(self, run_discovery: bool = False, run_dash_clients: bool = False):
+    def run(self, run_discovery: bool = False, disable_fwd: bool = False, run_dash_clients: bool = False):
         utils.print_banner()
 
         self.__create_controller()
@@ -252,9 +281,16 @@ class DashTopology:
         self.__connect_switches()
         self.__create_clients()
         self.__create_servers()
+        self.__discover_dash_servers()
 
         print("Waiting for network stabilization (5s)...\n")
         utils.sleep_countdown(5)
+
+        if disable_fwd:
+            c1 = self.controller
+            c1.deactivateONOSApps(self.onos_ip)
+        else:
+            print("[INFO] ONOS Active Forwarding is active (Turn it off if you want to test the deployer).")
 
         if run_discovery:
             self.__run_ping()
