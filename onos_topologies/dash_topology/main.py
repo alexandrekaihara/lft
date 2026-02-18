@@ -17,8 +17,8 @@ if __name__ == "__main__":
     ROTATE_S = 120 # 2 minutes per snapshot
     HW_POLL_S = 5 
     DISPLAY_FILTER = None
-    BPF_FILTER = ""
-    #BPF_FILTER = "(tcp port 80 or tcp port 443 or icmp)"
+    #BPF_FILTER = ""
+    BPF_FILTER = "(tcp port 80 or tcp port 443 or icmp)"
 
     results_root = project_root / "results" / "dash"
     results_root.mkdir(parents=True, exist_ok=True)

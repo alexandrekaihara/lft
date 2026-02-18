@@ -4,7 +4,10 @@ import time
 import csv
 import re
 import io
+import json
 import threading
+import requests
+from requests.auth import HTTPBasicAuth
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional, Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -137,6 +140,25 @@ def snapshot_ovs_state(
             futs = [ex.submit(snap_one, sw) for sw in switch_names]
             for f in as_completed(futs):
                 f.result()
+
+
+# Brief: sends flow rule to ONOS via REST.
+def push_onos_flow(onos_ip, device_id, criteria, out_port, priority=60000, app_id="org.onosproject.rtt_measure"):
+    url = f"http://{onos_ip}:8181/onos/v1/flows/{device_id}?appId={app_id}"
+
+    payload = {
+        "priority": priority,
+        "isPermanent": True,
+        "selector": {"criteria": criteria},
+        "treatment": {"instructions": [{"type": "OUTPUT", "port": str(out_port)}]},
+    }
+
+    try:
+        res = requests.post(url, json=payload, auth=HTTPBasicAuth("onos", "rocks"), timeout=3)
+        return res.status_code in (200, 201)
+    except Exception as e:
+        print(f"Error pushing flow to ONOS: {e}")
+        return False
 
 
 def merge_all_snapshot_ovs_csvs(
@@ -361,7 +383,7 @@ def _parse_snapshot_iface_from_name(pcap_path: Path) -> Tuple[Optional[int], str
     snap = int(m.group(1)) if m else None
     return snap, iface
 
-
+# Obs: Display Filter é um filtro de protocolo PÓS-CAPTURA. O BPF filter do tcpdump filtra em tempo de execução!!
 def _tshark_cmd(pcap_path: Path, display_filter: Optional[str]) -> List[str]:
     cmd = ["tshark", "-r", str(pcap_path)]
     if display_filter:
@@ -597,3 +619,98 @@ def hw_sample(csv_path: Path, snapshot_idx: int, state: List[int]) -> None:
 
     # update state
     state[0], state[1], state[2], state[3] = idle1, total1, dr1, dw1
+
+
+IPERF_FIELDS = [
+    "snapshot_idx",
+    "client",
+    "interval_start",
+    "interval_end",
+    "seconds",
+    "bytes",
+    "bits_per_second",
+    "retransmits",
+]
+
+# Brief: Expected filename: <client>%<snapshot_idx>.<ext>
+#  Example: cl0%3.json
+def _parse_client_snapshot_from_name(p: Path) -> Tuple[Optional[int], str]:
+    stem = p.stem  # cl0%3
+    if "%" not in stem:
+        return None, ""
+    client, snap = stem.split("%", 1)
+    try:
+        return int(snap), client
+    except Exception:
+        return None, client
+
+
+# Brief: iperf3 JSON usually has interval["sum"] for single-stream. 
+#  If not present, fallback to streams[0]
+def _safe_get_interval_sum(interval: Dict[str, Any]) -> Dict[str, Any]:
+    if isinstance(interval.get("sum"), dict):
+        return interval["sum"]
+    streams = interval.get("streams")
+    if isinstance(streams, list) and streams and isinstance(streams[0], dict):
+        # Each stream often has keys similar to sum; keep it best-effort.
+        return streams[0]
+    return {}
+
+# Brief: Convert ALL *.json in `iperf_dir` into ONE CSV at `out_csv`
+#  Adds columns: snapshot_idx, client (parsed from filename split by '%')
+#  Writes one row per interval (e.g., 1s intervals if iperf ran with -i 1)
+#  Returns stats dict: {"jsons": X, "rows": Y}
+def snapshot_iperf_jsons_to_single_csv(
+    iperf_dir: Path,
+    out_csv: Path,
+) -> Dict[str, int]:
+    iperf_dir = Path(iperf_dir)
+    out_csv = Path(out_csv)
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+
+    jsons = sorted(iperf_dir.glob("*.json"))
+    total_rows = 0
+
+    with out_csv.open("w", newline="", encoding="utf-8") as f_out:
+        w = csv.DictWriter(f_out, fieldnames=IPERF_FIELDS)
+        w.writeheader()
+
+        for js in jsons:
+            snap_idx, client = _parse_client_snapshot_from_name(js)
+            snap_val = snap_idx if snap_idx is not None else ""
+
+            try:
+                raw = js.read_text(encoding="utf-8", errors="ignore").strip()
+                if not raw:
+                    continue
+                data = json.loads(raw)
+            except Exception:
+                # Skip malformed JSON files
+                continue
+
+            intervals = data.get("intervals", [])
+            if not isinstance(intervals, list) or not intervals:
+                continue
+
+            for interval in intervals:
+                if not isinstance(interval, dict):
+                    continue
+
+                s = _safe_get_interval_sum(interval)
+                if not isinstance(s, dict) or not s:
+                    continue
+
+                row = {
+                    "snapshot_idx": str(snap_val),
+                    "client": str(client),
+                    "interval_start": str(s.get("start", "")),
+                    "interval_end": str(s.get("end", "")),
+                    "seconds": str(s.get("seconds", "")),
+                    "bytes": str(s.get("bytes", "")),
+                    "bits_per_second": str(s.get("bits_per_second", "")),
+                    "retransmits": str(s.get("retransmits", "")),
+                }
+                w.writerow(row)
+                total_rows += 1
+
+    return {"jsons": len(jsons), "rows": total_rows}

@@ -41,15 +41,40 @@ class Switch(Node):
     # Params:
     # Return:
     #   None
-    def instantiate(self, image='alexandremitsurukaihara/lst2.0:openvswitch', controllerIP='', controllerPort=-1, networkMode='none', protocols='OpenFlow13') -> None:
+    def instantiate(self, 
+                    image='alexandremitsurukaihara/lst2.0:openvswitch', 
+                    controllerIP='', 
+                    controllerPort=-1, 
+                    networkMode='none', 
+                    protocols='OpenFlow13',
+                    datapath_id=None,
+                    sw_desc=None) -> None:
         mount = ''
         if self.__mount: mount = f'-v {self.__hostPath}:{self.__containerPath}'
         
         super().instantiate(dockerCommand=f"docker run -d --privileged --cap-add=NET_ADMIN --network={networkMode} {mount} --name={self.getNodeName()} {image}")
+        br = self.getNodeName()
         try:
             # Create bridge and set it up
             subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl add-br {self.getNodeName()}", shell=True)
             subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl set bridge {self.getNodeName()} protocols={protocols}", shell=True)
+
+            if datapath_id:
+                # fixes the deviceId in ONOS (derived from de DPID)
+                subprocess.run(
+                    f"docker exec {br} ovs-vsctl set bridge {br} "
+                    f"other-config:datapath-id={shlex.quote(datapath_id)}",
+                    shell=True, check=True
+                )
+            
+            if sw_desc:
+                # switch annotation to easily identify switches. ONOS shows it in device annotations
+                subprocess.run(
+                    f"docker exec {br} ovs-vsctl set bridge {br} "
+                    f"other-config:dp-desc={shlex.quote(sw_desc)}",
+                    shell=True, check=True
+                )
+
             subprocess.run(f"docker exec {self.getNodeName()} ip link set {self.getNodeName()} up", shell=True)
         except Exception as ex:
             logging.error(f"Error while creating the switch {self.getNodeName()}: {str(ex)}")
@@ -220,7 +245,6 @@ class Switch(Node):
                 )
             else:
                 logging.info(f"[tcpdump] {swname}:{iface} -> {outdir}")
-
 
     # Brief: Set default route to forward all incoming packets to s1 bridge and let the bridge handle the forwarding
     # Params:
