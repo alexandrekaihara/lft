@@ -2,7 +2,7 @@ import os
 import random
 import subprocess
 import time
-import json
+import glob
 from pathlib import Path
 
 from . import utils
@@ -180,8 +180,9 @@ class DashTopology:
     def __create_controller(self):
         print("\n[Experiment] ... Creating ONOS controller")
         c1 = ONOS("c1")
-        if self.ospf is False: c1.instantiate(mapPorts=True)
-        else: c1.instantiate(dockerImage="onosproject/onos", mapPorts=True) # use old onos version, that supports OSPF
+        dockerImage="onosproject/onos:2.5.0"
+        if self.ospf is False: c1.instantiate(dockerImage=dockerImage, mapPorts=True)
+        else: c1.instantiate(dockerImage=dockerImage, mapPorts=True) 
         self.onos_ip = utils.get_container_ip("c1")
         c1.setCliIp(self.onos_ip) # needed in runOnosCliCommands() from Onos class
         print(f"[CTRL] ONOS IP: {self.onos_ip}")
@@ -189,6 +190,38 @@ class DashTopology:
         utils.sleep_countdown(30)
         print("[CTRL] Activating OpenFlow + Host Provider + Reactive Forwarding")
         c1.activateONOSApps(self.onos_ip)
+
+        if (dockerImage == "onosproject/onos:2.5.0"):
+            print("[CTRL] Installing custom latency app via REST API...")
+            
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            search_path = os.path.join(current_dir, "..", "*.oar")
+            oar_files = glob.glob(search_path)
+            
+            if not oar_files:
+                print("[ERROR] .oar file not found!")
+                return 
+
+            oar_path = oar_files[0]
+            container_name = "c1"
+
+            # Copy to ONOS container home
+            subprocess.run(f"docker cp {oar_path} {container_name}:/home/onos/lft_app.oar", shell=True)
+
+            # Permissions to run the .oar (Chown and Chmod)
+            subprocess.run(f"docker exec -u 0 {container_name} chown onos:onos /home/onos/lft_app.oar", shell=True)
+            subprocess.run(f"docker exec -u 0 {container_name} chmod 644 /home/onos/lft_app.oar", shell=True)
+
+            # Install and activate via REST API
+            activation_cmd = (
+                f'docker exec {container_name} curl -u onos:rocks -X POST '
+                f'-H "Content-Type:application/octet-stream" '
+                f'"http://localhost:8181/onos/v1/applications?activate=true" '
+                f'--data-binary "@/home/onos/lft_app.oar"'
+            )
+            subprocess.run(activation_cmd, shell=True)
+            
+            print("[OK] Latency app installed and activated!")
         print("[OK] ONOS is ready!\n")
         self.controller = c1 # stores c1 obj to access a few methods outside of this function
 
@@ -462,8 +495,8 @@ class DashTopology:
 
         if (self.ospf):
             c1.runOnosCliCommands("app deactivate org.onosproject.fwd")
-            c1.runOnosCliCommands("app activate org.onosproject.ospf")
-            c1.runOnosCliCommands("apps -s") # print status
+            #c1.runOnosCliCommands("app activate org.onosproject.ospf")
+            #c1.runOnosCliCommands("apps -s") # print status
 
         self.__discover_dash_servers()
 

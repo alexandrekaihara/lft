@@ -76,7 +76,7 @@ DEFAULT_CONFIG = {
 DEBUG_CONFIG = {
     "adjacency_matrix": ADJACENCY_MATRIX_DEBUG,
     "pops": POPS_DEBUG,
-    "apply_link_properties": False,         
+    "apply_link_properties": True,         
     "randomize_link_properties": False,      
     "throughput": "300mbit",              
     "delay": "10ms",                         
