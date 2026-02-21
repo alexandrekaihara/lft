@@ -86,7 +86,7 @@ if __name__ == "__main__":
         """
             Step: Create and run the topology, alongside with the TCP iperf server and deployer
         """
-        topo = DashTopology(config=CONFIG, results_dir=run_root, iperf=True, ospf=True)
+        topo = DashTopology(config=CONFIG, results_dir=run_root, iperf=True)
         topo.run(run_discovery=True, disable_fwd=False)
         topo.servers[server_name].startServer(port=5201) # grabs the server obj and runs it
 

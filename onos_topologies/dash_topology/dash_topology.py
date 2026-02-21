@@ -24,7 +24,7 @@ class DashTopology:
                  config: dict = DEFAULT_CONFIG, 
                  results_dir: Path = None,
                  iperf: bool = False,
-                 ospf: bool = False
+                 onos_version: str = "onosproject/onos:2.5.0"
                  ):
         self.config = config
 
@@ -36,8 +36,8 @@ class DashTopology:
         # Only created for the iperf experiment. If true, clients and servers use iperf instead of the typical dash algo
         self.iperf = iperf  
 
-        # True if OSPF for routing instead of fwd
-        self.ospf = ospf
+        # Default version v2.5 for compatibility with measuring tools
+        self.onos_version = onos_version
 
         # Map: {pop_name: switch_name}
         self.pop_to_sname = {pop[0]: f"s{i}" for i, pop in enumerate(self.config['pops'])}
@@ -180,9 +180,8 @@ class DashTopology:
     def __create_controller(self):
         print("\n[Experiment] ... Creating ONOS controller")
         c1 = ONOS("c1")
-        dockerImage="onosproject/onos:2.5.0"
-        if self.ospf is False: c1.instantiate(dockerImage=dockerImage, mapPorts=True)
-        else: c1.instantiate(dockerImage=dockerImage, mapPorts=True) 
+        dockerImage=self.onos_version
+        c1.instantiate(dockerImage=dockerImage, mapPorts=True) 
         self.onos_ip = utils.get_container_ip("c1")
         c1.setCliIp(self.onos_ip) # needed in runOnosCliCommands() from Onos class
         print(f"[CTRL] ONOS IP: {self.onos_ip}")
@@ -494,11 +493,6 @@ class DashTopology:
             # Only for the iperf experiment!!
             self.__create_clients(iperf=True)
             self.__create_servers(iperf=True)
-
-        if (self.ospf):
-            c1.runOnosCliCommands("app deactivate org.onosproject.fwd")
-            #c1.runOnosCliCommands("app activate org.onosproject.ospf")
-            #c1.runOnosCliCommands("apps -s") # print status
 
         self.__discover_dash_servers()
 
