@@ -23,6 +23,8 @@ experiment/__pycache__
 profissa_lft/__pycache__
 experiment/results/*
 results/data/*
+results/dash/*
+results/iperf/*
 results/__pycache__
 containernet/
 onos_topologies/__pycache__
