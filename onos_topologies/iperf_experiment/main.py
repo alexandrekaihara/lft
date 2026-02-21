@@ -10,12 +10,31 @@ sys.path.insert(0, str(project_root))
 from onos_topologies.dash_topology.dash_topology import DashTopology
 from onos_topologies.dash_topology import utils
 
+def print_network_summary(topo):
+    print("\n" + "="*60)
+    print(" [INSPEÇÃO DE LINKS] Status Atual das Portas (tc)")
+    # Mapeamento dos links principais para monitorar
+    links_to_check = [
+        ("MG (s1)", "s1s0"), ("ES (s0)", "s0s1"),  # Link MG-ES
+        ("RJ (s2)", "s2s0"), ("ES (s0)", "s0s2")   # Link RJ-ES
+    ]
+    
+    for sw_name, interface in links_to_check:
+        sw_id = sw_name.split('(')[1].replace(')', '')
+        cmd = f"docker exec {sw_id} tc qdisc show dev {interface}"
+        res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        # Limpa a saída do tc para ficar em uma linha
+        clean_res = res.stdout.replace("qdisc netem 90d4: root refcnt 2 ", "").strip()
+        print(f" {sw_name} [{interface}]: {clean_res}")
+    print("="*60 + "\n")
+
+
 if __name__ == "__main__":
     """
         Step: Defining Experiment Constants
     """
     ROTATE_S = 60 # 1 minute per snapshot
-    DEGRADED_ITERS = {2, 4}
+    DEGRADED_ITERS = {2, 5}
     server_name = "ds0" # get the container name statically
     server_ip = "192.168.0.1"
     base_url_deployer = "http://127.0.0.1:5000/deploy"
@@ -72,21 +91,19 @@ if __name__ == "__main__":
         topo.servers[server_name].startServer(port=5201) # grabs the server obj and runs it
 
         print("\n[SETUP] Start the deployer in another terminal:")
-        print("  cmd: docker run --rm -it --network host --name deployer deployer ")
-        utils.sleep_countdown(t=30)
+        print("  cmd: sudo docker run --rm -it --network host -v /var/run/docker.sock:/var/run/docker.sock --name deployer deployer")
+        utils.sleep_countdown(t=60)
 
 
         """
             Step: hardcode link properties
         """
-        # 'Clean' veth properties
-        subprocess.run(f"sudo docker exec s0 tc qdisc del dev s0s2 root 2>/dev/null || true",shell=True)
-        subprocess.run(f"sudo docker exec s2 tc qdisc del dev s2s0 root 2>/dev/null || true",shell=True)
-
-        # Make RJ <-> ES the bottleneck, though it won't be degraded
-        # Ideally, routing algos will choose MG <-> ES befogre degrading and RJ <-> ES after
-        topo.switches["PoP-RJ"].setInterfaceProperties("s1s0", throughput="500mbit", delay="20ms", jitter="0ms")
-        topo.switches["PoP-ES"].setInterfaceProperties("s0s1", throughput="500mbit", delay="20ms", jitter="0ms")
+        print(" [SETUP] Configurando gargalo estático RJ <-> ES...")
+        # Make RJ (s2) <-> ES (s0) the bottleneck, though it won't be degraded
+        # Ideally, routing algos will choose MG <-> ES before degrading and RJ <-> ES after
+        subprocess.run("docker exec s2 tc qdisc replace dev s2s0 root netem delay 20ms rate 500mbit", shell=True)
+        subprocess.run("docker exec s0 tc qdisc replace dev s0s2 root netem delay 20ms rate 500mbit", shell=True)
+        print_network_summary(topo)
 
         # Prints the starting time of execution and saves the stdout string into events.log
         utils.append_event(run_root, f"CONTINUOUS_START {int(time.time())}")
@@ -107,19 +124,21 @@ if __name__ == "__main__":
             subprocess.run(f"sudo docker exec s0 tc qdisc del dev s0s1 root 2>/dev/null || true",shell=True)
             subprocess.run(f"sudo docker exec s1 tc qdisc del dev s1s0 root 2>/dev/null || true",shell=True)
 
-            # Link to be degraded: (if: s1s0, peer_if: s0s1)
-            if (snap_idx in DEGRADED_ITERS):
-                # Degrades link (throughput = 500 MBits)
-
-                # Uses TC bidirectionally. Link = veth pair
-                topo.switches["PoP-MG"].setInterfaceProperties("s1s0", throughput="100mbit", delay="100ms", jitter="0ms")
-                topo.switches["PoP-ES"].setInterfaceProperties("s0s1", throughput="100mbit", delay="100ms", jitter="0ms")
-
-            else:
-                # Link goes back to normal (throughput = 1 GBit)
-                topo.switches["PoP-MG"].setInterfaceProperties("s1s0", throughput="1000mbit", delay="10ms", jitter="0ms")
-                topo.switches["PoP-ES"].setInterfaceProperties("s0s1", throughput="1000mbit", delay="10ms", jitter="0ms")
-
+            try:
+                # Link to be degraded: MG (s1) <-> ES (s0)
+                if (snap_idx in DEGRADED_ITERS):
+                    print(f"\n [DEGRADE] Snapshot {snap_idx}: Aplicando degradação no link MG <-> ES")
+                    cmd_mg = "docker exec s1 tc qdisc replace dev s1s0 root netem delay 100ms rate 100mbit"
+                    cmd_es = "docker exec s0 tc qdisc replace dev s0s1 root netem delay 100ms rate 100mbit"
+                else:
+                    print(f"\n [NORMAL] Snapshot {snap_idx}: Link MG <-> ES operando normalmente")
+                    cmd_mg = "docker exec s1 tc qdisc replace dev s1s0 root netem delay 10ms rate 1000mbit"
+                    cmd_es = "docker exec s0 tc qdisc replace dev s0s1 root netem delay 10ms rate 1000mbit"
+                    
+                subprocess.run(cmd_mg, shell=True, check=True)
+                subprocess.run(cmd_es, shell=True, check=True)
+            except Exception as e:
+                print(f" [WARNING] Falha ao alterar as propriedades do link: {e}")
 
             """
                 Step: Generate logs for Interface Properties
@@ -131,26 +150,40 @@ if __name__ == "__main__":
             """ 
                 Step: Active, for every client, a service by sending a request/intent to the deployer
             """
-            if (algorithm == '1'): # cdn-qoe
+            if algorithm == '1':
                 service = 'cdn-qoe'
-            elif (algorithm == '2'): # LLM
+            elif algorithm == '2':
                 service = 'LLM'
-            elif (algorithm == '3'): # Treshold
+            elif algorithm == '3':
                 service = 'Treshold'
+
             # For every client, request a service from the deployer by sending an intent
-            for client_ip in topo.client_ip_range:
-                # ex: "intent": "define intent q1: from endpoint('192.168.0.4') add service('cdn-qoe')"
-                payload = {
-                    "intent": f"define intent q1: from endpoint('{client_ip}') add service('{service}')"
-                }
-                response = requests.post(base_url_deployer, json=payload)
+            for raw_ip in topo.client_ip_range:
+                clean_ip = raw_ip.split('/')[0].strip()
+                payload = {"intent": f"define intent q1: from endpoint('{clean_ip}') add service('{service}')"}
+                
+                """
+                print(f"\n [SNAPSHOT {snap_idx}] Solicitando {service} para {clean_ip}...")
+                try:
+                    response = requests.post(base_url_deployer, json=payload, timeout=15)
+                    if response.status_code in [200, 201]:
+                        data = response.json()
+                        # Extrai os fluxos instalados para printar na tela
+                        ctrl_resps = data.get('controller_responses', {})
+                        for ip, info in ctrl_resps.items():
+                            flows = info.get('output', {}).get('responses', [])
+                            print(f" [DEPLOYER] {len(flows)} fluxos instalados via ONOS ({ip})")
+                            for f in flows:
+                                f_id = f['location'].split('/')[-1]
+                                dpid = f['location'].split('/')[-2]
+                                print(f"    -> Fluxo {f_id} no Switch {dpid}")
+                    else:
+                        print(f" [ERRO] Deployer retornou {response.status_code}")
+                except Exception as e:
+                    print(f" [FALHA] Erro na requisição: {e}")
+                """
 
-                if response.status_code == 200:
-                    print(f"[OK] Service {service} for client {client_ip} was activated!")
-                else:
-                    print(f"Request failed with status code {response.status_code}")
-                    print("Error message:", response.text)
-
+            print_network_summary(topo) 
 
             """
                 Step: Results directory handling
@@ -214,6 +247,7 @@ if __name__ == "__main__":
 
             utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_END {time.strftime('%Y%m%d-%H%M%S')}")
             snap_idx += 1
+            time.sleep(20)
 
     except KeyboardInterrupt:
         print("[CONTINUOUS] Stop requested.")

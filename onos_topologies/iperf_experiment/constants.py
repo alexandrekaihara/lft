@@ -18,6 +18,6 @@ CONFIG = {
     "apply_link_properties": True,         
     "randomize_link_properties": False,      
     "throughput": "1000mbit",              
-    "delay": "5ms",                         
+    "delay": "10ms",                         
     "jitter": "0ms"          
 }

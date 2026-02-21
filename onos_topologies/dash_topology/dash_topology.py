@@ -282,6 +282,7 @@ class DashTopology:
                 sj = self.pop_to_sname[pop_j_name]
                 self.switches[pop_i_name].connect(self.switches[pop_j_name], f"{si}{sj}", f"{sj}{si}")
 
+                """
                 # Attribute 10.0.0.X IP addr for RTT measurements
                 si_obj = self.switches[pop_i_name]
                 sj_obj = self.switches[pop_j_name]
@@ -306,6 +307,7 @@ class DashTopology:
                 )
 
                 sw_index += 2
+                """
 
                 if self.config.get("apply_link_properties"):
                     if self.config.get("randomize_link_properties"):
