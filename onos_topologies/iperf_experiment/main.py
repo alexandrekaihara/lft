@@ -13,17 +13,16 @@ from onos_topologies.dash_topology import utils
 def print_network_summary(topo):
     print("\n" + "="*60)
     print(" [INSPEÇÃO DE LINKS] Status Atual das Portas (tc)")
-    # Mapeamento dos links principais para monitorar
     links_to_check = [
-        ("MG (s1)", "s1s0"), ("ES (s0)", "s0s1"),  # Link MG-ES
-        ("RJ (s2)", "s2s0"), ("ES (s0)", "s0s2")   # Link RJ-ES
+        ("MG (s1)", "s1s0"), ("ES (s0)", "s0s1"),
+        ("RJ (s2)", "s2s0"), ("ES (s0)", "s0s2")
     ]
     
     for sw_name, interface in links_to_check:
         sw_id = sw_name.split('(')[1].replace(')', '')
         cmd = f"docker exec {sw_id} tc qdisc show dev {interface}"
         res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        # Limpa a saída do tc para ficar em uma linha
+        # Clean tc output to make it one line
         clean_res = res.stdout.replace("qdisc netem 90d4: root refcnt 2 ", "").strip()
         print(f" {sw_name} [{interface}]: {clean_res}")
     print("="*60 + "\n")
@@ -33,7 +32,7 @@ if __name__ == "__main__":
     """
         Step: Defining Experiment Constants
     """
-    ROTATE_S = 60 # 1 minute per snapshot
+    ROTATE_S = 120 # 10 minutes per snapshot
     DEGRADED_ITERS = {2, 5}
     server_name = "ds0" # get the container name statically
     server_ip = "192.168.0.1"
@@ -157,12 +156,14 @@ if __name__ == "__main__":
             elif algorithm == '3':
                 service = 'Treshold'
 
+            print(" [WAIT] Aguardando convergência da telemetria do ONOS...")
+            time.sleep(5)
+
             # For every client, request a service from the deployer by sending an intent
             for raw_ip in topo.client_ip_range:
                 clean_ip = raw_ip.split('/')[0].strip()
                 payload = {"intent": f"define intent q1: from endpoint('{clean_ip}') add service('{service}')"}
                 
-                """
                 print(f"\n [SNAPSHOT {snap_idx}] Solicitando {service} para {clean_ip}...")
                 try:
                     response = requests.post(base_url_deployer, json=payload, timeout=15)
@@ -181,7 +182,6 @@ if __name__ == "__main__":
                         print(f" [ERRO] Deployer retornou {response.status_code}")
                 except Exception as e:
                     print(f" [FALHA] Erro na requisição: {e}")
-                """
 
             print_network_summary(topo) 
 
@@ -207,7 +207,7 @@ if __name__ == "__main__":
 
                 cmd = [
                     "docker", "exec", client_name, "bash", "-lc",
-                    f"iperf3 -c {server_ip} -p 5201 -t {ROTATE_S} -i 1 -J --get-server-output"
+                    f"iperf3 -c {server_ip} -p 5201 -t {ROTATE_S} -i 0.1 -J --get-server-output"
                 ]
 
                 f_out = open(out_json, "w", encoding="utf-8")
@@ -247,7 +247,6 @@ if __name__ == "__main__":
 
             utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_END {time.strftime('%Y%m%d-%H%M%S')}")
             snap_idx += 1
-            time.sleep(20)
 
     except KeyboardInterrupt:
         print("[CONTINUOUS] Stop requested.")
