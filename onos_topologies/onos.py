@@ -50,7 +50,11 @@ class ONOS(Controller):
 
     # Brief: Activate required ONOS apps automatically.
     # Default credentials for ONOS CLI via ssh in default values of username and password parameters
-    def activateONOSApps(self, server_ip, username='karaf', password='karaf') -> None:
+    def activateONOSApps(self, 
+                         server_ip, 
+                         command='app activate org.onosproject.openflow && app activate org.onosproject.fwd',
+                         username='karaf', 
+                         password='karaf') -> None:
         print("[Experiment] Activating OpenFlow Provider Suite and Reactive Forwarding")
 
         try:
@@ -58,9 +62,7 @@ class ONOS(Controller):
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(server_ip, port=8101, username=username, password=password)
 
-            command = 'app activate org.onosproject.openflow && app activate org.onosproject.fwd && app activate org.onosproject.proxyarp'
             stdin, stdout, stderr = ssh.exec_command(command)
-
             command_output = stdout.read().decode('utf-8')
             error_output = stderr.read().decode('utf-8')
 

@@ -10,9 +10,10 @@ sys.path.insert(0, str(project_root))
 from onos_topologies.dash_topology.dash_topology import DashTopology
 from onos_topologies.dash_topology import utils
 
-def print_network_summary(topo):
-    print("\n" + "="*60)
-    print(" [INSPEÇÃO DE LINKS] Status Atual das Portas (tc)")
+def get_network_summary(topo):
+    lines = ["\n" + "="*60]
+    lines.append(" [LINK INSPECTION] Current Ports Status (tc)")
+    
     links_to_check = [
         ("MG (s1)", "s1s0"), ("ES (s0)", "s0s1"),
         ("RJ (s2)", "s2s0"), ("ES (s0)", "s0s2")
@@ -22,10 +23,11 @@ def print_network_summary(topo):
         sw_id = sw_name.split('(')[1].replace(')', '')
         cmd = f"docker exec {sw_id} tc qdisc show dev {interface}"
         res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        # Clean tc output to make it one line
         clean_res = res.stdout.replace("qdisc netem 90d4: root refcnt 2 ", "").strip()
-        print(f" {sw_name} [{interface}]: {clean_res}")
-    print("="*60 + "\n")
+        lines.append(f" {sw_name} [{interface}]: {clean_res}")
+        
+    lines.append("="*60 + "\n")
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
@@ -45,14 +47,23 @@ if __name__ == "__main__":
     results_root = project_root / "results" / "iperf" # lft/results/iperf
     results_root.mkdir(parents=True, exist_ok=True)
     algorithm = ''
-    while algorithm not in {'1', '2', '3'}:
+    while algorithm not in {'1', '2', '3', '4'}:
         algorithm = (input(
             "Choose a number for the experiment: " \
-            "\n[1] - cdn-qoe\n[2] - LLM\n[3] - Treshold\n"
+            "\n[1] - cdn-qoe\n[2] - LLM\n[3] - Treshold\n[4] - fwd\n[5] - ifwd\n"
             ).strip().lower())
 
+    hindering = ''
+    while hindering not in {'degrade', 'take down'}:
+        hindering = (input("Choose what you want to do with the MG <-> ES link: " \
+                               "\n[1] - Degrade (lower throughput and increase delay)" \
+                               "\n[2] - Take Down (for fwd and ifwd to notice)\n"
+            ).strip().lower())
+        if hindering == '1': hindering = 'degrade'
+        elif hindering == '2': hindering = 'take down'
+
     custom_name = (input(
-        "Would you like to add a custom name to the results directory? [y/N]"
+        "Would you like to add a custom name to the results directory? [y/N]\n"
         ).strip().lower() == "y")
 
     if (custom_name):
@@ -76,6 +87,8 @@ if __name__ == "__main__":
         "start_ts": int(time.time()),
         "rotate_s": f"{ROTATE_S}s"
     }
+    ping_jobs = []
+
     # Create metadata JSON inside run_root
     (run_root / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
 
@@ -85,8 +98,32 @@ if __name__ == "__main__":
         """
             Step: Create and run the topology, alongside with the TCP iperf server and deployer
         """
-        topo = DashTopology(config=CONFIG, results_dir=run_root, iperf=True)
-        topo.run(run_discovery=True, disable_fwd=False)
+        #if (algorithm == '4'): # ospf is only availabe under v2.0 for ONOS
+        #    topo = DashTopology(config=CONFIG, results_dir=run_root, iperf=True, onos_version="onosproject/onos:1.15.0")
+        topo = DashTopology(config=CONFIG, results_dir=run_root, iperf=True) # onos v2.5
+        
+        if (algorithm in {'1', '2', '3'}):
+            topo.run(run_discovery=True, disable_fwd=True)
+            c1 = topo.controller
+            c1.activateONOSApps(server_ip=topo.onos_ip,
+                                command='app activate org.onosproject.proxyarp')
+        elif (algorithm == '4'):
+            topo.run(run_discovery=True, disable_fwd=False)
+        elif (algorithm == '5'):
+            topo.run(run_discovery=True, disable_fwd=True)
+            print(" [SETUP] Mode: Intent-Based Forwarding (ifwd)")
+            # Activates ifwd
+            c1 = topo.controller
+            c1.activateONOSApps(server_ip=topo.onos_ip, 
+                                command='app activate org.onosproject.ifwd')
+        
+        print(" [SETUP] Telemetry -> Real-Time Mode")
+        comp = "com.maojianwei.link.quality.measurement.impl.MaoLinkQualityManager"
+        karaf = "/home/onos/apache-karaf-4.2.14/bin/client -u karaf -p karaf"
+        cmd_str = f"cfg set {comp} latencyAverageSize 1; cfg set {comp} probeInterval 500; cfg set {comp} calculateInterval 500"
+        subprocess.run(f"echo '{cmd_str}' | sudo docker exec -i c1 {karaf}", 
+                       shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
         topo.servers[server_name].startServer(port=5201) # grabs the server obj and runs it
 
         print("\n[SETUP] Start the deployer in another terminal:")
@@ -102,10 +139,27 @@ if __name__ == "__main__":
         # Ideally, routing algos will choose MG <-> ES before degrading and RJ <-> ES after
         subprocess.run("docker exec s2 tc qdisc replace dev s2s0 root netem delay 20ms rate 500mbit", shell=True)
         subprocess.run("docker exec s0 tc qdisc replace dev s0s2 root netem delay 20ms rate 500mbit", shell=True)
-        print_network_summary(topo)
+        msg = get_network_summary(topo)
+        print(msg)
+        utils.append_event(run_root, msg)
 
         # Prints the starting time of execution and saves the stdout string into events.log
         utils.append_event(run_root, f"CONTINUOUS_START {int(time.time())}")
+
+
+        """
+            Step: RTT measuring
+        """
+        ping_dir = run_root / "ping_logs"
+        ping_dir.mkdir(parents=True, exist_ok=True)
+
+        print(" [SETUP] Pinging from cl to srv...")
+        for client_name in topo.clients.keys():
+            out_txt = ping_dir / f"{client_name}.txt"
+            f_out = open(out_txt, "w", encoding="utf-8")
+            cmd = ["docker", "exec", client_name, "ping", server_ip, "-i", "0.5", "-D", "-O"]
+            proc = subprocess.Popen(cmd, stdout=f_out, stderr=subprocess.STDOUT, text=True)
+            ping_jobs.append((proc, f_out))
 
 
         """
@@ -117,27 +171,48 @@ if __name__ == "__main__":
 
 
             """
-                Step: Degrade link (s0s1, s1s0)
+                Step: Degrade or take down link MG <-> ES link (s0s1, s1s0)
             """
-            # clear previous properties to allow reconfiguration
-            subprocess.run(f"sudo docker exec s0 tc qdisc del dev s0s1 root 2>/dev/null || true",shell=True)
-            subprocess.run(f"sudo docker exec s1 tc qdisc del dev s1s0 root 2>/dev/null || true",shell=True)
 
-            try:
-                # Link to be degraded: MG (s1) <-> ES (s0)
-                if (snap_idx in DEGRADED_ITERS):
-                    print(f"\n [DEGRADE] Snapshot {snap_idx}: Aplicando degradação no link MG <-> ES")
-                    cmd_mg = "docker exec s1 tc qdisc replace dev s1s0 root netem delay 100ms rate 100mbit"
-                    cmd_es = "docker exec s0 tc qdisc replace dev s0s1 root netem delay 100ms rate 100mbit"
-                else:
-                    print(f"\n [NORMAL] Snapshot {snap_idx}: Link MG <-> ES operando normalmente")
-                    cmd_mg = "docker exec s1 tc qdisc replace dev s1s0 root netem delay 10ms rate 1000mbit"
-                    cmd_es = "docker exec s0 tc qdisc replace dev s0s1 root netem delay 10ms rate 1000mbit"
+            if (hindering == 'degrade'):
+                # clear previous properties to allow reconfiguration
+                subprocess.run(f"sudo docker exec s0 tc qdisc del dev s0s1 root 2>/dev/null || true",shell=True)
+                subprocess.run(f"sudo docker exec s1 tc qdisc del dev s1s0 root 2>/dev/null || true",shell=True)
+                try:
+                    # Link to be degraded: MG (s1) <-> ES (s0)
+                    if (snap_idx in DEGRADED_ITERS):
+                        msg = f"\n [DEGRADE] Snapshot {snap_idx}: Aplicando degradação no link MG <-> ES"
+                        cmd_mg = "docker exec s1 tc qdisc replace dev s1s0 root netem delay 100ms rate 100mbit"
+                        cmd_es = "docker exec s0 tc qdisc replace dev s0s1 root netem delay 100ms rate 100mbit"
+                    else:
+                        msg = f"\n [NORMAL] Snapshot {snap_idx}: Link MG <-> ES operando normalmente"
+                        cmd_mg = "docker exec s1 tc qdisc replace dev s1s0 root netem delay 10ms rate 1000mbit"
+                        cmd_es = "docker exec s0 tc qdisc replace dev s0s1 root netem delay 10ms rate 1000mbit"
+                        
+                    print(msg)
+                    utils.append_event(run_root, msg)
+
+                    subprocess.run(cmd_mg, shell=True, check=True)
+                    subprocess.run(cmd_es, shell=True, check=True)
+                except Exception as e:
+                    print(f" [WARNING] Failed do change link properties: {e}")
+            elif (hindering == 'take down'): 
+                try:  
+                    if (snap_idx in DEGRADED_ITERS):
+                        msg = f" [FAILURE] Snapshot {snap_idx}: Taking down link MG <-> ES (IP LINK DOWN)"
+                        cmd1, cmd2 = "sudo docker exec s1 ip link set s1s0 down", "sudo docker exec s0 ip link set s0s1 down"
+                    else:
+                        msg = f" [RECOVERY] Snapshot {snap_idx}: Restoring link MG <-> ES (IP LINK UP)"
+                        cmd1, cmd2 = "sudo docker exec s1 ip link set s1s0 up", "sudo docker exec s0 ip link set s0s1 up"
                     
-                subprocess.run(cmd_mg, shell=True, check=True)
-                subprocess.run(cmd_es, shell=True, check=True)
-            except Exception as e:
-                print(f" [WARNING] Falha ao alterar as propriedades do link: {e}")
+                    print(msg)
+                    utils.append_event(run_root, msg)
+                    subprocess.run(cmd1, shell=True, check=True)
+                    subprocess.run(cmd2, shell=True, check=True)
+
+                except Exception as e: 
+                    print(f" [WARNING] Falha ao alterar as propriedades do link: {e}")
+
 
             """
                 Step: Generate logs for Interface Properties
@@ -152,38 +227,47 @@ if __name__ == "__main__":
             if algorithm == '1':
                 service = 'cdn-qoe'
             elif algorithm == '2':
-                service = 'LLM'
+                service = 'llm'
             elif algorithm == '3':
-                service = 'Treshold'
+                service = 'treshold'
+            elif algorithm == '4':
+                service = 'fwd'
+            elif algorithm == '5':
+                service = 'ifwd'
 
-            print(" [WAIT] Aguardando convergência da telemetria do ONOS...")
+            msg = " [WAIT] Waiting for ONOS telemetry (5s)..."
+            print(msg)
+            utils.append_event(run_root, msg)
             time.sleep(5)
 
-            # For every client, request a service from the deployer by sending an intent
-            for raw_ip in topo.client_ip_range:
-                clean_ip = raw_ip.split('/')[0].strip()
-                payload = {"intent": f"define intent q1: from endpoint('{clean_ip}') add service('{service}')"}
-                
-                print(f"\n [SNAPSHOT {snap_idx}] Solicitando {service} para {clean_ip}...")
-                try:
-                    response = requests.post(base_url_deployer, json=payload, timeout=15)
-                    if response.status_code in [200, 201]:
-                        data = response.json()
-                        # Extrai os fluxos instalados para printar na tela
-                        ctrl_resps = data.get('controller_responses', {})
-                        for ip, info in ctrl_resps.items():
-                            flows = info.get('output', {}).get('responses', [])
-                            print(f" [DEPLOYER] {len(flows)} fluxos instalados via ONOS ({ip})")
-                            for f in flows:
-                                f_id = f['location'].split('/')[-1]
-                                dpid = f['location'].split('/')[-2]
-                                print(f"    -> Fluxo {f_id} no Switch {dpid}")
-                    else:
-                        print(f" [ERRO] Deployer retornou {response.status_code}")
-                except Exception as e:
-                    print(f" [FALHA] Erro na requisição: {e}")
+            if algorithm in {'1', '2', '3'}: # fwd and ifwd don't need to send intents to the deployer
+                # For every client, request a service from the deployer by sending an intent
+                for raw_ip in topo.client_ip_range:
+                    clean_ip = raw_ip.split('/')[0].strip()
+                    payload = {"intent": f"define intent q1: from endpoint('{clean_ip}') add service('{service}')"}
+                    
+                    print(f"\n [SNAPSHOT {snap_idx}] Requesting {service} for {clean_ip}...")
+                    try:
+                        response = requests.post(base_url_deployer, json=payload, timeout=15)
+                        if response.status_code in [200, 201]:
+                            data = response.json()
+                            # Gets frules installed to show on the terminal
+                            ctrl_resps = data.get('controller_responses', {})
+                            for ip, info in ctrl_resps.items():
+                                flows = info.get('output', {}).get('responses', [])
+                                print(f" [DEPLOYER] {len(flows)} flows installed by ONOS ({ip})")
+                                for f in flows:
+                                    f_id = f['location'].split('/')[-1]
+                                    dpid = f['location'].split('/')[-2]
+                                    print(f"    -> Flux {f_id} on Switch {dpid}")
+                        else:
+                            print(f" [ERRO] Deployer returned {response.status_code}")
+                    except Exception as e:
+                        print(f" [FALHA] Request error: {e}")
 
-            print_network_summary(topo) 
+            msg = get_network_summary(topo)
+            print(msg)
+            utils.append_event(run_root, msg)
 
             """
                 Step: Results directory handling
@@ -207,7 +291,7 @@ if __name__ == "__main__":
 
                 cmd = [
                     "docker", "exec", client_name, "bash", "-lc",
-                    f"iperf3 -c {server_ip} -p 5201 -t {ROTATE_S} -i 0.1 -J --get-server-output"
+                    f"iperf3 -c {server_ip} -p 5201 -t {ROTATE_S} -i 1 -J --get-server-output"
                 ]
 
                 f_out = open(out_json, "w", encoding="utf-8")
@@ -271,6 +355,20 @@ if __name__ == "__main__":
             glob_pattern="snapshots/snapshot_*/iperf/iperf_flow.csv",
             delete_inputs=False,
         )
+
+        for proc, f_out in ping_jobs:
+            proc.kill()
+            try:
+                f_out.close()
+            except Exception:
+                pass
+
+        ping_csv_out = run_root / "ping_flow_all.csv"
+        ping_stats = utils.snapshot_pings_to_single_csv(
+            ping_dir=run_root / "ping_logs",
+            out_csv=ping_csv_out
+        )
+        print(f" [RESULTADOS] CSV de Ping gerado com {ping_stats['rows']} linhas.")
 
         try:
             utils.cleanup()

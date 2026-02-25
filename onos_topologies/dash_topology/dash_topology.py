@@ -188,7 +188,8 @@ class DashTopology:
         print("Waiting for ONOS to initialize (30s) ...")
         utils.sleep_countdown(30)
         print("[CTRL] Activating OpenFlow + Host Provider + Reactive Forwarding")
-        c1.activateONOSApps(self.onos_ip)
+        c1.activateONOSApps(server_ip=self.onos_ip,
+                                command='app activate org.onosproject.openflow && app activate org.onosproject.fwd && app activate org.onosproject.proxyarp')
 
         if (dockerImage == "onosproject/onos:2.5.0"):
             print("[CTRL] Installing custom latency app via REST API...")
@@ -329,102 +330,6 @@ class DashTopology:
 
         print(f"[OK] {len(connections_made)} inter-PoP links created!\n")
 
-    # Brief: switches shall ping to each other to discover RTT. 
-    # Add flow rules without fwd to allow this traffic
-    def __add_frules_for_measurements(self, si: str, sj: str, si_ip: str, sj_ip: str, if_i: str, if_j: str) -> None:
-        try:
-            def dsh(sw: str, *cmd: str) -> str:
-                return subprocess.check_output(["docker", "exec", sw, *cmd], text=True).strip()
-
-            def dcall(sw: str, *cmd: str) -> None:
-                subprocess.check_call(["docker", "exec", sw, *cmd])
-
-            def get_ofport(sw: str, iface: str) -> str:
-                ofp = dsh(sw, "ovs-vsctl", "get", "Interface", iface, "ofport").strip()
-                if ofp in ("", "-1"):
-                    raise RuntimeError(f"Invalid ofport for {sw}:{iface}: {ofp}")
-                return ofp
-
-            def get_dpid(sw: str) -> str:
-                res = dsh(sw, "ovs-vsctl", "get", "bridge", sw, "datapath_id").strip().strip('"')
-                return f"of:{res}"
-
-            def mac_of(sw: str, dev: str) -> str:
-                return dsh(sw, "cat", f"/sys/class/net/{dev}/address").strip()
-
-            # Link ofports
-            of_i = get_ofport(si, if_i)
-            of_j = get_ofport(sj, if_j)
-
-            # Use LOCAL for measurements
-            dcall(si, "ip", "link", "set", si, "up")
-            dcall(sj, "ip", "link", "set", sj, "up")
-
-            # Add /32 on the bridge if not already there
-            try: dcall(si, "ip", "addr", "add", f"{si_ip}/32", "dev", si)
-            except: pass
-            try: dcall(sj, "ip", "addr", "add", f"{sj_ip}/32", "dev", sj)
-            except: pass
-
-            # Force kernel to use LOCAL
-            dcall(si, "ip", "route", "replace", f"{sj_ip}/32", "dev", si)
-            dcall(sj, "ip", "route", "replace", f"{si_ip}/32", "dev", sj)
-
-            # Static neigh so kernel emits ETH_DST = peer bridge MAC
-            mac_i = mac_of(si, si) # bridge MAC
-            mac_j = mac_of(sj, sj) # bridge MAC
-            dcall(si, "ip", "neigh", "replace", sj_ip, "lladdr", mac_j, "dev", si, "nud", "permanent")
-            dcall(sj, "ip", "neigh", "replace", si_ip, "lladdr", mac_i, "dev", sj, "nud", "permanent")
-
-            dpid_i = get_dpid(si)
-            dpid_j = get_dpid(sj)
-
-            # Switch si: LOCAL -> link (towards sj)
-            crit_i_out = [
-                {"type": "ETH_TYPE", "ethType": "0x0800"},
-                {"type": "ETH_SRC", "mac": mac_i},
-                {"type": "ETH_DST", "mac": mac_j},
-                {"type": "IPV4_SRC", "ip": f"{si_ip}/32"},
-                {"type": "IPV4_DST", "ip": f"{sj_ip}/32"},
-            ]
-            utils.push_onos_flow(self.onos_ip, dpid_i, crit_i_out, of_i, priority=60000)
-
-            # Switch si: link -> LOCAL (from sj)
-            crit_i_in = [
-                {"type": "ETH_TYPE", "ethType": "0x0800"},
-                {"type": "IN_PORT", "port": str(of_i)},  
-                {"type": "ETH_SRC", "mac": mac_j},
-                {"type": "ETH_DST", "mac": mac_i},
-                {"type": "IPV4_SRC", "ip": f"{sj_ip}/32"},
-                {"type": "IPV4_DST", "ip": f"{si_ip}/32"},
-            ]
-            utils.push_onos_flow(self.onos_ip, dpid_i, crit_i_in, "LOCAL", priority=60000)
-
-            # Switch sj: LOCAL -> link (towards si)
-            crit_j_out = [
-                {"type": "ETH_TYPE", "ethType": "0x0800"},
-                {"type": "ETH_SRC", "mac": mac_j},
-                {"type": "ETH_DST", "mac": mac_i},
-                {"type": "IPV4_SRC", "ip": f"{sj_ip}/32"},
-                {"type": "IPV4_DST", "ip": f"{si_ip}/32"},
-            ]
-            utils.push_onos_flow(self.onos_ip, dpid_j, crit_j_out, of_j, priority=60000)
-
-            # Switch sj: link -> LOCAL (from si)
-            crit_j_in = [
-                {"type": "ETH_TYPE", "ethType": "0x0800"},
-                {"type": "IN_PORT", "port": str(of_j)},    
-                {"type": "ETH_SRC", "mac": mac_i},
-                {"type": "ETH_DST", "mac": mac_j},
-                {"type": "IPV4_SRC", "ip": f"{si_ip}/32"},
-                {"type": "IPV4_DST", "ip": f"{sj_ip}/32"},
-            ]
-            utils.push_onos_flow(self.onos_ip, dpid_j, crit_j_in, "LOCAL", priority=60000)
-
-            print(f"  [RTT-FLOWS] L2-style flows pushed for {si} <-> {sj}")
-
-        except Exception as e:
-            print(f"  [RTT-FLOWS] failed on {si}<->{sj}: {e}")
 
     # Brief: Force host discovery in ONOS by sending ARP/ICMP traffic
     def __run_ping(self) -> None:
