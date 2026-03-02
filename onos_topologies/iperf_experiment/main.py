@@ -30,11 +30,33 @@ def get_network_summary(topo):
     return "\n".join(lines)
 
 
+def start_ollama():
+    print(" [MOTOR] Running Ollama...")
+    subprocess.run("systemctl start ollama", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(2)
+    print(" [MOTOR] Pre-loading Llama 3.1 in the memory...")
+    try:
+        requests.post("http://localhost:11434/api/generate", json={"model": "llama3.1", "keep_alive": "30m"}, timeout=5)
+    except requests.exceptions.ReadTimeout:
+        pass
+    except Exception as e:
+        print(f" [AVISO] Failed to pre-load LLM: {e}")
+
+
+MODES = {
+    '1': {"name": "cdn-qoe",  "onos": "2.5.0", "disable_fwd": True,  "apps": "proxyarp", "use_deployer": True},
+    '2': {"name": "llm",      "onos": "2.5.0", "disable_fwd": True,  "apps": "proxyarp", "use_deployer": True, "pre_run": "ollama"},
+    '3': {"name": "treshold", "onos": "2.5.0", "disable_fwd": True,  "apps": "proxyarp", "use_deployer": True},
+    '4': {"name": "fwd",      "onos": "2.5.0", "disable_fwd": False, "apps": "",         "use_deployer": False},
+    '5': {"name": "ospf",     "onos": "1.5",   "disable_fwd": True,  "apps": "proxyarp", "use_deployer": False}
+}
+
+
 if __name__ == "__main__":
     """
         Step: Defining Experiment Constants
     """
-    ROTATE_S = 120 # 10 minutes per snapshot
+    ROTATE_S = 600 # 10 minutes per snapshot
     DEGRADED_ITERS = {2, 5}
     server_name = "ds0" # get the container name statically
     server_ip = "192.168.0.1"
@@ -47,10 +69,10 @@ if __name__ == "__main__":
     results_root = project_root / "results" / "iperf" # lft/results/iperf
     results_root.mkdir(parents=True, exist_ok=True)
     algorithm = ''
-    while algorithm not in {'1', '2', '3', '4'}:
+    while algorithm not in {'1', '2', '3', '4', '5'}:
         algorithm = (input(
             "Choose a number for the experiment: " \
-            "\n[1] - cdn-qoe\n[2] - LLM\n[3] - Treshold\n[4] - fwd\n[5] - ifwd\n"
+            "\n[1] - cdn-qoe\n[2] - LLM\n[3] - Treshold\n[4] - fwd\n[5] - ospf\n"
             ).strip().lower())
 
     hindering = ''
@@ -92,30 +114,30 @@ if __name__ == "__main__":
     # Create metadata JSON inside run_root
     (run_root / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
 
+    # Get config mode from MODES dict using the 'algorithm' input
+    mode_cfg = MODES.get(algorithm) # ex: mode_cfg = {"name": "cdn-qoe",  "onos": "2.5.0", "fwd": True,  "apps": "proxyarp"}
+    service = mode_cfg["name"] # ex: service = "cdn-qoe"
+
+    # Run ollama for the LLM mode
+    if mode_cfg.get("pre_run") == "ollama":
+        start_ollama()
+
     try:
         utils.cleanup() # prune and kill containers
 
         """
             Step: Create and run the topology, alongside with the TCP iperf server and deployer
         """
-        #if (algorithm == '4'): # ospf is only availabe under v2.0 for ONOS
-        #    topo = DashTopology(config=CONFIG, results_dir=run_root, iperf=True, onos_version="onosproject/onos:1.15.0")
-        topo = DashTopology(config=CONFIG, results_dir=run_root, iperf=True) # onos v2.5
+        onos_tag = f"onosproject/onos:{mode_cfg['onos']}"
+        topo = DashTopology(config=CONFIG, results_dir=run_root, iperf=True, onos_version=onos_tag)
         
-        if (algorithm in {'1', '2', '3'}):
-            topo.run(run_discovery=True, disable_fwd=True)
-            c1 = topo.controller
-            c1.activateONOSApps(server_ip=topo.onos_ip,
-                                command='app activate org.onosproject.proxyarp')
-        elif (algorithm == '4'):
-            topo.run(run_discovery=True, disable_fwd=False)
-        elif (algorithm == '5'):
-            topo.run(run_discovery=True, disable_fwd=True)
-            print(" [SETUP] Mode: Intent-Based Forwarding (ifwd)")
-            # Activates ifwd
-            c1 = topo.controller
+        topo.run(run_discovery=True, disable_fwd=mode_cfg["disable_fwd"])
+        c1 = topo.controller
+
+        if mode_cfg["apps"]:
+            print(f" [SETUP] Activating extra apps: {mode_cfg['apps']}")
             c1.activateONOSApps(server_ip=topo.onos_ip, 
-                                command='app activate org.onosproject.ifwd')
+                                command=f"app activate org.onosproject.{mode_cfg['apps']}")
         
         print(" [SETUP] Telemetry -> Real-Time Mode")
         comp = "com.maojianwei.link.quality.measurement.impl.MaoLinkQualityManager"
@@ -126,9 +148,13 @@ if __name__ == "__main__":
 
         topo.servers[server_name].startServer(port=5201) # grabs the server obj and runs it
 
-        print("\n[SETUP] Start the deployer in another terminal:")
-        print("  cmd: sudo docker run --rm -it --network host -v /var/run/docker.sock:/var/run/docker.sock --name deployer deployer")
-        utils.sleep_countdown(t=60)
+        if mode_cfg.get("use_deployer", False):
+            print("\n[SETUP] Start the deployer in another terminal:")
+            print("  cmd: sudo docker run --rm -it --network host -v /var/run/docker.sock:/var/run/docker.sock --name deployer deployer")
+            utils.sleep_countdown(t=60)
+        else:
+            print(f"\n [SETUP] Skipping Deployer (Mode {service} does not send intents to the deployer).")
+            time.sleep(2)
 
 
         """
@@ -168,6 +194,35 @@ if __name__ == "__main__":
         snap_idx = 1
         # Each iteration corresponds to a snapshot
         while snap_idx <= 6:
+            """
+                Step: Results directory handling
+            """
+            ts = time.strftime("%Y%m%d-%H%M%S")
+            snap_dir = snaps_root / f"snapshot_{snap_idx}"
+            ovs_dir = snap_dir / "ovs"
+            iperf_dir = snap_dir / "iperf"
+            ovs_dir.mkdir(parents=True, exist_ok=True)
+            iperf_dir.mkdir(parents=True, exist_ok=True)
+            utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_START {ts}")
+
+
+            """
+                Step: Before intent activation and link degradation, run traffic using iperf
+            """
+            # Run iperf3 on every client and send JSON results to snapshot_X/iperf/<client>%<snapshot>.json
+            iperf_jobs = []
+            for client_name in topo.clients.keys():
+                out_json = iperf_dir / f"{client_name}%{snap_idx}.json"
+
+                cmd = [
+                    "docker", "exec", client_name, "bash", "-lc",
+                    f"iperf3 -c {server_ip} -p 5201 -t {ROTATE_S} -i 1 -J --connect-timeout 10000 --get-server-output"
+                ]
+
+                f_out = open(out_json, "w", encoding="utf-8")
+                # Runs iperf and stores proc to kill it later
+                proc = subprocess.Popen(cmd, stdout=f_out, stderr=subprocess.STDOUT, text=True)
+                iperf_jobs.append((proc, f_out, client_name))
 
 
             """
@@ -233,25 +288,24 @@ if __name__ == "__main__":
             elif algorithm == '4':
                 service = 'fwd'
             elif algorithm == '5':
-                service = 'ifwd'
+                service = 'ospf'
 
             msg = " [WAIT] Waiting for ONOS telemetry (5s)..."
             print(msg)
             utils.append_event(run_root, msg)
             time.sleep(5)
 
-            if algorithm in {'1', '2', '3'}: # fwd and ifwd don't need to send intents to the deployer
-                # For every client, request a service from the deployer by sending an intent
+            # Check if current mode needs to send intents to the deployer
+            if mode_cfg.get("use_deployer", False):
                 for raw_ip in topo.client_ip_range:
                     clean_ip = raw_ip.split('/')[0].strip()
                     payload = {"intent": f"define intent q1: from endpoint('{clean_ip}') add service('{service}')"}
                     
                     print(f"\n [SNAPSHOT {snap_idx}] Requesting {service} for {clean_ip}...")
                     try:
-                        response = requests.post(base_url_deployer, json=payload, timeout=15)
+                        response = requests.post(base_url_deployer, json=payload, timeout=ROTATE_S)
                         if response.status_code in [200, 201]:
                             data = response.json()
-                            # Gets frules installed to show on the terminal
                             ctrl_resps = data.get('controller_responses', {})
                             for ip, info in ctrl_resps.items():
                                 flows = info.get('output', {}).get('responses', [])
@@ -261,48 +315,18 @@ if __name__ == "__main__":
                                     dpid = f['location'].split('/')[-2]
                                     print(f"    -> Flux {f_id} on Switch {dpid}")
                         else:
-                            print(f" [ERRO] Deployer returned {response.status_code}")
+                            print(f" [ERROR] Deployer returned {response.status_code}")
                     except Exception as e:
-                        print(f" [FALHA] Request error: {e}")
+                        print(f" [ERROR] Request error: {e}")
 
             msg = get_network_summary(topo)
             print(msg)
             utils.append_event(run_root, msg)
 
-            """
-                Step: Results directory handling
-            """
-            ts = time.strftime("%Y%m%d-%H%M%S")
-            snap_dir = snaps_root / f"snapshot_{snap_idx}"
-            ovs_dir = snap_dir / "ovs"
-            iperf_dir = snap_dir / "iperf"
-            ovs_dir.mkdir(parents=True, exist_ok=True)
-            iperf_dir.mkdir(parents=True, exist_ok=True)
-            utils.append_event(run_root, f"SNAPSHOT_{snap_idx}_START {ts}")
-
-
-            """
-                Step: After intent activation and link degradation, run traffic using iperf
-            """
-            # Run iperf3 on every client and send JSON results to snapshot_X/iperf/<client>%<snapshot>.json
-            iperf_jobs = []
-            for client_name in topo.clients.keys():
-                out_json = iperf_dir / f"{client_name}%{snap_idx}.json"
-
-                cmd = [
-                    "docker", "exec", client_name, "bash", "-lc",
-                    f"iperf3 -c {server_ip} -p 5201 -t {ROTATE_S} -i 1 -J --get-server-output"
-                ]
-
-                f_out = open(out_json, "w", encoding="utf-8")
-                # Runs iperf and stores proc to kill it later
-                proc = subprocess.Popen(cmd, stdout=f_out, stderr=subprocess.STDOUT, text=True)
-                iperf_jobs.append((proc, f_out, client_name))
-
             # wait iperf3 to finish and close JSON files
             for proc, f_out, _cname in iperf_jobs:
                 try:
-                    proc.wait(timeout=ROTATE_S + 15) # ROTATE_S=60 
+                    proc.wait(timeout=ROTATE_S + 10)
                 except subprocess.TimeoutExpired:
                     proc.kill()
                     proc.wait(timeout=5)

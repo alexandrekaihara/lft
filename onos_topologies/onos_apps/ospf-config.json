@@ -1,0 +1,26 @@
+{
+  "apps": {
+    "org.onosproject.ospf": {
+      "ospfappconfig": {
+        "processes": [
+          {
+            "processId": "10.0.0.1",
+            "areas": [
+              {
+                "areaId": "0.0.0.0",
+                "areaType": 1,
+                "interfaces": [
+                  {
+                    "ipAddress": "172.17.0.2",
+                    "mask": "255.255.0.0",
+                    "interfaceArea": "0.0.0.0"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
