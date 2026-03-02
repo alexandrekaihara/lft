@@ -84,7 +84,7 @@ class DashTopology:
             tot_servers = sum(p[2] for p in pops)
             tot_clients = sum(p[1] for p in pops)
             server_ip_range = [f"192.168.0.{i+1}" for i in range(tot_servers)]
-            client_ip_range = [f"192.168.0.{i+101}" for i in range(tot_clients)]
+            client_ip_range = [f"192.168.0.{i + tot_servers + 1}" for i in range(tot_clients)]
 
         # Inter-router /30 links remain the same for measuring RTT or OSPF adjacencies
         max_links = len(pops) * (len(pops) - 1) // 2
@@ -237,14 +237,16 @@ class DashTopology:
 
         # install and activate telemetry app
         if (dockerImage == "onosproject/onos:2.5.0"):
-            print("[CTRL] Installing custom latency app...")
-            oar_path = os.path.join(current_dir, "..", "onos_apps", "lft_app.oar") 
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            oar_path = os.path.abspath(os.path.join(current_dir, "..", "onos_apps", "onos-apps-ONOS_Link_Quality_Measurement-oar.oar"))
+            print("[CTRL] Preparing official container for the experiment...")
             
-            # Permissions to run the .oar (Chown and Chmod)
+            subprocess.run(f"docker exec -u 0 {container_name} mkdir -p /home/onos", shell=True)
             subprocess.run(f"docker cp {oar_path} {container_name}:/home/onos/lft_app.oar", shell=True)
-            subprocess.run(f"docker exec -u 0 {container_name} chown onos:onos /home/onos/lft_app.oar", shell=True)
-            subprocess.run(f"docker exec -u 0 {container_name} chmod 644 /home/onos/lft_app.oar", shell=True)
-
+            link_cmd = "ln -snf /root/onos/apache-karaf-4.2.14 /home/onos/apache-karaf-4.2.14"
+            subprocess.run(f"docker exec -u 0 {container_name} {link_cmd}", shell=True)
+            
+            print("[CTRL] Activating the Latency App via REST...")
             activation_cmd = (
                 f'docker exec {container_name} curl -u onos:rocks -X POST '
                 '-H "Content-Type:application/octet-stream" '
@@ -252,10 +254,9 @@ class DashTopology:
                 '--data-binary "@/home/onos/lft_app.oar"'
             )
             subprocess.run(activation_cmd, shell=True)
-            print("[OK] Latency app installed!")
 
         if (dockerImage == "onosproject/onos:1.5"):
-            print("[CTRL] Injetando OSPF 1.6.0 via Host-side REST API...")
+            print("[CTRL] Injecting OSPF 1.6.0 via Host-side REST API...")
             ospf_oar_path = os.path.abspath(os.path.join(current_dir, "..", "onos_apps", "onos-ospf-app-1.6.0.oar"))
 
             if os.path.exists(ospf_oar_path):
@@ -266,7 +267,7 @@ class DashTopology:
                     f'--data-binary "@{ospf_oar_path}"'
                 )
                 subprocess.run(activation_cmd, shell=True)
-                print("[OK] OSPF App 1.6.0 injetado com sucesso pelo host!")
+                print("[OK] OSPF App successfully injected!")
 
                 # Inject OSPF configuraton json via host
                 config_path = os.path.abspath(os.path.join(current_dir, "..", "onos_apps", "ospf-config.json"))

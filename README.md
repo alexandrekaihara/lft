@@ -2,7 +2,7 @@
 
 ## Description
 
-This branch extends the **Lightweight Fog Testbed (LFT)** into a research environment for **Intent-Based Networking (IBN)**. It features a **Deployer** that receives, processes and applies **Nile intents** within a virtualized topology built with **ONOS** and **Open vSwitch (OVS)**.
+This branch extends the **Lightweight Fog Testbed (LFT)** into a research environment for **Intent-Based Networking (IBN)**. This particular experiment involves a **Deployer** that receives, processes and applies **Nile intents** within a virtualized topology built with **ONOS** and **Open vSwitch (OVS)**.
 
 The platform supports a  **iperf3-based experimental track** to compare five distinct routing paradigms under network stress (**degradation** or **link failure**):
 
@@ -39,6 +39,7 @@ In case of any missing dependency you can manually clone the repository and run 
 ```
 git clone https://github.com/alexandrekaihara/lft
 cd lft
+git checkout dash-experiments
 chmod +X dependencies.sh
 ./dependencies.sh
 ```
@@ -50,7 +51,7 @@ chmod +X dependencies.sh
 cd docker/onos_v2.5 && sudo docker build -t onosproject/onos:2.5.0 .
 
 # ONOS 1.5 (Compatible with OSPF)
-sudo docker pull onosproject/onos:1.5.0
+sudo docker pull onosproject/onos:1.5
 
 # OpenSwitch
 cd docker/openswitch && sudo docker build -t alexandremitsurukaihara/lst2.0:openvswitch .
@@ -68,9 +69,20 @@ cd onos_topologies/iperf_experiment
 python3 main.py
 ```
 
-### 3. 1 Customize topology
+### 3.1 Customize topology
 
 If you want to customize the topology, it's possible to do so by changing the data structures within iperf_experiment/constants.py.
+
+### 3.2 Access ONOS user interface
+ONOS provides an application called **ui2** for visualizing the topology and some platform features. After starting ONOS, you can access it in your browser at:
+
+```text
+http://localhost:8181/onos/ui/#/topo2
+```
+
+### 3.3 Access ONOS CLI
+It's possible to
+`ssh -p 8101 karaf@localhost`
 
 ## 4. Results
 
@@ -93,13 +105,22 @@ results/iperf/run_YYYY-MM-DD_HH-MM-SS/
 
 At the end of the run, the script automatically generates unified CSV files:
 
-- `iperf_flow_all.csv`: throughput, jitter, and packet loss data
+- `iperf_flow_all.csv`: throughput, jitter and packet loss data
 - `ping_flow_all.csv`: high-resolution RTT logs with timestamps
 
 - `ovs_ports_all.csv`: per-port traffic, drops and errors
 - `ovs_flows_all.csv`: flow rules, actions and counters
 
-## 5. Troubleshooting
+## 5. Cleaning up the environment
+
+To stop and remove all containers on the host (including those from this experiment):
+
+```bash
+sudo docker rm -f $(sudo docker ps -aq) 2>/dev/null || true
+sudo docker network prune -f
+```
+
+## 6. Troubleshooting
 If you face any issue while running any LFT scrips:
 1. Check if all dependencies are installed
 2. Check if you are using the correct version of Ubuntu Desktop
