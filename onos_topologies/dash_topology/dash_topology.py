@@ -71,7 +71,7 @@ class DashTopology:
         client_ip_range = []
         
         
-        if "1.5" in self.onos_version:
+        if "1.6" in self.onos_version:
             # L3 (1.5): Unique /24 subnet per PoP to avoid ARP conflicts in routed environments
             for i, (pop, num_clients, num_servers) in enumerate(pops):
                 subnet_prefix = f"192.168.{10 + i}" 
@@ -84,7 +84,7 @@ class DashTopology:
             tot_servers = sum(p[2] for p in pops)
             tot_clients = sum(p[1] for p in pops)
             server_ip_range = [f"192.168.0.{i+1}" for i in range(tot_servers)]
-            client_ip_range = [f"192.168.0.{i + tot_servers + 1}" for i in range(tot_clients)]
+            client_ip_range = [f"192.168.0.{i}" for i in range(tot_servers + 1, tot_servers + tot_clients + 1)]
 
         # Inter-router /30 links remain the same for measuring RTT or OSPF adjacencies
         max_links = len(pops) * (len(pops) - 1) // 2
@@ -104,7 +104,7 @@ class DashTopology:
             pop_idx = pop_names.index(pop)
             
             # Select edge node and define gateway based on network mode
-            if "1.5" in self.onos_version:
+            if "1.6" in self.onos_version:
                 edge_node = self.routers[pop]
                 gateway_ip = f"192.168.{10 + pop_idx}.1" # each PoP gets a unique /24 subnet
             else:
@@ -149,7 +149,7 @@ class DashTopology:
                 ds_index += 1
 
         # Apply Quagga configurations by restarting daemons in L3 mode
-        if "1.5" in self.onos_version:
+        if "1.6" in self.onos_version:
              for router in self.routers.values():
                  router.run("killall -9 zebra ospfd 2>/dev/null || true && /usr/sbin/zebra -d && /usr/sbin/ospfd -d")
 
@@ -165,7 +165,7 @@ class DashTopology:
         for pop, num_clients, _ in self.config["pops"]:
             pop_idx = pop_names.index(pop)
             
-            if "1.5" in self.onos_version:
+            if "1.6" in self.onos_version:
                 edge_node = self.routers[pop]
                 gateway_ip = f"192.168.{10 + pop_idx}.1"
             else:
@@ -208,7 +208,7 @@ class DashTopology:
                 cli_index += 1
                 
         # Apply Quagga configurations by restarting daemons in L3 mode
-        if "1.5" in self.onos_version:
+        if "1.6" in self.onos_version:
              for router in self.routers.values():
                  router.run("killall -9 zebra ospfd 2>/dev/null || true && /usr/sbin/zebra -d && /usr/sbin/ospfd -d")
                      
@@ -237,26 +237,23 @@ class DashTopology:
 
         # install and activate telemetry app
         if (dockerImage == "onosproject/onos:2.5.0"):
-            current_dir = os.path.dirname(os.path.abspath(__file__))
+            print("[CTRL] Installing custom latency app...")
             oar_path = os.path.abspath(os.path.join(current_dir, "..", "onos_apps", "onos-apps-ONOS_Link_Quality_Measurement-oar.oar"))
-            print("[CTRL] Preparing official container for the experiment...")
-            
-            subprocess.run(f"docker exec -u 0 {container_name} mkdir -p /home/onos", shell=True)
-            subprocess.run(f"docker cp {oar_path} {container_name}:/home/onos/lft_app.oar", shell=True)
-            link_cmd = "ln -snf /root/onos/apache-karaf-4.2.14 /home/onos/apache-karaf-4.2.14"
-            subprocess.run(f"docker exec -u 0 {container_name} {link_cmd}", shell=True)
-            
-            print("[CTRL] Activating the Latency App via REST...")
-            activation_cmd = (
-                f'docker exec {container_name} curl -u onos:rocks -X POST '
-                '-H "Content-Type:application/octet-stream" '
-                '"http://localhost:8181/onos/v1/applications?activate=true" '
-                '--data-binary "@/home/onos/lft_app.oar"'
-            )
-            subprocess.run(activation_cmd, shell=True)
 
-        if (dockerImage == "onosproject/onos:1.5"):
-            print("[CTRL] Injecting OSPF 1.6.0 via Host-side REST API...")
+            if os.path.exists(oar_path):
+                activation_cmd = (
+                    f'curl -u onos:rocks -X POST '
+                    f'-H "Content-Type:application/octet-stream" '
+                    f'"http://{self.onos_ip}:8181/onos/v1/applications?activate=true" '
+                    f'--data-binary "@{oar_path}"'
+                )
+                subprocess.run(activation_cmd, shell=True)
+                print("[OK] Latency app installed!")
+            else:
+                print(f"[ERROR] OAR file not found in: {oar_path}")
+
+        if (dockerImage == "onosproject/onos:1.6"):
+            print("[CTRL] Injetando OSPF 1.6.0 via Host-side REST API...")
             ospf_oar_path = os.path.abspath(os.path.join(current_dir, "..", "onos_apps", "onos-ospf-app-1.6.0.oar"))
 
             if os.path.exists(ospf_oar_path):
@@ -267,7 +264,7 @@ class DashTopology:
                     f'--data-binary "@{ospf_oar_path}"'
                 )
                 subprocess.run(activation_cmd, shell=True)
-                print("[OK] OSPF App successfully injected!")
+                print("[OK] OSPF App 1.6.0 injetado com sucesso pelo host!")
 
                 # Inject OSPF configuraton json via host
                 config_path = os.path.abspath(os.path.join(current_dir, "..", "onos_apps", "ospf-config.json"))
@@ -524,7 +521,7 @@ class DashTopology:
         self.__create_controller()
         c1 = self.controller
 
-        if "1.5" in self.onos_version: # ospf needs quagga routers
+        if "1.6" in self.onos_version: # ospf needs quagga routers
             self.__create_routers() 
             self.__connect_routers()
         else:
