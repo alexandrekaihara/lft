@@ -1,4 +1,6 @@
 import sys, subprocess
+
+from numpy import rint
 from constants import CONFIG
 from pathlib import Path
 
@@ -52,5 +54,6 @@ if __name__ == "__main__":
 
     print("\n[DONE] Topology is up and running.")
     if algorithm == '1':
-        print("\n[NEXT] Run the deployer:")
-        print("  cmd: sudo docker run --rm -it --network host -v /var/run/docker.sock:/var/run/docker.sock --name deployer deployer")
+        print("\n [SETUP] Start the deployer and supervisor manually in separate terminals:")
+        print("  deployer:   sudo docker run --rm -it --network host -v /var/run/docker.sock:/var/run/docker.sock --name deployer deployer")
+        print("  supervisor: sudo docker run --rm -it --network host -v /var/run/docker.sock:/var/run/docker.sock --name supervisor supervisor")
