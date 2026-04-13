@@ -4,9 +4,10 @@ import time
 import csv
 import re
 import io
-import json
+import os
 import threading
 import requests
+import json
 from datetime import datetime, timezone, timedelta
 from requests.auth import HTTPBasicAuth
 from pathlib import Path
@@ -622,8 +623,10 @@ def hw_sample(csv_path: Path, snapshot_idx: int, state: List[int]) -> None:
     state[0], state[1], state[2], state[3] = idle1, total1, dr1, dw1
 
 
-IPERF_FIELDS = ["snapshot_idx", "client", "event_time", "interval_start", "interval_end", "seconds", "bytes", "bits_per_second", "retransmits"]# Brief: Expected filename: <client>%<snapshot_idx>.<ext>
-#  Example: cl0%3.json
+IPERF_FIELDS = ["snapshot_idx", "client", "event_time", "interval_start", "interval_end", "seconds", "bytes", "bits_per_second", "retransmits"]
+
+# Brief: Expected filename: <client>%<snapshot_idx>.<ext>
+#  Example: cl0%3.txt
 def _parse_client_snapshot_from_name(p: Path) -> Tuple[Optional[int], str]:
     stem = p.stem  # cl0%3
     if "%" not in stem:
@@ -635,86 +638,79 @@ def _parse_client_snapshot_from_name(p: Path) -> Tuple[Optional[int], str]:
         return None, client
 
 
-# Brief: iperf3 JSON usually has interval["sum"] for single-stream. 
-#  If not present, fallback to streams[0]
-def _safe_get_interval_sum(interval: Dict[str, Any]) -> Dict[str, Any]:
-    if isinstance(interval.get("sum"), dict):
-        return interval["sum"]
-    streams = interval.get("streams")
-    if isinstance(streams, list) and streams and isinstance(streams[0], dict):
-        # Each stream often has keys similar to sum; keep it best-effort.
-        return streams[0]
-    return {}
+# Matches per-second interval lines from iperf3 text output, e.g.:
+#   [  5]   0.00-1.00   sec  11.4 MBytes  95.8 Mbits/sec    0    139 KBytes
+_IPERF_TXT_RE = re.compile(
+    r"\[\s*\d+\]\s+([\d.]+)-([\d.]+)\s+sec\s+([\d.]+)\s+(KBytes|MBytes|GBytes|Bytes)"
+    r"\s+([\d.]+)\s+(Kbits/sec|Mbits/sec|Gbits/sec|bits/sec)(?:\s+(\d+))?"
+)
+_BYTES_MULT  = {"Bytes": 1, "KBytes": 1024, "MBytes": 1024**2, "GBytes": 1024**3}
+_BPS_MULT    = {"bits/sec": 1, "Kbits/sec": 1_000, "Mbits/sec": 1_000_000, "Gbits/sec": 1_000_000_000}
 
-# Brief: Convert ALL *.json in `iperf_dir` into ONE CSV at `out_csv`
-#  Adds columns: snapshot_idx, client (parsed from filename split by '%')
-#  Writes one row per interval (e.g., 1s intervals if iperf ran with -i 1)
-#  Returns stats dict: {"jsons": X, "rows": Y}
 
+# Brief: Convert ALL *.txt in `iperf_dir` into ONE CSV at `out_csv`.
+#  iperf3 text output (no -J) writes each 1s interval line immediately,
+#  so partial runs (session dropped mid-snapshot) still produce parseable data.
+#  Adds columns: snapshot_idx, client (parsed from filename split by '%').
+#  Writes one row per interval. Returns stats dict: {"jsons": X, "rows": Y}
 def snapshot_iperf_jsons_to_single_csv(
     iperf_dir: Path,
     out_csv: Path,
+    snap_start_ts: Optional[float] = None,
 ) -> Dict[str, int]:
     iperf_dir = Path(iperf_dir)
     out_csv = Path(out_csv)
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     jsons = sorted(iperf_dir.glob("*.json"))
+
     total_rows = 0
-    bsb_tz = timezone(timedelta(hours=-3))
 
     with out_csv.open("w", newline="", encoding="utf-8") as f_out:
         w = csv.DictWriter(f_out, fieldnames=IPERF_FIELDS)
         w.writeheader()
 
-        for js in jsons:
-            snap_idx, client = _parse_client_snapshot_from_name(js)
+        for jf in jsons:
+            snap_idx, client = _parse_client_snapshot_from_name(jf)
             snap_val = snap_idx if snap_idx is not None else ""
 
             try:
-                raw = js.read_text(encoding="utf-8", errors="ignore").strip()
-                if not raw:
-                    continue
-                data = json.loads(raw)
-            except Exception:
-                # Skip malformed JSON files
+                data = json.loads(jf.read_text(encoding="utf-8", errors="ignore"))
+            except Exception as e:
+                print(f" [WARNING] Failed to parse {jf.name}: {e}")
                 continue
 
-            start_ts = data.get("start", {}).get("timestamp", {}).get("timesecs", 0)
-
-            intervals = data.get("intervals", [])
-            if not isinstance(intervals, list) or not intervals:
+            if "intervals" not in data:
+                print(f" [WARNING] iperf output sem intervalos ({jf.name})")
                 continue
 
-            for interval in intervals:
-                if not isinstance(interval, dict):
-                    continue
+            base_ts = snap_start_ts if snap_start_ts is not None else os.path.getmtime(jf)
 
-                s = _safe_get_interval_sum(interval)
-                if not isinstance(s, dict) or not s:
-                    continue
-
-                interval_start = float(s.get("start", 0))
-                event_unix_time = start_ts + interval_start
-                
-                if start_ts > 0:
-                    dt_obj = datetime.fromtimestamp(event_unix_time, tz=bsb_tz)
-                    event_time_str = dt_obj.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] 
-                else:
-                    event_time_str = ""
+            interval_count = 0
+            for interval in data["intervals"]:
+                s = interval.get("sum", {})
+                i_start = s.get("start", 0.0)
+                i_end   = s.get("end",   0.0)
+                bps     = s.get("bits_per_second", 0.0)
+                xfer    = s.get("bytes", 0)
+                retr    = s.get("retransmits", "")
 
                 row = {
-                    "snapshot_idx": str(snap_val),
-                    "client": str(client),
-                    "event_time": event_time_str,
-                    "interval_start": str(s.get("start", "")),
-                    "interval_end": str(s.get("end", "")),
-                    "seconds": str(s.get("seconds", "")),
-                    "bytes": str(s.get("bytes", "")),
-                    "bits_per_second": str(s.get("bits_per_second", "")),
-                    "retransmits": str(s.get("retransmits", "")),
+                    "snapshot_idx":    str(snap_val),
+                    "client":          str(client),
+                    "event_time":      str(base_ts + i_start),
+                    "interval_start":  str(i_start),
+                    "interval_end":    str(i_end),
+                    "seconds":         str(round(i_end - i_start, 3)),
+                    "bytes":           str(xfer),
+                    "bits_per_second": str(bps),
+                    "retransmits":     str(retr) if retr != "" else "",
                 }
                 w.writerow(row)
                 total_rows += 1
+                interval_count += 1
+
+            if interval_count == 0:
+                print(f" [WARNING] iperf output sem dados ({jf.name})")
 
     return {"jsons": len(jsons), "rows": total_rows}
 
@@ -743,12 +739,12 @@ _PING_RE = re.compile(
 def snapshot_pings_to_single_csv(
     ping_dir: Path,
     out_csv: Path,
+    snap_boundaries: Optional[List[Tuple[int, float]]] = None,
 ) -> Dict[str, int]:
     ping_dir = Path(ping_dir)
     out_csv = Path(out_csv)
     out_csv.parent.mkdir(parents=True, exist_ok=True)
 
-    # Ping outputs are saved as .txt logs
     txt_files = sorted(ping_dir.glob("*.txt"))
     total_rows = 0
 
@@ -759,7 +755,7 @@ def snapshot_pings_to_single_csv(
         for txt in txt_files:
             snap_idx, client = _parse_client_snapshot_from_name(txt)
             snap_val = snap_idx if snap_idx is not None else ""
-            
+
             # Fallback if filename is just "client.txt" without %
             if not client:
                 client = txt.stem
@@ -770,20 +766,30 @@ def snapshot_pings_to_single_csv(
                         line = line.strip()
                         m = _PING_RE.match(line)
                         if m:
+                            if snap_val == "" and snap_boundaries and m.group(1):
+                                ts = float(m.group(1))
+                                for idx, start_ts in reversed(snap_boundaries):
+                                    if ts >= start_ts:
+                                        snap_val_line = str(idx)
+                                        break
+                                else:
+                                    snap_val_line = ""
+                            else:
+                                snap_val_line = str(snap_val)
+
                             row = {
-                                "snapshot_idx": str(snap_val),
-                                "client": str(client),
-                                "timestamp": m.group(1) if m.group(1) else "",
-                                "bytes": m.group(2),
-                                "target_ip": m.group(3),
-                                "icmp_seq": m.group(4),
-                                "ttl": m.group(5),
-                                "time_ms": m.group(6),
+                                "snapshot_idx": snap_val_line,
+                                "client":       str(client),
+                                "timestamp":    m.group(1) if m.group(1) else "",
+                                "bytes":        m.group(2),
+                                "target_ip":    m.group(3),
+                                "icmp_seq":     m.group(4),
+                                "ttl":          m.group(5),
+                                "time_ms":      m.group(6),
                             }
                             w.writerow(row)
                             total_rows += 1
             except Exception:
-                # Skip unreadable files
                 continue
 
     return {"files": len(txt_files), "rows": total_rows}

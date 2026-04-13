@@ -88,7 +88,10 @@ class DashTopology:
 
         # Inter-router /30 links remain the same for measuring RTT or OSPF adjacencies
         max_links = len(pops) * (len(pops) - 1) // 2
-        switch_ip_range = [f"10.0.0.{i+1}" for i in range(max_links * 2)]
+        switch_ip_range = []
+        for i in range(max_links):
+            base = i * 4
+            switch_ip_range += [f"10.0.0.{base+1}", f"10.0.0.{base+2}"]
         
         return (switch_ip_range, server_ip_range, client_ip_range, [p[0] for p in pops])
 
@@ -264,7 +267,9 @@ class DashTopology:
                     f'--data-binary "@{ospf_oar_path}"'
                 )
                 subprocess.run(activation_cmd, shell=True)
-                print("[OK] OSPF App 1.6.0 injetado com sucesso pelo host!")
+                print("[OK] OSPF App 1.6.0 injected succesfully!")
+                print("Waiting for OSPF app bundle activation (8s)...")
+                time.sleep(8)
 
                 # Inject OSPF configuraton json via host
                 config_path = os.path.abspath(os.path.join(current_dir, "..", "onos_apps", "ospf-config.json"))
