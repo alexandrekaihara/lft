@@ -58,6 +58,9 @@ cd docker/openswitch && sudo docker build -t alexandremitsurukaihara/lst2.0:open
 # Quagga Router
 cd docker/quagga && sudo docker build -t quagga .
 
+# Iperf client/server
+cd docker/iperf && sudo docker build -t lft-iperf .
+
 ```
 ## 3. First Run
 
