@@ -26,9 +26,9 @@ class CustomInstall(install):
     
 setup(
     name='profissa_lft',
-    version='1.0.9',
+    version='1.0.10',
     packages=find_packages(),
-    install_requires=['pandas'],
+    install_requires=['pandas', 'paramiko'],
     author='Alexandre Mitsuru Kaihara',
     author_email='alexandreamk1@gmail.com',
     description='LFT is a framework designed to facilitate the creation of lightweight network topologies with ease. Using Docker containers, it is possible to add any container to the network to provide network services or even emulate network devices, such as switches, controllers (in Software Defined Networking). This project has integration with OpenvSwitch to emulate the network forwarding devices and srsRAN 4G to emulate wireless links for Fog and Edge application scenarios.',
