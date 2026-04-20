@@ -33,9 +33,9 @@ def start_ollama():
     print(" [MOTOR] Running Ollama...")
     subprocess.run("systemctl start ollama", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(2)
-    print(" [MOTOR] Pre-loading Llama 3.1 in the memory...")
+    print(" [MOTOR] Pre-loading Qwen 3.6 in the memory...")
     try:
-        requests.post("http://localhost:11434/api/generate", json={"model": "llama3.1", "keep_alive": "30m"}, timeout=5)
+        requests.post("http://localhost:11434/api/generate", json={"model": "qwen3.6", "keep_alive": "30m"}, timeout=5)
     except requests.exceptions.ReadTimeout:
         pass
     except Exception as e:
@@ -98,13 +98,12 @@ def main(
     cfg_delay  = int(CONFIG["delay"].replace("ms", "")) # 10ms
     cfg_jitter = int(CONFIG["jitter"].replace("ms", "")) # 1ms
 
-    # During degradation:
-    #   - probe/ICMP bands get DEGRADED_DELAY_MS so link-latencies crosses the threshold
+    # During degradation (snapshots 2, 4, 6):
+    #   - probe/ICMP bands get DEGRADED_DELAY_MS so link-latency crosses the threshold
     #   - iperf band gets DEGRADED_RATE and DEGRADED_DELAY_MS
-    # DEGRADED_DELAY_MS=50ms keeps TCP viable (bandwidth-delay product manageable)
-    # while still crossing the 70ms supervisor threshold (10+50+2×10=80ms > 70ms).
-    DEGRADED_DELAY_MS = 90
-    DEGRADED_RATE = "75mbit"
+    # QoS tiers: normal MG<->ES=35mbit(4K), static RJ<->ES=5mbit(1080p), degraded MG<->ES=3mbit(720p)
+    DEGRADED_DELAY_MS = 130
+    DEGRADED_RATE = "3mbit"
 
     """
         Step: Input Handling - interactive if not provided, automated if passed as args
@@ -199,15 +198,17 @@ def main(
         topo.servers[server_name].startServer(port=5201)
         time.sleep(2)
 
+        supervisor_image = "supervisor-quantization" if algorithm == '3' else "supervisor"
+
         if mode_cfg.get("use_deployer", False):
             if auto_start_containers:
                 print("\n [SETUP] Starting deployer and supervisor containers...")
                 start_container("deployer")
-                start_container("supervisor")
+                subprocess.run(f"{DOCKER_RUN} supervisor {supervisor_image}", shell=True)
             else:
                 print("\n [SETUP] Start the deployer and supervisor manually in separate terminals:")
                 print("  deployer:   sudo docker run --rm -it --network host -v /var/run/docker.sock:/var/run/docker.sock --name deployer deployer")
-                print("  supervisor: sudo docker run --rm -it --network host -v /var/run/docker.sock:/var/run/docker.sock --name supervisor supervisor")
+                print(f"  supervisor: sudo docker run --rm -it --network host -v /var/run/docker.sock:/var/run/docker.sock --name supervisor {supervisor_image}")
             utils.sleep_countdown(t=60)
         else:
             print(f"\n [SETUP] Skipping deployer and supervisor (mode '{service}' does not use them).")
@@ -217,26 +218,27 @@ def main(
             Step: Apply prio+netem on all inter-switch links.
 
             Link props before degradation:
-              Normal (MG<->ES, MG<->SP, RJ<->SP): 250mbit / 10ms
-              Static Bottleneck (RJ<->ES): 125mbit / 50ms (+40ms forces solver to prefer MG path)
+              Normal (MG<->ES): 35mbit / 10ms  -> 4K        (snapshots 1,3,5)
+              Degraded (MG<->ES): 3mbit / 130ms -> 720p     (snapshots 2,4,6)
+              Static Bottleneck (RJ<->ES): 5mbit / 30ms -> 1080p (always)
 
             Degradation (snapshots 2,4,6):
-              Probe/ICMP bands: delay=90ms  90+2x10 = 110ms > 70ms threshold
-              iperf band: delay=90ms, rate=75mbit
+              Probe/ICMP bands: delay=130ms -> RTT crosses supervisor threshold
+              iperf band: delay=130ms, rate=3mbit
 
             prio ensures probes always dequeue before iperf for RTT measurements
         """
         print(" [SETUP] Applying prio+netem on all inter-switch links...")
         prio_links = [
-            # (switch, iface,         delay_ms,      jitter_ms,   bottleneck_rate)
-            ("s1", "s1s0", cfg_delay,      cfg_jitter, "250mbit"),  # MG -> ES  (normal)
-            ("s0", "s0s1", cfg_delay,      cfg_jitter, "250mbit"),  # ES -> MG
-            ("s2", "s2s0", cfg_delay + 40,  cfg_jitter, "125mbit"),  # RJ -> ES  (static bottleneck)
-            ("s0", "s0s2", cfg_delay + 40,  cfg_jitter, "125mbit"),  # ES -> RJ
-            ("s3", "s3s1", cfg_delay,      cfg_jitter, "250mbit"),  # SP -> MG
-            ("s1", "s1s3", cfg_delay,      cfg_jitter, "250mbit"),  # MG -> SP
-            ("s3", "s3s2", cfg_delay,      cfg_jitter, "250mbit"),  # SP -> RJ
-            ("s2", "s2s3", cfg_delay,      cfg_jitter, "250mbit"),  # RJ -> SP
+            # (switch, iface,         delay_ms,         jitter_ms,   bottleneck_rate)
+            ("s1", "s1s0", cfg_delay,        cfg_jitter, "35mbit"),   # MG -> ES  (normal)
+            ("s0", "s0s1", cfg_delay,        cfg_jitter, "35mbit"),   # ES -> MG
+            ("s2", "s2s0", cfg_delay + 20,   cfg_jitter, "5mbit"),    # RJ -> ES  (static bottleneck: 30ms / 5mbit)
+            ("s0", "s0s2", cfg_delay + 20,   cfg_jitter, "5mbit"),    # ES -> RJ
+            ("s3", "s3s1", cfg_delay,        cfg_jitter, "35mbit"),   # SP -> MG
+            ("s1", "s1s3", cfg_delay,        cfg_jitter, "35mbit"),   # MG -> SP
+            ("s3", "s3s2", cfg_delay,        cfg_jitter, "35mbit"),   # SP -> RJ
+            ("s2", "s2s3", cfg_delay,        cfg_jitter, "35mbit"),   # RJ -> SP
         ]
         for sw, iface, delay_ms, jitter_ms, br in prio_links:
             setup_prio_netem(sw, iface, delay_ms, jitter_ms, br)
@@ -279,9 +281,9 @@ def main(
                 Step: Degrade or take down link MG <-> ES.
 
                 degrade:
-                  All three bands on s1s0 and s0s1 get DEGRADED_DELAY_MS (50ms):
-                  - Probe (1:1) + ICMP (1:2): 90ms delay -> RTT = 110ms > 70ms threshold
-                  - iperf (1:3): 90ms delay + 75mbit cap
+                  All three bands on s1s0 and s0s1 get DEGRADED_DELAY_MS (130ms):
+                  - Probe (1:1) + ICMP (1:2): 130ms delay -> RTT crosses supervisor threshold
+                  - iperf (1:3): 130ms delay + 3mbit cap
                   prio still ensures probes are never queued behind iperf
 
                 take down:
@@ -300,7 +302,7 @@ def main(
                         for sw, iface in [("s1", "s1s0"), ("s0", "s0s1")]:
                             subprocess.run(f"docker exec {sw} tc qdisc change dev {iface} parent 1:1 handle 10: netem delay {cfg_delay}ms {cfg_jitter}ms", shell=True, check=True)
                             subprocess.run(f"docker exec {sw} tc qdisc change dev {iface} parent 1:2 handle 20: netem delay {cfg_delay}ms {cfg_jitter}ms", shell=True, check=True)
-                            subprocess.run(f"docker exec {sw} tc qdisc change dev {iface} parent 1:3 handle 30: netem delay {cfg_delay}ms {cfg_jitter}ms rate 250mbit", shell=True, check=True)
+                            subprocess.run(f"docker exec {sw} tc qdisc change dev {iface} parent 1:3 handle 30: netem delay {cfg_delay}ms {cfg_jitter}ms rate 35mbit", shell=True, check=True)
 
                     print(msg)
                     utils.append_event(run_root, msg)
@@ -344,7 +346,8 @@ def main(
             if snap_idx == 1 and mode_cfg.get("use_deployer", False):
                 for raw_ip in topo.client_ip_range:
                     clean_ip = raw_ip.split('/')[0].strip()
-                    payload = {"intent": f"define intent q1: from endpoint('{clean_ip}') add service('{service}')"}
+                    deployer_service = "cdn-qoe" if service == "treshold" else service
+                    payload = {"intent": f"define intent q1: from endpoint('{clean_ip}') add service('{deployer_service}')"}
                     print(f"\n [SNAPSHOT 1] Sending intent for {clean_ip}...")
                     try:
                         response = requests.post(base_url_deployer, json=payload, timeout=30)

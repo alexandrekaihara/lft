@@ -53,12 +53,6 @@ class Switch(Node):
         if self.__mount: mount = f'-v {self.__hostPath}:{self.__containerPath}'
         
         super().instantiate(dockerCommand=f"docker run -d --privileged --cap-add=NET_ADMIN --network={networkMode} {mount} --name={self.getNodeName()} {image}")
-        subprocess.run(
-            f"docker exec {self.getNodeName()} bash -c "
-            f"'until ovs-vsctl show > /dev/null 2>&1; do sleep 0.5; done'",
-            shell=True, timeout=15
-        )
-        
         br = self.getNodeName()
         try:
             # Create bridge and set it up

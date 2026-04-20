@@ -17,7 +17,7 @@ CONFIG = {
     "pops": POPS,
     "apply_link_properties": True,         
     "randomize_link_properties": False,      
-    "throughput": "250mbit",              
+    "throughput": "35mbit",              
     "delay": "10ms",                         
-    "jitter": "0ms"          
+    "jitter": "1ms"          
 }
