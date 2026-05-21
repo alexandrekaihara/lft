@@ -367,7 +367,8 @@ class DashTopology:
                         delay = f"{random.choice(RANDOM_RANGES['delay'])}ms"
                         jitter = f"{random.choice(RANDOM_RANGES['jitter'])}ms"
                     else:
-                        throughput = self.config["throughput"]
+                        tm = self.config.get("throughput_matrix")
+                        throughput = tm[i][j] if (tm and tm[i][j]) else self.config["throughput"]
                         delay = self.config["delay"]
                         jitter = self.config["jitter"]
 
