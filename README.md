@@ -62,7 +62,40 @@ cd docker/quagga && sudo docker build -t quagga .
 cd docker/iperf && sudo docker build -t lft-iperf .
 
 ```
-## 3. First Run
+## 3. CLI
+
+After installing, use `sudo lft` to manage topologies interactively.
+
+**Load a topology from config and open the REPL:**
+```
+sudo lft topology create --path onos_topologies/iperf_experiment/diamond_topology/constants.py
+```
+
+**Start an empty topology manually:**
+```
+sudo lft topology create --manual
+```
+
+**REPL commands:**
+```
+create host <name> <ip>       add a host
+create switch <name>          add a switch
+connect <name1> <name2>       link two nodes
+traffic <ping|iperf> <n1> <n2>
+ls [hosts|switches]
+quit
+```
+
+**Other commands:**
+```
+sudo lft experiment                        list available experiments
+sudo lft experiment <name>                 run an experiment
+sudo lft utils clean                       remove all Docker containers
+```
+
+---
+
+## 3. First Run (legacy)
 
 On the source root of the project run:
 
