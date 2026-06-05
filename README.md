@@ -34,13 +34,14 @@ To install the project you need to run:
 pip3 install profissa_lft
 ```
 
-In case of any missing dependency you can manually clone the repository and run the dependencies script:
+Or clone the repository and install locally:
 
 ```
 git clone https://github.com/alexandrekaihara/lft
 cd lft
-chmod +X dependencies.sh
-./dependencies.sh
+chmod +x dependencies.sh
+sudo ./dependencies.sh
+pip3 install -e .
 ```
 
 ## 2.1 Build Docker Images
