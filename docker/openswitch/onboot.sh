@@ -18,7 +18,30 @@
 #
 
 
-# Start container and keep alive
+# Start OVS
 sudo /usr/share/openvswitch/scripts/ovs-ctl start
 service start firewalld
+
+# Wait for OVSDB socket to appear (up to 30s)
+for i in $(seq 1 30); do
+  if [ -S /var/run/openvswitch/db.sock ]; then
+    echo "OVSDB socket ready"
+    break
+  fi
+  sleep 1
+done
+
+# Start gNMI adapter in background
+/usr/local/bin/ovs-gnmi-adapter \
+  --ovsdb-socket=/var/run/openvswitch/db.sock \
+  --gnmi-addr=0.0.0.0 \
+  --gnmi-port=9339 \
+  --tls-cert=/etc/ovs-gnmi-adapter/tls/server.crt \
+  --tls-key=/etc/ovs-gnmi-adapter/tls/server.key \
+  &
+
+# Open firewall port for gNMI
+firewall-cmd --add-port=9339/tcp 2>/dev/null || true
+
+# Start container and keep alive
 tail -f /dev/null
