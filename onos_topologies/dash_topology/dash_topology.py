@@ -306,7 +306,7 @@ class DashTopology:
 
             sw = Switch(sname, hostPath=str(self.host_results), containerPath="/results/dash")
             sw.instantiate(
-                image="alexandremitsurukaihara/lst2.0:openvswitch",
+                image="lft-ovs-gnmi:latest",
                 networkMode="bridge",
                 datapath_id=datapath_id,
                 sw_desc=uf,
