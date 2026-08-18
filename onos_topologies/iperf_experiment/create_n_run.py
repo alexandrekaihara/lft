@@ -1,7 +1,7 @@
 import sys, subprocess
 
 from numpy import rint
-from constants import CONFIG
+from diamond_topology.constants import CONFIG
 from pathlib import Path
 
 project_root = Path(__file__).resolve().parents[2]
