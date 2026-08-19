@@ -38,6 +38,7 @@ done
   --gnmi-port=9339 \
   --tls-cert=/etc/ovs-gnmi-adapter/tls/server.crt \
   --tls-key=/etc/ovs-gnmi-adapter/tls/server.key \
+  --latency-targets-file=/etc/ovs-gnmi-adapter/latency-targets.conf \
   &
 
 # Open firewall port for gNMI

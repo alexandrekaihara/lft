@@ -34,7 +34,7 @@ func main() {
 
 	ovsClient := NewOVSDBClient(cfg)
 	rateCalc := NewCounterRate(cfg.RateWindowSamples)
-	prober := NewLatencyProber(cfg.LatencyTargets, cfg.LatencyInterval)
+	prober := NewLatencyProber(cfg.LatencyTargets, cfg.LatencyTargetsFile, cfg.LatencyInterval)
 
 	if prober.Enabled() {
 		go prober.Run(ctx)

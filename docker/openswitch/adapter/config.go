@@ -13,8 +13,9 @@ type Config struct {
 	TLSCert          string
 	TLSKey           string
 	TLSCA            string
-	LatencyTargets   []string
-	LatencyInterval  int
+	LatencyTargets    []string
+	LatencyTargetsFile string
+	LatencyInterval   int
 	RateWindowSamples int
 }
 
@@ -32,6 +33,7 @@ func ParseConfig() *Config {
 
 	var latencyTargets string
 	flag.StringVar(&latencyTargets, "latency-targets", "", "Comma-separated list of IPs to probe for latency (empty = disabled)")
+	flag.StringVar(&cfg.LatencyTargetsFile, "latency-targets-file", "", "Path to a file of newline/comma-separated IPs to probe; re-read periodically (empty = unused)")
 
 	flag.Parse()
 

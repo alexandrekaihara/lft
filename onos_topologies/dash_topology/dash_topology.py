@@ -1,5 +1,6 @@
 import os
 import random
+import shlex
 import subprocess
 import time
 from pathlib import Path
@@ -384,6 +385,31 @@ class DashTopology:
         print(f"[OK] {len(connections_made)} inter-PoP links created!\n")
 
 
+    # Brief: Write each switch's neighbor switch IPs (docker bridge) into the
+    #        gNMI adapter latency-targets file inside the container, so the
+    #        adapter auto-discovers latency targets with no hardcoded IPs.
+    def __inject_latency_targets(self):
+        print("[Experiment] ... Injecting gNMI latency targets")
+        pops = self.config['pops']
+        adj = self.config['adjacency_matrix']
+        for i, pop_i in enumerate(pops):
+            neighbors = []
+            for j, pop_j in enumerate(pops):
+                if i != j and adj[i][j] == 1:
+                    neighbor_sw = self.pop_to_sname[pop_j[0]]
+                    neighbors.append(utils.get_container_ip(neighbor_sw))
+            sw_name = self.pop_to_sname[pop_i[0]]
+            targets = ",".join(neighbors)
+            cmd = (
+                f"docker exec {sw_name} sh -c "
+                f"'mkdir -p /etc/ovs-gnmi-adapter && "
+                f"echo {shlex.quote(targets)} > /etc/ovs-gnmi-adapter/latency-targets.conf'"
+            )
+            subprocess.run(cmd, shell=True, check=True)
+            print(f"  [LATENCY] {sw_name} -> {targets or '(none)'}")
+        print("[OK] gNMI latency targets injected\n")
+
+
     # Brief: Create PoP links for L3 Routers, assign /30 IPs and configure OSPF
     def __connect_routers(self):
         print("[Experiment] ... Connecting Quagga Routers (OSPF /30 Links)")
@@ -533,6 +559,7 @@ class DashTopology:
         else:
             self.__create_switches()
             self.__connect_switches()
+            self.__inject_latency_targets()
 
         if (not self.iperf):
             # Default DASH

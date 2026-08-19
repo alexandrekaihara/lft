@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -69,13 +70,14 @@ func (r *ringBuffer) stats() (last, avg, max, min uint64, ok bool) {
 }
 
 type LatencyProber struct {
-	targets  []string
-	interval time.Duration
-	mu       sync.RWMutex
-	results  map[string]*ringBuffer
+	targets     []string
+	targetsFile string
+	interval    time.Duration
+	mu          sync.RWMutex
+	results     map[string]*ringBuffer
 }
 
-func NewLatencyProber(targets []string, intervalSec int) *LatencyProber {
+func NewLatencyProber(targets []string, targetsFile string, intervalSec int) *LatencyProber {
 	if intervalSec < 1 {
 		intervalSec = 5
 	}
@@ -84,18 +86,62 @@ func NewLatencyProber(targets []string, intervalSec int) *LatencyProber {
 		results[t] = newRingBuffer(60)
 	}
 	return &LatencyProber{
-		targets:  targets,
-		interval: time.Duration(intervalSec) * time.Second,
-		results:  results,
+		targets:     targets,
+		targetsFile: targetsFile,
+		interval:    time.Duration(intervalSec) * time.Second,
+		results:     results,
+	}
+}
+
+// reloadTargets re-reads the targets file (if configured) and reconciles the probe
+// set: new IPs get a ring buffer, removed IPs are dropped. A missing file is a
+// no-op (targets just stay as they are). Safe to call concurrently with probing.
+func (p *LatencyProber) reloadTargets() {
+	if p.targetsFile == "" {
+		return
+	}
+	data, err := os.ReadFile(p.targetsFile)
+	if err != nil {
+		// Missing/unreadable file: leave existing targets untouched.
+		return
+	}
+
+	want := make(map[string]struct{})
+	for _, raw := range strings.FieldsFunc(string(data), func(r rune) bool { return r == ',' || r == '\n' || r == '\r' }) {
+		ip := strings.TrimSpace(raw)
+		if ip != "" {
+			want[ip] = struct{}{}
+		}
+	}
+	// Static --latency-targets are always kept.
+	for _, t := range p.targets {
+		want[t] = struct{}{}
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for ip := range want {
+		if _, ok := p.results[ip]; !ok {
+			p.results[ip] = newRingBuffer(60)
+			log.Printf("latency: added target %s", ip)
+		}
+	}
+	for ip := range p.results {
+		if _, ok := want[ip]; !ok {
+			delete(p.results, ip)
+			log.Printf("latency: removed target %s", ip)
+		}
 	}
 }
 
 func (p *LatencyProber) Run(ctx context.Context) {
-	if len(p.targets) == 0 {
+	if !p.Enabled() {
 		return
 	}
 
-	log.Printf("latency prober started: targets=%v interval=%v", p.targets, p.interval)
+	log.Printf("latency prober started: targets=%v targets-file=%q interval=%v", p.targets, p.targetsFile, p.interval)
+
+	p.reloadTargets()
 
 	ticker := time.NewTicker(p.interval)
 	defer ticker.Stop()
@@ -108,14 +154,22 @@ func (p *LatencyProber) Run(ctx context.Context) {
 			log.Printf("latency prober stopped")
 			return
 		case <-ticker.C:
+			p.reloadTargets()
 			p.probeAll()
 		}
 	}
 }
 
 func (p *LatencyProber) probeAll() {
+	p.mu.RLock()
+	targets := make([]string, 0, len(p.results))
+	for t := range p.results {
+		targets = append(targets, t)
+	}
+	p.mu.RUnlock()
+
 	var wg sync.WaitGroup
-	for _, target := range p.targets {
+	for _, target := range targets {
 		wg.Add(1)
 		go func(t string) {
 			defer wg.Done()
@@ -223,7 +277,7 @@ func (p *LatencyProber) Targets() []string {
 }
 
 func (p *LatencyProber) Enabled() bool {
-	return len(p.targets) > 0
+	return len(p.targets) > 0 || p.targetsFile != ""
 }
 
 func (p *LatencyProber) String() string {

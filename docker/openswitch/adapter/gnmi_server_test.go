@@ -63,7 +63,7 @@ func setupTestServer(t *testing.T) (*pb.GNMIClient, func()) {
 	}
 
 	rateCalc := NewCounterRate(5)
-	prober := NewLatencyProber(nil, 5)
+	prober := NewLatencyProber(nil, "", 5)
 	srv := NewGNMIServer(mock, rateCalc, prober)
 
 	tlsConfig := generateTestTLSConfig(t)
