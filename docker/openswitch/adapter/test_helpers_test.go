@@ -13,6 +13,12 @@ import (
 
 var testCertPEM, testKeyPEM []byte
 
+// strPtr returns a pointer to s, for building nullable (*string) OVSDB fields in tests.
+func strPtr(s string) *string { return &s }
+
+// intPtr returns a pointer to i, for building nullable (*int) OVSDB fields in tests.
+func intPtr(i int) *int { return &i }
+
 func init() {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {

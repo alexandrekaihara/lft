@@ -11,9 +11,9 @@ func makeTestInterface() OVSDBInterface {
 		UUID:       "iface-uuid-1",
 		Name:       "eth0",
 		Type:       "",
-		LinkState:  "up",
-		AdminState: "up",
-		Ofport:     1,
+		LinkState:  strPtr("up"),
+		AdminState: strPtr("up"),
+		Ofport:     intPtr(1),
 		Statistics: map[string]int{
 			"rx_bytes":   1000,
 			"tx_bytes":   2000,
@@ -66,42 +66,53 @@ func TestTranslateInterface_AllPaths(t *testing.T) {
 
 func TestTranslateInterface_OperStatusMapping(t *testing.T) {
 	cases := []struct {
-		linkState string
+		linkState *string
 		expected  string
 	}{
-		{"up", "UP"},
-		{"UP", "UP"},
-		{"down", "DOWN"},
-		{"DOWN", "DOWN"},
-		{"", "DOWN"},
-		{"unknown", "DOWN"},
+		{strPtr("up"), "UP"},
+		{strPtr("UP"), "UP"},
+		{strPtr("down"), "DOWN"},
+		{strPtr("DOWN"), "DOWN"},
+		{strPtr(""), "DOWN"},
+		{nil, "DOWN"},
+		{strPtr("unknown"), "DOWN"},
 	}
 
 	for _, c := range cases {
 		got := translateOperStatus(c.linkState)
+		ls := "<nil>"
+		if c.linkState != nil {
+			ls = *c.linkState
+		}
 		if got != c.expected {
-			t.Errorf("translateOperStatus(%q) = %q, want %q", c.linkState, got, c.expected)
+			t.Errorf("translateOperStatus(%q) = %q, want %q", ls, got, c.expected)
 		}
 	}
 }
 
 func TestTranslateInterface_AdminStatusMapping(t *testing.T) {
 	cases := []struct {
-		adminState string
+		adminState *string
 		onBridge   bool
 		expected   string
 	}{
-		{"up", true, "UP"},
-		{"up", false, "DOWN"},
-		{"down", true, "DOWN"},
-		{"", true, "UP"},
-		{"", false, "DOWN"},
+		{strPtr("up"), true, "UP"},
+		{strPtr("up"), false, "DOWN"},
+		{strPtr("down"), true, "DOWN"},
+		{strPtr(""), true, "UP"},
+		{strPtr(""), false, "DOWN"},
+		{nil, true, "UP"},
+		{nil, false, "DOWN"},
 	}
 
 	for _, c := range cases {
 		got := translateAdminStatus(c.adminState, c.onBridge)
+		as := "<nil>"
+		if c.adminState != nil {
+			as = *c.adminState
+		}
 		if got != c.expected {
-			t.Errorf("translateAdminStatus(%q, %v) = %q, want %q", c.adminState, c.onBridge, got, c.expected)
+			t.Errorf("translateAdminStatus(%q, %v) = %q, want %q", as, c.onBridge, got, c.expected)
 		}
 	}
 }
@@ -132,7 +143,7 @@ func TestTranslateInterface_NilStatistics(t *testing.T) {
 		UUID:       "test",
 		Name:       "br0",
 		Type:       "internal",
-		LinkState:  "down",
+		LinkState:  strPtr("down"),
 		Statistics: nil,
 	}
 

@@ -46,8 +46,8 @@ func setupTestServer(t *testing.T) (*pb.GNMIClient, func()) {
 			UUID:       "iface-uuid",
 			Name:       "eth0",
 			Type:       "",
-			LinkState:  "up",
-			AdminState: "up",
+			LinkState:  strPtr("up"),
+			AdminState: strPtr("up"),
 			Statistics: map[string]int{
 				"rx_bytes":   1000,
 				"tx_bytes":   2000,

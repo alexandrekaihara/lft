@@ -133,8 +133,11 @@ func TranslateLatencyResult(ip string, rttNS uint64, avgNS, maxNS, minNS uint64)
 	}
 }
 
-func translateOperStatus(linkState string) string {
-	switch strings.ToLower(linkState) {
+func translateOperStatus(linkState *string) string {
+	if linkState == nil {
+		return "DOWN"
+	}
+	switch strings.ToLower(*linkState) {
 	case "up":
 		return "UP"
 	case "down":
@@ -144,8 +147,8 @@ func translateOperStatus(linkState string) string {
 	}
 }
 
-func translateAdminStatus(adminState string, onBridge bool) string {
-	if strings.ToLower(adminState) == "down" {
+func translateAdminStatus(adminState *string, onBridge bool) string {
+	if adminState != nil && strings.ToLower(*adminState) == "down" {
 		return "DOWN"
 	}
 	if onBridge {
