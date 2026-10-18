@@ -25,7 +25,7 @@ pkg_install() {
 }
 
 echo "==> base packages"
-pkg_install docker.io openvswitch-switch wireguard-tools curl git ca-certificates \
+pkg_install docker.io openvswitch-switch curl git ca-certificates \
   python3 python3-pip iperf3 tcpdump
 # (on dnf distros the docker package is 'moby-engine' or 'docker-ce' from the
 #  upstream repo; docker.io is the Ubuntu/Debian name — adjust to taste)

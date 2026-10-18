@@ -9,14 +9,14 @@ theoretical.
 
 Target audience: **Linux hosts** (that is where KVM/Incus run). Teammates on
 macOS/Windows do not run the lab locally; they use the shared instance over
-WireGuard (§5). Everything else in this doc is distro-agnostic where possible:
+the network (§5). Everything else in this doc is distro-agnostic where possible:
 the scripts auto-detect `apt` and `dnf`, and Incus itself is packaged for
 Ubuntu/Debian/Fedora/Arch and derivates.
 
 ## 1. Architecture
 
 ```
- Linux host (Incus + WireGuard)
+ Linux host (Incus)
  └── lft-vm  ·  KVM virtual machine, Ubuntu noble
      ├── docker
      │   ├── c1            onosproject/onos:2.5.0   (--pid host, ports 8181/8101/830/5005/6653)
@@ -38,7 +38,22 @@ which is comfortable for the 27-switch topologies.
 - [Incus](https://linuxcontainers.org/incus/docs/main/installing/) ≥ 6.x
   (the `images:ubuntu/noble` `disk-kvm` image is used for the VM).
 - ~70 GiB free disk, ≥ 8 GiB RAM to spare.
-- For the shared-access part (§5): WireGuard.
+### Distro support (Linux)
+
+KVM itself is a mainline kernel feature — every Linux distro has it; you need
+VT-x/AMD-V in the CPU and `/dev/kvm` on the host. What varies is only how you
+install the stack:
+
+| Distro family | KVM/QEMU | Incus |
+|---|---|---|
+| Debian / Ubuntu | in the archive (`qemu-kvm`) | [Zabbly apt repo](https://github.com/zabbly/incus) (recommended) — Debian 13+ also carries Incus in its own archive |
+| Fedora | in the archive | official Fedora package (`dnf install incus`) |
+| RHEL / CentOS Stream | in the archive | via [snap](https://snapcraft.io/incus) (`snap install incus`) |
+| Arch | in the archive (`qemu-full`) | official repos (`pacman -S incus`) |
+
+The scripts in this repo auto-detect `apt` and `dnf` (and pacman is trivial to
+add) — they only wrap package names; the Incus, Docker and OVS layer is
+identical everywhere.
 
 ## 3. Quickstart
 
@@ -66,7 +81,6 @@ Both scripts are idempotent and parameterized via environment variables
 | OS | Ubuntu noble, `disk-kvm` image | validated layout |
 | Docker | `docker.io` (or `docker-ce`) + enabled | data plane + ONOS run as containers |
 | Open vSwitch | `openvswitch-switch` + enabled | topology drivers call `ovs-*` on the VM |
-| WireGuard | `wireguard-tools` | §5 |
 | Python | 3.12 venv via [uv](https://docs.astral.sh/uv/) | pinned deps (`uv.lock`) when the branch carries it, `pip install -e .` otherwise |
 | Images | `onosproject/onos:2.5.0`, `alexandremitsurukaihara/lst2.0:openvswitch`, locally built `lft-iperf:latest` | controller, switches, endpoints |
 
@@ -74,43 +88,31 @@ ONOS is started as `c1` with `--pid host` and its ports published
 (REST/GUI 8181, karaf ssh 8101, NETCONF 830, JVM debug 5005, OpenFlow 6653),
 matching the deployment the experiments were validated against.
 
-## 5. WireGuard: make the VM a first-class tunnel peer
+## 5. Exposing ports from the VM
 
-The robust way to let the whole team reach the lab is **not** per-port
-forwarders on the host (they die with their process) but giving the VM its own
-tunnel identity. Any WireGuard network works; the lab server runs a
-hub-and-spoke `10.8.0.0/24` where the VM got `10.8.0.10`.
+All lab services publish their ports on the VM's network interfaces (ONOS
+publishes 8181/8101/830/5005/6653 via `docker run -p`, see §4). The VM gets
+its address from the Incus bridge (`incusbr0`, e.g. `10.90.90.x`) and is
+reachable from the host as-is. To open it up further, pick what fits the team:
 
-On the VM:
+| Scope | How |
+|---|---|
+| Host only | nothing to do — `incus exec` or the bridge IP |
+| Others on the host LAN | an Incus **proxy device** (below) publishes a VM port on a host address |
+| Selected teammates | SSH local forward from any machine with SSH access to the host: `ssh -L 8181:<VM_IP>:8181 user@host` |
+| Whole team, standing access | the team's VPN/tunnel of choice — run it **inside the VM** and give the VM its own address (per-port relay scripts on the host are the classic "worked yesterday" failure: they die with their process) |
+
+Incus proxy device — no firewall edits inside the VM, survives reboots:
 
 ```bash
-umask 077 && wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey
-cat > /etc/wireguard/wg0.conf <<EOF
-[Interface]
-PrivateKey = $(cat /etc/wireguard/privatekey)
-Address = <VM_TUNNEL_IP>/32
-
-[Peer]
-PublicKey = <HUB_PUBLIC_KEY>
-Endpoint = <HUB_ENDPOINT>:51820
-AllowedIPs = <TUNNEL_CIDR>      # e.g. 10.8.0.0/24 — only the tunnel, default route untouched
-PersistentKeepalive = 25        # the VM sits behind the incus bridge NAT
-EOF
-systemctl enable --now wg-quick@wg0
+incus config device add lft-vm onos-ui proxy \
+  listen=tcp:0.0.0.0:8181 connect=tcp:<VM_IP>:8181
+# remove again with: incus config device remove lft-vm onos-ui
 ```
-
-On the hub, add the VM's public key as a peer with
-`AllowedIPs = <VM_TUNNEL_IP>/32` (append to the config file **and** apply live
-with `wg set`, so nobody drops), and every existing peer can already reach the
-VM because they route the whole tunnel CIDR to the hub. No firewall inside the
-VM means every service port is reachable from the tunnel — that is the point.
-
-Real-world values used on the lab server: host `tupana` `10.8.0.8`, VM
-`lft-vm` `10.8.0.10`, hub `tunnel.dwcorp.com.br:51820`.
 
 ## 6. Team access (shared instance)
 
-With §5 in place, everyone on the tunnel reaches the VM directly:
+With the VM reachable (§5), the services are:
 
 | Port | Service |
 |---|---|
@@ -119,13 +121,9 @@ With §5 in place, everyone on the tunnel reaches the VM directly:
 | 830 | ONOS NETCONF |
 | 5005 | ONOS JVM debug |
 | 4180 | REIN console API |
-| 22 | SSH into the VM (add your public key via `incus exec`) |
+| 22 | SSH into the VM (add public keys via `incus exec`) |
 
 Root shell without SSH: `sudo incus exec lft-vm -- bash` on the host.
-
-Client-side caveat: a peer only reaches `x.y.z.w` if its **own**
-`AllowedIPs` includes it — use the full tunnel CIDR (e.g. `10.8.0.0/24`),
-not single /32s, or you will hit "works for `.10`, not for `.8`" symptoms.
 
 ## 7. Running an experiment
 
@@ -146,6 +144,6 @@ agnostic to which driver builds the topology.
 |---|---|
 | `incus exec` hangs right after launch | the guest agent isn't up yet; wait ~1 min (`incus list` shows no IPv4 until then) |
 | VM has no KVM acceleration | `ls -l /dev/kvm`; enable VT-x/AMD-V in BIOS; add your user to the `kvm` group |
-| WireGuard handshake but no traffic | client-side `AllowedIPs` too narrow (see §6) or hub peer missing the VM's `AllowedIPs` |
-| ONOS ports closed from the tunnel | check `docker ps` publishes them (`-p 8181:8181 …`), then `wg show` inside the VM |
-| socat/per-port forwards | don't — that approach was retired; use §5 |
+| Port reachable from the host but not from outside it | expose it properly (§5) — proxy device on the host, or the team VPN running inside the VM |
+| ONOS ports closed | check `docker ps` publishes them (`-p 8181:8181 …`) and that ONOS finished booting (~1 min) |
+| per-port relay scripts (socat etc.) | avoid — they die with their process; use §5 |

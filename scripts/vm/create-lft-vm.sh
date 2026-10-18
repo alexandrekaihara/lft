@@ -45,5 +45,5 @@ incus exec "$VM_NAME" -- bash "/root/provision-vm.sh" "$LFT_REPO"
 
 incus list "$VM_NAME"
 echo
-echo "Done. Next: give the VM a WireGuard identity (docs/KVM-Lab.md §5) so the"
-echo "team can reach it, then validate with scripts/vm/smoketest.py (§7)."
+echo "Done. Next: expose the ports the team needs (docs/KVM-Lab.md §5) and"
+echo "validate with scripts/vm/smoketest.py (§7)."
